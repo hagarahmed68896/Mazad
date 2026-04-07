@@ -1,0 +1,27 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('transactions', function (Blueprint $table) {
+            $table->id();
+            $table->string('transaction_number')->unique();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->string('type');
+            $table->decimal('amount', 12, 2);
+            $table->string('payment_method');
+            $table->enum('status', ['completed', 'under_review', 'failed'])->default('under_review');
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('transactions');
+    }
+};

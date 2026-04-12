@@ -70,5 +70,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
             // Shared Order Actions
             Route::post('orders/{order}/send-code', [\App\Http\Controllers\Admin\UserController::class, 'sendOrderCode'])->name('orders.send-code');
         });
+
+        // Ads Management
+        Route::group(['prefix' => 'ads', 'as' => 'ads.'], function () {
+            Route::get('auctions', [\App\Http\Controllers\Admin\AdController::class, 'auctions'])->name('auctions');
+        });
     });
 });

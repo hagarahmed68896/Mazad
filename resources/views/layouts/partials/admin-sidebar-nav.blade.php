@@ -26,15 +26,21 @@
                 </div>
 
                 <!-- Ads Management -->
-                <div x-data="{ open: false }">
-                    <button @click="open = !open" class="w-full flex items-center justify-between px-4 py-3.5 text-[#6F6F6F] hover:bg-slate-50 hover:text-[#1C1C1C] rounded-xl transition-all">
+                <div x-data="{ open: {{ request()->routeIs('admin.ads.*') ? 'true' : 'false' }} }">
+                    <button @click="open = !open" class="w-full flex items-center justify-between px-4 py-3.5 {{ request()->routeIs('admin.ads.*') ? 'text-[#1C1C1C] font-bold' : 'text-[#6F6F6F] hover:bg-slate-50 hover:text-[#1C1C1C]' }} rounded-xl transition-all">
                         <div class="flex items-center">
                             <svg class="w-5 h-5 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             إدارة الإعلانات
                         </div>
                         <svg :class="open ? 'rotate-180 text-[#1A73E8]' : ''" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
-                    <!-- Expandable content can go here -->
+                    <div x-show="open" x-collapse class="pl-4 pr-10 py-2 space-y-1 text-[#6F6F6F]">
+                        <a href="#" class="block px-4 py-2.5 rounded-xl transition-colors hover:text-[#1A73E8] hover:bg-slate-50">الإعلانات الغير مكتملة</a>
+                        <a href="{{ route('admin.ads.auctions') }}" class="block px-4 py-2.5 rounded-xl transition-colors {{ request()->routeIs('admin.ads.auctions*') ? 'bg-[#E8F0FE] text-[#1A73E8] font-bold' : 'hover:text-[#1A73E8] hover:bg-slate-50' }}">المزادات</a>
+                        <a href="#" class="block px-4 py-2.5 rounded-xl transition-colors hover:text-[#1A73E8] hover:bg-slate-50">الشراء الفوري</a>
+                        <a href="#" class="block px-4 py-2.5 rounded-xl transition-colors hover:text-[#1A73E8] hover:bg-slate-50">المناقصات</a>
+                        <a href="#" class="block px-4 py-2.5 rounded-xl transition-colors hover:text-[#1A73E8] hover:bg-slate-50">الخدمات</a>
+                    </div>
                 </div>
 
                 <!-- Purchases Management -->

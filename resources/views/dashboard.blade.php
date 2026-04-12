@@ -51,7 +51,7 @@
         </div>
 
         <!-- Total Ads Line Chart -->
-        <div class="bg-white p-6 rounded-2xl shadow-[0_8px_30px_-15px_rgba(0,0,0,0.08)] border border-slate-100 flex flex-col hidden lg:flex">
+        <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-[0_8px_30px_-15px_rgba(0,0,0,0.08)] border border-slate-100 flex flex-col">
             <div class="flex justify-between items-start mb-6">
                 <div>
                     <h3 class="text-lg font-black text-[#1C1C1C] mb-1">إجمالي الإعلانات</h3>
@@ -90,7 +90,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         <!-- Ad Status Donut Chart -->
-        <div class="bg-white p-6 rounded-2xl shadow-[0_8px_30px_-15px_rgba(0,0,0,0.08)] border border-slate-100 flex flex-col hidden lg:flex">
+        <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-[0_8px_30px_-15px_rgba(0,0,0,0.08)] border border-slate-100 flex flex-col">
             <div class="flex justify-between items-start mb-6">
                 <div>
                     <h3 class="text-lg font-black text-[#1C1C1C] mb-1">حالة الإعلانات</h3>
@@ -130,7 +130,7 @@
         </div>
 
         <!-- Total Revenue Bar Chart -->
-        <div class="bg-white p-6 rounded-2xl shadow-[0_8px_30px_-15px_rgba(0,0,0,0.08)] border border-slate-100 flex flex-col hidden lg:flex">
+        <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-[0_8px_30px_-15px_rgba(0,0,0,0.08)] border border-slate-100 flex flex-col">
             <div class="flex justify-between items-start mb-6">
                 <div>
                     <h3 class="text-lg font-black text-[#1C1C1C] mb-1">إجمالي الإيرادات</h3>

@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('transaction_number')->unique();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('ad_id')->nullable()->constrained()->nullOnDelete();
             $table->string('type');
             $table->decimal('amount', 12, 2);
             $table->string('payment_method');

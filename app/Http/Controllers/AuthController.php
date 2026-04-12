@@ -121,6 +121,27 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
+        $phone = session('reset_phone');
+
+        if (!$phone) {
+            return redirect()->route('admin.forgot-password')->withErrors([
+                'phone' => 'انتهت الجلسة، يرجى إعادة المحاولة.',
+            ]);
+        }
+
+        $user = User::where('phone', $phone)->first();
+
+        if (!$user) {
+            return redirect()->route('admin.forgot-password')->withErrors([
+                'phone' => 'رقم الجوال غير مسجل لدينا.',
+            ]);
+        }
+
+        $user->password = bcrypt($request->password);
+        $user->save();
+
+        session()->forget('reset_phone');
+
         return redirect()->route('admin.login')->with('success', 'تم إعادة تعيين كلمة المرور بنجاح. يمكنك تسجيل الدخول الآن.');
     }
 
@@ -131,6 +152,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect()->route('admin.login');
     }
 }

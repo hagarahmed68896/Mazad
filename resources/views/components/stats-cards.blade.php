@@ -1,12 +1,12 @@
 @props(['stats'])
 
-<div @class(['grid gap-6 w-full']) style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+<div @class(['grid gap-6 w-full']) style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
     @foreach($stats as $index => $stat)
-    <div style="border-radius: 32px;" class="bg-white dark:bg-[#1A1A31] p-8 shadow-sm border border-slate-50 dark:border-white/5 flex flex-col justify-between h-48 relative overflow-hidden group hover:shadow-md transition-all">
+    <div style="border-radius: 32px;" class="bg-white dark:bg-[#1A1A31] p-8 shadow-sm  dark:border-white/5 flex flex-col justify-between  relative overflow-hidden group hover:shadow-md transition-all">
         <div class="flex items-center justify-between relative z-10">
             <div class="space-y-1">
-                <p class="text-xs font-bold text-[#1A1A31] dark:text-slate-400 opacity-60">{{ $stat['label'] }}</p>
-                <div class="flex items-baseline gap-2">
+                <p class="text-xs font-bold text-[#1A1A31] dark:text-slate-400 opacity-60 ">{{ $stat['label'] }}</p>
+                <div class="flex items-baseline gap-2 ">
                     <h3 class="text-3xl font-black text-[#1A1A31] dark:text-white">{{ $stat['value'] }}</h3>
                     <span class="text-[10px] px-2 py-0.5 rounded-full font-bold border" 
                           style="background-color: {{ $stat['color'] }}10; color: {{ $stat['color'] }}; border-color: {{ $stat['color'] }}20;">

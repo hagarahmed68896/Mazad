@@ -24,4 +24,10 @@ class FinancialSettlement extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function service(): BelongsTo
+    {
+        // reusing ad_id column for now to simulate relation for partners without making DB changes
+        return $this->belongsTo(Service::class, 'ad_id');
+    }
 }

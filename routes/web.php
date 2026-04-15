@@ -73,7 +73,67 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
 
         // Ads Management
         Route::group(['prefix' => 'ads', 'as' => 'ads.'], function () {
+            Route::get('incomplete', [\App\Http\Controllers\Admin\AdController::class, 'incomplete'])->name('incomplete');
+            Route::get('incomplete/download', [\App\Http\Controllers\Admin\AdController::class, 'incompleteDownload'])->name('incomplete.download');
             Route::get('auctions', [\App\Http\Controllers\Admin\AdController::class, 'auctions'])->name('auctions');
+            Route::get('auctions/download', [\App\Http\Controllers\Admin\AdController::class, 'auctionsDownload'])->name('auctions.download');
+            Route::get('direct-purchase', [\App\Http\Controllers\Admin\AdController::class, 'directPurchase'])->name('direct_purchase');
+            Route::get('direct-purchase/download', [\App\Http\Controllers\Admin\AdController::class, 'directPurchaseDownload'])->name('direct_purchase.download');
+            Route::get('tenders', [\App\Http\Controllers\Admin\AdController::class, 'tenders'])->name('tenders');
+            Route::get('tenders/download', [\App\Http\Controllers\Admin\AdController::class, 'tendersDownload'])->name('tenders.download');
+            Route::get('services', [\App\Http\Controllers\Admin\AdController::class, 'services'])->name('services');
+            Route::get('services/download', [\App\Http\Controllers\Admin\AdController::class, 'servicesDownload'])->name('services.download');
+        });
+
+        // Purchases Management
+        Route::group(['prefix' => 'purchases', 'as' => 'purchases.'], function () {
+            Route::get('/', [\App\Http\Controllers\Admin\OrderController::class, 'index'])->name('index');
+            Route::get('/download', [\App\Http\Controllers\Admin\OrderController::class, 'download'])->name('download');
+        });
+
+        // Payments Management
+        Route::group(['prefix' => 'payments', 'as' => 'payments.'], function () {
+            Route::get('/', [\App\Http\Controllers\Admin\TransactionController::class, 'index'])->name('index');
+            Route::get('/download', [\App\Http\Controllers\Admin\TransactionController::class, 'download'])->name('download');
+            
+            // Commissions
+            Route::group(['prefix' => 'commissions', 'as' => 'commissions.'], function () {
+                Route::get('/', [\App\Http\Controllers\Admin\CommissionController::class, 'index'])->name('index');
+                Route::get('/create', [\App\Http\Controllers\Admin\CommissionController::class, 'create'])->name('create');
+                Route::post('/', [\App\Http\Controllers\Admin\CommissionController::class, 'store'])->name('store');
+                Route::get('/{commission}/edit', [\App\Http\Controllers\Admin\CommissionController::class, 'edit'])->name('edit');
+                Route::put('/{commission}', [\App\Http\Controllers\Admin\CommissionController::class, 'update'])->name('update');
+                Route::delete('/{commission}', [\App\Http\Controllers\Admin\CommissionController::class, 'destroy'])->name('destroy');
+            });
+            
+            // Financial Settlements
+            Route::group(['prefix' => 'settlements', 'as' => 'settlements.'], function () {
+                Route::get('/', [\App\Http\Controllers\Admin\FinancialSettlementController::class, 'index'])->name('index');
+                Route::get('/download', [\App\Http\Controllers\Admin\FinancialSettlementController::class, 'download'])->name('download');
+                Route::put('/{settlement}/transfer', [\App\Http\Controllers\Admin\FinancialSettlementController::class, 'transfer'])->name('transfer');
+            });
+        });
+        
+        // Content Management: Categories
+        Route::group(['prefix' => 'categories', 'as' => 'categories.'], function () {
+            Route::get('/', [\App\Http\Controllers\Admin\CategoryController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\Admin\CategoryController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\Admin\CategoryController::class, 'store'])->name('store');
+            Route::get('/{category}', [\App\Http\Controllers\Admin\CategoryController::class, 'show'])->name('show');
+            Route::get('/{category}/edit', [\App\Http\Controllers\Admin\CategoryController::class, 'edit'])->name('edit');
+            Route::put('/{category}', [\App\Http\Controllers\Admin\CategoryController::class, 'update'])->name('update');
+            Route::delete('/{category}', [\App\Http\Controllers\Admin\CategoryController::class, 'destroy'])->name('destroy');
+
+            // Properties nested under categories
+            Route::group(['prefix' => '{category}/properties', 'as' => 'properties.'], function () {
+                Route::get('/', [\App\Http\Controllers\Admin\PropertyController::class, 'index'])->name('index');
+                Route::get('/create', [\App\Http\Controllers\Admin\PropertyController::class, 'create'])->name('create');
+                Route::post('/', [\App\Http\Controllers\Admin\PropertyController::class, 'store'])->name('store');
+                Route::post('/reorder', [\App\Http\Controllers\Admin\PropertyController::class, 'reorder'])->name('reorder');
+                Route::get('/{property}/edit', [\App\Http\Controllers\Admin\PropertyController::class, 'edit'])->name('edit');
+                Route::put('/{property}', [\App\Http\Controllers\Admin\PropertyController::class, 'update'])->name('update');
+                Route::delete('/{property}', [\App\Http\Controllers\Admin\PropertyController::class, 'destroy'])->name('destroy');
+            });
         });
     });
-});
+ });

@@ -33,7 +33,7 @@
         </a>
         <a href="{{ route('admin.ads.auctions', ['type' => 'hybrid_auction']) }}" 
            class="px-8 py-3 rounded-xl text-sm font-black transition-all {{ $type === 'hybrid_auction' ? 'bg-[#1A73E8] text-white shadow-lg shadow-blue-500/20' : 'text-[#6F6F6F] hover:text-[#1C1C1C]' }}">
-            للمزادات الهجين
+            المزادات الهجين
         </a>
     </div>
 
@@ -66,12 +66,12 @@
                                         <h3 class="text-[12px] font-black text-slate-400 uppercase tracking-widest">الترتيب حسب:</h3>
                                         <div class="grid gap-2">
                                             @foreach(['newest' => 'الأحدث', 'oldest' => 'الأقدم', 'name' => 'الاسم'] as $key => $label)
-                                            <label class="flex items-center group cursor-pointer transition-all">
+                                            <label class="flex items-center group cursor-pointer transition-all gap-2">
                                                 <input type="radio" name="sort" value="{{ $key }}" {{ $sort == $key ? 'checked' : '' }} class="hidden peer">
                                                 <div class="w-6 h-6 border-2 border-slate-200 rounded-full flex items-center justify-center peer-checked:border-[#1A73E8] peer-checked:bg-[#1A73E8] transition-all duration-300">
                                                     <div class="w-2 h-2 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform duration-300"></div>
                                                 </div>
-                                                <span class="mr-3 text-[15px] font-bold text-[#6F6F6F] group-hover:text-[#1A73E8] transition-colors">{{ $label }}</span>
+                                                <span class="text-[15px] font-bold text-[#6F6F6F] group-hover:text-[#1A73E8] transition-colors">{{ $label }}</span>
                                             </label>
                                             @endforeach
                                         </div>
@@ -81,20 +81,20 @@
                                     <div class="space-y-3">
                                         <h3 class="text-[12px] font-black text-slate-400 uppercase tracking-widest">فئة الإعلان:</h3>
                                         <div class="grid gap-2 max-h-40 overflow-y-auto">
-                                            <label class="flex items-center group cursor-pointer transition-all">
+                                            <label class="flex items-center group cursor-pointer transition-all gap-2">
                                                 <input type="radio" name="category_id" value="all" {{ $category_id == 'all' ? 'checked' : '' }} class="hidden peer">
                                                 <div class="w-6 h-6 border-2 border-slate-200 rounded-full flex items-center justify-center peer-checked:border-[#1A73E8] peer-checked:bg-[#1A73E8] transition-all duration-300">
                                                     <div class="w-2 h-2 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform duration-300"></div>
                                                 </div>
-                                                <span class="mr-3 text-[15px] font-bold text-[#6F6F6F] group-hover:text-[#1A73E8] transition-colors">الكل</span>
+                                                <span class="text-[15px] font-bold text-[#6F6F6F] group-hover:text-[#1A73E8] transition-colors">الكل</span>
                                             </label>
                                             @foreach($categories as $category)
-                                            <label class="flex items-center group cursor-pointer transition-all">
+                                            <label class="flex items-center group cursor-pointer transition-all gap-2">
                                                 <input type="radio" name="category_id" value="{{ $category->id }}" {{ $category_id == $category->id ? 'checked' : '' }} class="hidden peer">
                                                 <div class="w-6 h-6 border-2 border-slate-200 rounded-full flex items-center justify-center peer-checked:border-[#1A73E8] peer-checked:bg-[#1A73E8] transition-all duration-300">
                                                     <div class="w-2 h-2 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform duration-300"></div>
                                                 </div>
-                                                <span class="mr-3 text-[15px] font-bold text-[#6F6F6F] group-hover:text-[#1A73E8] transition-colors">{{ $category->title }}</span>
+                                                <span class="text-[15px] font-bold text-[#6F6F6F] group-hover:text-[#1A73E8] transition-colors">{{ $category->name }}</span>
                                             </label>
                                             @endforeach
                                         </div>
@@ -105,12 +105,12 @@
                                         <h3 class="text-[12px] font-black text-slate-400 uppercase tracking-widest">نوع المعلن:</h3>
                                         <div class="grid gap-2">
                                             @foreach(['all' => 'الكل', 'individual' => 'فرد', 'company' => 'شركة', 'representative' => 'مندوب'] as $key => $label)
-                                            <label class="flex items-center group cursor-pointer transition-all">
+                                            <label class="flex items-center group cursor-pointer transition-all gap-2">
                                                 <input type="radio" name="user_type" value="{{ $key }}" {{ $user_type == $key ? 'checked' : '' }} class="hidden peer">
                                                 <div class="w-6 h-6 border-2 border-slate-200 rounded-full flex items-center justify-center peer-checked:border-[#1A73E8] peer-checked:bg-[#1A73E8] transition-all duration-300">
                                                     <div class="w-2 h-2 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform duration-300"></div>
                                                 </div>
-                                                <span class="mr-3 text-[15px] font-bold text-[#6F6F6F] group-hover:text-[#1A73E8] transition-colors">{{ $label }}</span>
+                                                <span class="text-[15px] font-bold text-[#6F6F6F] group-hover:text-[#1A73E8] transition-colors">{{ $label }}</span>
                                             </label>
                                             @endforeach
                                         </div>
@@ -130,7 +130,7 @@
                     <form method="GET" class="relative max-w-md w-full">
                         <input type="hidden" name="type" value="{{ $type }}">
                         <input type="text" name="search" value="{{ $search }}" placeholder="ابحث" class="w-full pr-12 pl-4 py-3 border border-slate-200 rounded-xl font-bold text-sm bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
-                        <button type="submit" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-500 transition-colors">
+                        <button type="submit" class="absolute inset-y-0 right-0 px-4 flex items-center text-slate-400 hover:text-blue-500 transition-colors">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         </button>
                     </form>
@@ -149,10 +149,10 @@
                             <a href="{{ request()->fullUrlWithQuery(['status' => 'finished']) }}" class="block px-6 py-3 text-sm font-bold text-[#6F6F6F] hover:bg-blue-50 hover:text-blue-600 transition-colors">منتهي</a>
                         </div>
                     </div>
-                    <button class="px-6 py-3 border border-slate-200 text-[#EAB308] rounded-xl text-sm font-black flex items-center gap-2 hover:bg-yellow-50 transition-colors active:scale-95">
+                    <a href="{{ route('admin.ads.auctions.download', request()->all()) }}" class="px-6 py-3 border border-slate-200 text-[#EAB308] rounded-xl text-sm font-black flex items-center gap-2 hover:bg-yellow-50 transition-all active:scale-95">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         تحميل
-                    </button>
+                    </a>
                 </div>
             </div>
 
@@ -185,6 +185,9 @@
                         <th class="px-4 py-4">سعر العربون</th>
                         <th class="px-4 py-4">السعر الحالي</th>
                         <th class="px-4 py-4 text-center">عدد المزايدات</th>
+                        @if($type === 'hybrid_auction')
+                        <th class="px-4 py-4 text-center">حالة المزايدة</th>
+                        @endif
                         <th class="px-4 py-4 text-center">الحالة</th>
                         <th class="px-4 py-4 rounded-l-2xl">التاريخ</th>
                     </tr>
@@ -202,7 +205,7 @@
                             </div>
                         </td>
                         <td class="px-4 py-4 text-[#1C1C1C] font-black">{{ $ad->title }}</td>
-                        <td class="px-4 py-4">{{ $ad->category->title ?? 'غير مصنف' }}</td>
+                        <td class="px-4 py-4">{{ $ad->category->name ?? 'غير مصنف' }}</td>
                         <td class="px-4 py-4 max-w-[150px] truncate" title="{{ $ad->description }}">{{ $ad->description }}</td>
                         <td class="px-4 py-4 font-bold">{{ $ad->user->name ?? 'مستخدم غير معروف' }}</td>
                         <td class="px-4 py-4">
@@ -215,12 +218,33 @@
                             @endphp
                             {{ $userTypeLabels[$ad->user->account_type] ?? 'غير محدد' }}
                         </td>
-                        <td class="px-4 py-4 font-black text-[#1C1C1C]">{{ number_format($ad->deposit_amount) }} <span class="text-[10px] text-slate-400">ريال</span></td>
-                        <td class="px-4 py-4 font-black text-[#1C1C1C] flex items-center gap-1">
-                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            {{ number_format($ad->price) }} <span class="text-[10px] text-slate-400">ريال</span>
+                        <td class="px-4 py-4 font-black text-[#1C1C1C]">
+                            <div class="flex items-center gap-1.5">
+                                <span>{{ number_format($ad->deposit_amount) }}</span>
+                                <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                            </div>
+                        </td>
+                        <td class="px-4 py-4 font-black text-[#1C1C1C]">
+                            <div class="flex items-center gap-1.5">
+                                <span>{{ number_format($ad->price) }}</span>
+                                <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                            </div>
                         </td>
                         <td class="px-4 py-4 text-center font-bold">{{ $ad->bids_count }}</td>
+                        @if($type === 'hybrid_auction')
+                        <td class="px-4 py-4 text-center">
+                            @php
+                                $bidStatusLabels = [
+                                    'not_started' => 'لم تبدأ المزايدة',
+                                    'ongoing' => 'جاري',
+                                    'postponed' => 'مؤجل',
+                                    'sold' => 'تم البيع',
+                                    'not_sold' => 'لم يتم البيع',
+                                ];
+                            @endphp
+                            {{ $bidStatusLabels[$ad->bid_status] ?? ($ad->status === 'upcoming' ? '-' : ($ad->bid_status ?? '-')) }}
+                        </td>
+                        @endif
                         <td class="px-4 py-4 text-center">
                             @if($ad->status == 'active')
                                 <span class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[11px] font-black border border-emerald-100">قائم</span>
@@ -312,3 +336,6 @@
 </script>
 @endpush
 @endsection
+
+
+

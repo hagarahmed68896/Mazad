@@ -137,7 +137,7 @@
                             }
 
                             $commonDetails = [
-                                ['label' => 'رقم الجوال:', 'value' => $item->phone, 'icon' => 'phone', 'ltr' => true],
+                                ['label' => 'رقم الجوال:', 'value' => ltrim($item->phone, '0'), 'icon' => 'phone', 'ltr' => true],
                                 ['label' => 'البريد الالكتروني:', 'value' => $item->email, 'icon' => 'mail'],
                                 ['label' => 'العنوان:', 'value' => $item->address ?? '-', 'icon' => 'map-pin'],
                             ];
@@ -193,7 +193,7 @@
                         $gridStats = [
                             ['label' => 'عدد الإعلانات', 'value' => $stats['total_ads'], 'key' => 'ads', 'icon' => 'hammer', 'growth' => $stats['growths']['ads']],
                             ['label' => 'عدد المبيعات', 'value' => $stats['total_sales'], 'key' => 'sales', 'icon' => 'bank', 'growth' => $stats['growths']['sales']],
-                            ['label' => 'إجمالي الإيرادات', 'value' => number_format($stats['total_revenue']), 'suffix' => 'ريال', 'key' => 'revenue', 'icon' => 'wallet', 'growth' => $stats['growths']['revenue']],
+                            ['label' => 'إجمالي الإيرادات', 'value' => number_format($stats['total_revenue']), 'suffix' => '', 'key' => 'revenue', 'icon' => 'wallet', 'growth' => $stats['growths']['revenue']],
                             ['label' => 'عدد المشتريات', 'value' => $stats['total_purchases'], 'key' => 'purchases', 'icon' => 'cart', 'growth' => $stats['growths']['purchases']]
                         ];
                     @endphp
@@ -290,7 +290,12 @@
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">{{ $order->ad->title ?? 'اسم الاعلان' }}</td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">{{ $order->ad->category->name ?? 'سيارات' }}</td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">{{ $order->seller->name ?? 'أحمد محمد' }}</td>
-                                            <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]"><span class="mx-1 text-slate-400 font-normal">﷼</span> {{ number_format($order->final_price, 0) }}</td>
+                                            <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">
+                                                <div class="flex items-center justify-center gap-1.5">
+                                                    <span>{{ number_format($order->final_price, 0) }}</span>
+                                                    <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                                </div>
+                                            </td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">{{ $order->award_duration ?? '-' }}</td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">
                                                 @if($order->status == 'received')
@@ -354,7 +359,12 @@
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">{{ $index + 1 }}</td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">#{{ $payment->transaction_number }}</td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">{{ $payment->type ?? 'عربون' }}</td>
-                                            <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]"><span class="mx-1 text-slate-400 font-normal">﷼</span> {{ number_format($payment->amount, 0) }}</td>
+                                            <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">
+                                                <div class="flex items-center justify-center gap-1.5">
+                                                    <span>{{ number_format($payment->amount, 0) }}</span>
+                                                    <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                                </div>
+                                            </td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">{{ $payment->payment_method ?? 'طريقة الدفع' }}</td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">
                                                 @if($payment->status == 'completed')
@@ -413,7 +423,12 @@
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">{{ $index + 1 }}</td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">#{{ $settlement->settlement_number }}</td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">{{ $item->account_type === 'partner' ? ($settlement->service->title ?? 'اسم الخدمة') : ($settlement->ad->title ?? 'اسم الإعلان') }}</td>
-                                            <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]"><span class="mx-1 text-slate-400 font-normal">﷼</span> {{ number_format($settlement->total_amount, 0) }}</td>
+                                            <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">
+                                                <div class="flex items-center justify-center gap-1.5">
+                                                    <span>{{ number_format($settlement->total_amount, 0) }}</span>
+                                                    <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                                </div>
+                                            </td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">{{ $settlement->payment_method ?? 'طريقة الدفع' }}</td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">
                                                 @if($settlement->status == 'transferred')
@@ -477,7 +492,12 @@
                                         <td class="py-3 px-4 text-center text-[#1C1C1C] font-black bg-white group-hover:bg-blue-50/30 border-y border-slate-100">{{ $service->title }}</td>
                                         <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#6F6F6F]">{{ $service->category->name ?? 'سيارات' }}</td>
                                         <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#6F6F6F] max-w-[100px] truncate" title="{{ $service->description }}">{{ $service->description ?? 'الوصف' }}</td>
-                                        <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]"><span class="mx-1 text-slate-400 font-normal">﷼</span> {{ number_format($service->price, 0) }}</td>
+                                        <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">
+                                            <div class="flex items-center justify-center gap-1.5">
+                                                <span>{{ number_format($service->price, 0) }}</span>
+                                                <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                            </div>
+                                        </td>
                                         <td class="py-3 px-4 text-center rounded-l-xl bg-white group-hover:bg-blue-50/30 border-y border-l border-slate-100" dir="ltr">{{ $service->created_at->format('Y/m/d') }}</td>
                                     </tr>
                                     @empty
@@ -546,8 +566,18 @@
                                             <td class="py-3 px-4 text-center text-[#1C1C1C] font-black bg-white group-hover:bg-blue-50/30 border-y border-slate-100">{{ $ad->title }}</td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#6F6F6F]">{{ $ad->category->name ?? '-' }}</td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#6F6F6F] max-w-[100px] truncate" title="{{ $ad->description }}">{{ $ad->description ?? 'الوصف' }}</td>
-                                            <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]"><span class="mx-1 text-slate-400 font-normal">﷼</span> {{ number_format($ad->deposit_amount, 0) }}</td>
-                                            <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]"><span class="mx-1 text-slate-400 font-normal">﷼</span> {{ number_format($ad->price, 0) }}</td>
+                                            <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">
+                                                <div class="flex items-center justify-center gap-1.5">
+                                                    <span>{{ number_format($ad->deposit_amount, 0) }}</span>
+                                                    <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                                </div>
+                                            </td>
+                                            <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">
+                                                <div class="flex items-center justify-center gap-1.5">
+                                                    <span>{{ number_format($ad->price, 0) }}</span>
+                                                    <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                                </div>
+                                            </td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">{{ $ad->bids_count }}</td>
                                             
                                             <td x-show="adSubTab === 'hybrid_auction'" class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">{{ $ad->bid_status ?? '-' }}</td>
@@ -737,3 +767,5 @@
 </style>
 @endpush
 @endsection
+
+

@@ -135,7 +135,7 @@
                 <div>
                     <h3 class="text-lg font-black text-[#1C1C1C] mb-1">إجمالي الإيرادات</h3>
                     <div class="flex items-center gap-2">
-                        <span class="text-2xl font-black text-[#1A73E8]">{{ number_format($totalRevenue) }} <span class="text-sm">ريال</span></span>
+                        <span class="text-2xl font-black text-[#1A73E8]">{{ number_format($totalRevenue) }} <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال"></span>
                     </div>
                 </div>
                 <!-- Modern Period Dropdown -->
@@ -186,7 +186,7 @@
                             <td class="px-6 py-4">{{ $tx->ad->title ?? 'إعلان عام' }}</td>
                             <td class="px-6 py-4 text-xs font-bold text-slate-500">{{ $tx->ad->type ?? '-' }}</td>
                             <td class="px-6 py-4">{{ $tx->type ?? 'عملية مالية' }}</td>
-                            <td class="px-6 py-4 text-[#1A73E8]">{{ number_format($tx->amount) }} ريال</td>
+                            <td class="px-6 py-4 text-[#1A73E8]">{{ number_format($tx->amount) }} <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال"></td>
                             <td class="px-6 py-4 text-[#6F6F6F] text-xs font-bold rounded-l-2xl" dir="ltr">{{ $tx->created_at->format('Y/m/d H:i') }}</td>
                         </tr>
                         @empty
@@ -339,3 +339,4 @@
 </script>
 @endpush
 @endsection
+

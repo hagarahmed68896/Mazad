@@ -93,21 +93,21 @@
                                     <div class="flex flex-col" style="gap: 10px;">
                                         <h3 class="text-[12px] font-black text-slate-400 uppercase tracking-widest">الترتيب حسب:</h3>
                                         <div class="grid" style="gap: 10px;">
-                                            <label class="flex items-center group cursor-pointer transition-all">
+                                            <label class="flex items-center group cursor-pointer transition-all gap-2">
                                                 <input type="radio" name="sort" value="newest" {{ $sort == 'newest' ? 'checked' : '' }} class="hidden peer">
                                                 <div class="w-6 h-6 border-2 border-slate-200 rounded-full flex items-center justify-center peer-checked:border-[#1A73E8] peer-checked:bg-[#1A73E8] transition-all duration-300">
                                                     <div class="w-2 h-2 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform duration-300"></div>
                                                 </div>
                                                 <span class="mr-2 text-[15px] font-bold text-[#6F6F6F] group-hover:text-[#1A73E8] transition-colors">الأحدث</span>
                                             </label>
-                                            <label class="flex items-center group cursor-pointer transition-all">
+                                            <label class="flex items-center group cursor-pointer transition-all gap-2">
                                                 <input type="radio" name="sort" value="oldest" {{ $sort == 'oldest' ? 'checked' : '' }} class="hidden peer">
                                                 <div class="w-6 h-6 border-2 border-slate-200 rounded-full flex items-center justify-center peer-checked:border-[#1A73E8] peer-checked:bg-[#1A73E8] transition-all duration-300">
                                                     <div class="w-2 h-2 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform duration-300"></div>
                                                 </div>
                                                 <span class="mr-2 text-[15px] font-bold text-[#6F6F6F] group-hover:text-[#1A73E8] transition-colors">الأقدم</span>
                                             </label>
-                                            <label class="flex items-center group cursor-pointer transition-all">
+                                            <label class="flex items-center group cursor-pointer transition-all gap-2">
                                                 <input type="radio" name="sort" value="name" {{ $sort == 'name' ? 'checked' : '' }} class="hidden peer">
                                                 <div class="w-6 h-6 border-2 border-slate-200 rounded-full flex items-center justify-center peer-checked:border-[#1A73E8] peer-checked:bg-[#1A73E8] transition-all duration-300">
                                                     <div class="w-2 h-2 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform duration-300"></div>
@@ -121,21 +121,21 @@
                                     <div class="flex flex-col" style="gap: 20px;">
                                         <h3 class="text-[12px] font-black text-slate-400 uppercase tracking-widest">الحالة:</h3>
                                         <div class="grid" style="gap: 10px;">
-                                            <label class="flex items-center group cursor-pointer transition-all">
+                                            <label class="flex items-center group cursor-pointer transition-all gap-2">
                                                 <input type="radio" name="status" value="all" {{ $status == 'all' ? 'checked' : '' }} class="hidden peer">
                                                 <div class="w-6 h-6 border-2 border-slate-200 rounded-full flex items-center justify-center peer-checked:border-[#1A73E8] peer-checked:bg-[#1A73E8] transition-all duration-300">
                                                     <div class="w-2 h-2 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform duration-300"></div>
                                                 </div>
                                                 <span class="mr-2 text-[15px] font-bold text-[#6F6F6F] group-hover:text-[#1A73E8] transition-colors">الكل</span>
                                             </label>
-                                            <label class="flex items-center group cursor-pointer transition-all">
+                                            <label class="flex items-center group cursor-pointer transition-all gap-2">
                                                 <input type="radio" name="status" value="active" {{ $status == 'active' ? 'checked' : '' }} class="hidden peer">
                                                 <div class="w-6 h-6 border-2 border-slate-200 rounded-full flex items-center justify-center peer-checked:border-[#1A73E8] peer-checked:bg-[#1A73E8] transition-all duration-300">
                                                     <div class="w-2 h-2 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform duration-300"></div>
                                                 </div>
                                                 <span class="mr-2 text-[15px]  font-bold text-[#6F6F6F] group-hover:text-[#1A73E8] transition-colors">نشط</span>
                                             </label>
-                                            <label class="flex items-center group cursor-pointer transition-all">
+                                            <label class="flex items-center group cursor-pointer transition-all gap-2">
                                                 <input type="radio" name="status" value="banned" {{ $status == 'banned' ? 'checked' : '' }} class="hidden peer">
                                                 <div class="w-6 h-6 border-2 border-slate-200 rounded-full flex items-center justify-center peer-checked:border-[#1A73E8] peer-checked:bg-[#1A73E8] transition-all duration-300">
                                                     <div class="w-2 h-2 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform duration-300"></div>
@@ -160,7 +160,7 @@
                         @if(request('sort')) <input type="hidden" name="sort" value="{{ request('sort') }}"> @endif
                         @if(request('status')) <input type="hidden" name="status" value="{{ request('status') }}"> @endif
                         <input type="text" name="search" value="{{ $search }}" placeholder="ابحث" style="width: 100%; padding-right: 45px; padding-left: 15px; padding-top: 12px; padding-bottom: 12px; border: 1px solid #E2E8F0; border-radius: 12px; font-weight: 600; font-size: 14px; outline: none; background: white;">
-                        <button type="submit" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #94A3B8; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <button type="submit" class="absolute inset-y-0 right-0 px-4 flex items-center text-[#94A3B8] hover:text-[#1A73E8] transition-colors">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         </button>
                     </form>
@@ -236,7 +236,7 @@
                         </td>
                         <td class="px-4 py-4">{{ $loop->iteration + ($users->currentPage() - 1) * $users->perPage() }}</td>
                         <td class="px-4 py-4 text-[#1C1C1C] font-black">{{ $user->name }}</td>
-                        <td class="px-4 py-4">{{ $user->phone }}</td>
+                        <td class="px-4 py-4">{{ ltrim($user->phone, '0') }}</td>
                         <td class="px-4 py-4">{{ $user->email }}</td>
                         <td class="px-4 py-4 text-center font-bold text-[#1C1C1C]">{{ $user->ads_count ?? 0 }}</td>
                         <td class="px-4 py-4 text-center font-bold text-[#1C1C1C]">{{ $user->sales_count ?? 0 }}</td>
@@ -338,3 +338,4 @@
 </script>
 @endpush
 @endsection
+

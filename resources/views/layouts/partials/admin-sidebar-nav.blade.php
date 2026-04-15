@@ -1,5 +1,5 @@
             <!-- Navigation Links -->
-            <nav class="flex-1 px-5 py-6 space-y-1.5 overflow-hidden font-bold text-[15px]">
+            <nav class="flex-1 px-5 py-6 space-y-1.5 overflow-y-auto font-bold text-[15px]">
                 
                 <!-- Dashboard -->
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center px-4 py-3.5 {{ request()->routeIs('admin.dashboard') ? 'bg-[#E8F0FE] text-[#1A73E8]' : 'text-[#6F6F6F] hover:bg-slate-50 hover:text-[#1C1C1C]' }} rounded-xl transition-all">
@@ -35,36 +35,59 @@
                         <svg :class="open ? 'rotate-180 text-[#1A73E8]' : ''" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
                     <div x-show="open" x-collapse class="pl-4 pr-10 py-2 space-y-1 text-[#6F6F6F]">
-                        <a href="#" class="block px-4 py-2.5 rounded-xl transition-colors hover:text-[#1A73E8] hover:bg-slate-50">الإعلانات الغير مكتملة</a>
+                        <a href="{{ route('admin.ads.incomplete') }}" class="block px-4 py-2.5 rounded-xl transition-colors {{ request()->routeIs('admin.ads.incomplete*') ? 'bg-[#E8F0FE] text-[#1A73E8] font-bold' : 'hover:text-[#1A73E8] hover:bg-slate-50' }}">الإعلانات الغير مكتملة</a>
                         <a href="{{ route('admin.ads.auctions') }}" class="block px-4 py-2.5 rounded-xl transition-colors {{ request()->routeIs('admin.ads.auctions*') ? 'bg-[#E8F0FE] text-[#1A73E8] font-bold' : 'hover:text-[#1A73E8] hover:bg-slate-50' }}">المزادات</a>
-                        <a href="#" class="block px-4 py-2.5 rounded-xl transition-colors hover:text-[#1A73E8] hover:bg-slate-50">الشراء الفوري</a>
-                        <a href="#" class="block px-4 py-2.5 rounded-xl transition-colors hover:text-[#1A73E8] hover:bg-slate-50">المناقصات</a>
-                        <a href="#" class="block px-4 py-2.5 rounded-xl transition-colors hover:text-[#1A73E8] hover:bg-slate-50">الخدمات</a>
+                        <a href="{{ route('admin.ads.direct_purchase') }}" class="block px-4 py-2.5 rounded-xl transition-colors {{ request()->routeIs('admin.ads.direct_purchase*') ? 'bg-[#E8F0FE] text-[#1A73E8] font-bold' : 'hover:text-[#1A73E8] hover:bg-slate-50' }}">الشراء الفوري</a>
+                        <a href="{{ route('admin.ads.tenders') }}" class="block px-4 py-2.5 rounded-xl transition-colors {{ request()->routeIs('admin.ads.tenders*') ? 'bg-[#E8F0FE] text-[#1A73E8] font-bold' : 'hover:text-[#1A73E8] hover:bg-slate-50' }}">المناقصات</a>
+                        <a href="{{ route('admin.ads.services') }}" class="block px-4 py-2.5 rounded-xl transition-colors {{ request()->routeIs('admin.ads.services*') ? 'bg-[#E8F0FE] text-[#1A73E8] font-bold' : 'hover:text-[#1A73E8] hover:bg-slate-50' }}">الخدمات</a>
                     </div>
                 </div>
 
                 <!-- Purchases Management -->
-                <a href="#" class="flex items-center px-4 py-3.5 text-[#6F6F6F] hover:bg-slate-50 hover:text-[#1C1C1C] rounded-xl transition-all">
-                    <svg class="w-5 h-5 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    إدارة المشتريات
-                </a>
+                <div x-data="{ open: {{ request()->routeIs('admin.purchases.*') ? 'true' : 'false' }} }">
+                    <button @click="open = !open" class="w-full flex items-center justify-between px-4 py-3.5 {{ request()->routeIs('admin.purchases.*') ? 'text-[#1C1C1C] font-bold' : 'text-[#6F6F6F] hover:bg-slate-50 hover:text-[#1C1C1C]' }} rounded-xl transition-all font-bold">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                            إدارة المشتريات
+                        </div>
+                        <svg :class="open ? 'rotate-180 text-[#1A73E8]' : ''" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div x-show="open" x-collapse class="pl-4 pr-10 py-2 space-y-1 text-[#6F6F6F]">
+                        <a href="{{ route('admin.purchases.index') }}" class="block px-4 py-2.5 rounded-xl transition-colors {{ request()->routeIs('admin.purchases.index') ? 'bg-[#E8F0FE] text-[#1A73E8] font-bold' : 'hover:text-[#1A73E8] hover:bg-slate-50' }}">المشتريات</a>
+                    </div>
+                </div>
 
                 <!-- Payments Management -->
-                <div x-data="{ open: false }">
-                    <button @click="open = !open" class="w-full flex items-center justify-between px-4 py-3.5 text-[#6F6F6F] hover:bg-slate-50 hover:text-[#1C1C1C] rounded-xl transition-all">
+                <div x-data="{ open: {{ request()->routeIs('admin.payments.*') ? 'true' : 'false' }} }">
+                    <button @click="open = !open" class="w-full flex items-center justify-between px-4 py-3.5 {{ request()->routeIs('admin.payments.*') ? 'text-[#1C1C1C] font-bold' : 'text-[#6F6F6F] hover:bg-slate-50 hover:text-[#1C1C1C]' }} rounded-xl transition-all font-bold">
                         <div class="flex items-center">
                             <svg class="w-5 h-5 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                             إدارة المدفوعات
                         </div>
                         <svg :class="open ? 'rotate-180 text-[#1A73E8]' : ''" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
+                    <div x-show="open" x-collapse class="pl-4 pr-10 py-2 space-y-1 text-[#6F6F6F]">
+                        <a href="{{ route('admin.payments.index') }}" class="block px-4 py-2.5 rounded-xl transition-colors {{ request()->routeIs('admin.payments.index') ? 'bg-[#E8F0FE] text-[#1A73E8] font-bold' : 'hover:text-[#1A73E8] hover:bg-slate-50' }}">المدفوعات</a>
+                        <a href="{{ route('admin.payments.commissions.index') }}" class="block px-4 py-2.5 rounded-xl transition-colors {{ request()->routeIs('admin.payments.commissions.*') ? 'bg-[#E8F0FE] text-[#1A73E8] font-bold' : 'hover:text-[#1A73E8] hover:bg-slate-50' }}">إدارة العمولات</a>
+                        <a href="{{ route('admin.payments.settlements.index') }}" class="block px-4 py-2.5 rounded-xl transition-colors {{ request()->routeIs('admin.payments.settlements.*') ? 'bg-[#E8F0FE] text-[#1A73E8] font-bold' : 'hover:text-[#1A73E8] hover:bg-slate-50' }}">التسوية المالية</a>
+                    </div>
                 </div>
 
                 <!-- Content Management -->
-                <a href="#" class="flex items-center px-4 py-3.5 text-[#6F6F6F] hover:bg-slate-50 hover:text-[#1C1C1C] rounded-xl transition-all">
-                    <svg class="w-5 h-5 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
-                    إدارة المحتوى
-                </a>
+                <div x-data="{ open: {{ request()->routeIs('admin.categories.*') ? 'true' : 'false' }} }">
+                    <button @click="open = !open" class="w-full flex items-center justify-between px-4 py-3.5 {{ request()->routeIs('admin.categories.*') ? 'text-[#1A73E8] bg-[#E8F0FE] font-bold' : 'text-[#6F6F6F] hover:bg-slate-50 hover:text-[#1C1C1C]' }} rounded-xl transition-all">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
+                            إدارة المحتوى
+                        </div>
+                        <svg :class="open ? 'rotate-180 text-[#1A73E8]' : ''" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div x-show="open" x-collapse class="pl-4 pr-10 py-2 space-y-1 text-[#6F6F6F]">
+                        <a href="{{ route('admin.categories.index') }}" class="block px-4 py-2.5 rounded-xl transition-colors {{ request()->routeIs('admin.categories.*') ? 'bg-[#E8F0FE] text-[#1A73E8] font-bold' : 'hover:text-[#1A73E8] hover:bg-slate-50' }}">إدارة الفئات</a>
+                        <a href="#" class="block px-4 py-2.5 rounded-xl transition-colors hover:text-[#1A73E8] hover:bg-slate-50">إدارة المدن والمناطق</a>
+                        <a href="#" class="block px-4 py-2.5 rounded-xl transition-colors hover:text-[#1A73E8] hover:bg-slate-50">البانرات الإعلانية</a>
+                    </div>
+                </div>
 
                 <!-- Reviews -->
                 <a href="#" class="flex items-center px-4 py-3.5 text-[#6F6F6F] hover:bg-slate-50 hover:text-[#1C1C1C] rounded-xl transition-all">

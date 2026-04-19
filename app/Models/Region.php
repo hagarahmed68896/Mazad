@@ -16,4 +16,14 @@ class Region extends Model
     {
         return $this->hasMany(City::class);
     }
+
+    public function users(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(User::class, City::class);
+    }
+
+    public function ads(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(Ad::class, City::class);
+    }
 }

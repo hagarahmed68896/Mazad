@@ -135,5 +135,20 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
                 Route::delete('/{property}', [\App\Http\Controllers\Admin\PropertyController::class, 'destroy'])->name('destroy');
             });
         });
+
+        // Cities & Regions Management
+        Route::group(['prefix' => 'cities', 'as' => 'cities.'], function () {
+            Route::get('/', [\App\Http\Controllers\Admin\CityController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\Admin\CityController::class, 'store'])->name('store');
+            Route::put('/{region}', [\App\Http\Controllers\Admin\CityController::class, 'update'])->name('update');
+            Route::delete('/{region}', [\App\Http\Controllers\Admin\CityController::class, 'destroy'])->name('destroy');
+            
+            // Area Management
+            Route::post('/{region}/areas', [\App\Http\Controllers\Admin\CityController::class, 'addArea'])->name('areas.store');
+            Route::delete('/areas/{city}', [\App\Http\Controllers\Admin\CityController::class, 'destroyArea'])->name('areas.destroy');
+        });
+
+        // Banners Management
+        Route::resource('banners', \App\Http\Controllers\Admin\BannerController::class);
     });
- });
+});

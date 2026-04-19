@@ -1,138 +1,151 @@
 @extends('layouts.admin')
 
-@section('title', 'عرض الفئة | ' . $category->name)
+@section('title', 'معاينة الفئة | ' . $category->name)
 
 @section('content')
 <div class="container-fluid mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl">
 
-    <!-- Header & Title -->
-    <div class="flex items-center gap-4 mb-8">
-        <a href="{{ route('admin.categories.index') }}" class="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-[#1A73E8] transition-all">
+    <!-- Top Navigation Header -->
+    <div class="flex items-center gap-4 mb-10">
+        <a href="{{ route('admin.categories.index') }}" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-[#1A73E8] hover:border-[#1A73E8] transition-all shadow-sm">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
         </a>
-        <h1 class="text-2xl font-black text-[#1C1C1C]">{{ $category->name }}</h1>
+        <h1 class="text-3xl font-black text-[#1C1C1C] flex items-center gap-3">
+            {{ $category->name }}
+        </h1>
     </div>
 
-    <!-- Main Container -->
-    <div class="max-w-4xl bg-[#F8F9FA] border border-slate-100 rounded-3xl p-6 shadow-sm">
+    <!-- Main Content Area -->
+    <div class="max-w-5xl mx-auto space-y-4">
         
-        <div class="space-y-4">
+        <!-- Accordion Steps Section -->
+        <div class="bg-[#F1F3F5] rounded-[2.5rem] p-8 space-y-4 shadow-inner">
             @forelse($pages as $index => $page)
-                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden" x-data="{ expanded: {{ $index === 0 ? 'true' : 'false' }} }">
+                <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden" 
+                     x-data="{ expanded: {{ $index === 0 ? 'true' : 'false' }} }">
                     
                     <!-- Accordion Header -->
-                    <button @click="expanded = !expanded" class="w-full flex items-center justify-between px-6 py-4 bg-[#F8F9FA] hover:bg-slate-100 transition-colors focus:outline-none">
-                        <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200" :class="expanded ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                        <span class="text-sm font-black text-[#1C1C1C]">{{ $page->name }}</span>
+                    <button @click="expanded = !expanded" 
+                            class="w-full flex items-center justify-between px-8 py-6 bg-[#F8F9FA] hover:bg-white transition-all focus:outline-none group">
+                     
+                        <!-- Page Name Right -->
+                        <span class="text-lg font-black text-[#1C1C1C] group-hover:text-[#1A73E8] transition-colors">{{ $page->name }}</span>
+                      <!-- Arrow Left -->
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center transition-all" 
+                             :class="expanded ? 'bg-slate-100 text-[#1A73E8]' : 'text-slate-300'">
+                            <svg class="w-5 h-5 transform transition-transform duration-300" :class="expanded ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
                     </button>
 
                     <!-- Accordion Body -->
                     <div x-show="expanded" x-collapse x-cloak>
-                        <div class="px-6 py-6 border-t border-slate-200 space-y-6 bg-white">
+                        <div class="px-8 py-10 space-y-12 bg-white border-t border-slate-100">
                             @if($page->properties->isEmpty())
-                                <div class="text-center py-6 text-slate-400 font-bold text-sm">
-                                    لا توجد حقول في هذه الصفحة
+                                <div class="text-center py-12">
+                                    <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    </div>
+                                    <p class="text-slate-400 font-bold text-sm">لم يتم إضافة حقول لهذه الصفحة بعد</p>
                                 </div>
                             @else
-                                @foreach($page->properties as $prop)
-                                    <div>
-                                        <label class="block text-sm font-black text-[#6F6F6F] mb-3 text-right">
-                                            {{ $prop->label }}
-                                            @if($prop->is_required) <span class="text-red-500">*</span> @endif
-                                        </label>
+                                <div class="space-y-10">
+                                    @foreach($page->properties as $prop)
+                                        <div class="max-w-3xl mx-auto">
+                                            <!-- Field Label -->
+                                            <div class="flex items-center justify-between mb-4 px-1">
+                                                <label class="text-sm font-black text-[#1C1C1C]">
+                                                    {{ $prop->label }}
+                                                    @if($prop->is_required) <span class="text-red-500 mr-1">*</span> @endif
+                                                </label>
+                                                @if($prop->help_text)
+                                                    <span class="text-[10px] text-slate-400 font-bold opacity-0 group-hover:opacity-100 transition-opacity">{{ $prop->help_text }}</span>
+                                                @endif
+                                            </div>
 
-                                        @if(in_array($prop->input_type, ['text', 'number', 'price']))
-                                            <input type="{{ $prop->input_type == 'text' ? 'text' : 'number' }}" 
-                                                   placeholder="{{ $prop->placeholder }}"
-                                                   class="w-full px-5 py-3.5 bg-[#F8F9FA] border border-slate-200 rounded-xl text-sm font-bold text-[#1C1C1C] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/10 focus:border-[#1A73E8] transition-all cursor-not-allowed" disabled>
-                                        
-                                        @elseif($prop->input_type == 'select')
-                                            <div class="relative">
-                                                <select class="w-full px-5 py-3.5 bg-[#F8F9FA] border border-slate-200 rounded-xl text-sm font-bold text-slate-400 appearance-none focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/10 focus:border-[#1A73E8] transition-all cursor-not-allowed" disabled>
-                                                    <option>{{ $prop->placeholder ?: 'حدد ' . $prop->label }}</option>
-                                                    @php
-                                                        $opts = is_array($prop->options) ? $prop->options : json_decode($prop->options, true) ?? [];
-                                                    @endphp
+                                            <!-- Field Input Mockup -->
+                                            @if(in_array($prop->input_type, ['text', 'number', 'price', 'date']))
+                                                <div class="w-full px-5 py-4 bg-[#F8F9FA] border border-slate-200 rounded-xl text-sm font-bold text-slate-400 flex items-center justify-between">
+                                                    <span>{{ $prop->placeholder ?: 'أدخل ' . $prop->label }}</span>
+                                                    @if($prop->input_type == 'date')
+                                                        <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                    @endif
+                                                </div>
+                                            
+                                            @elseif($prop->input_type == 'select')
+                                                <div class="w-full px-5 py-4.5 bg-[#F8F9FA] border border-slate-200 rounded-xl flex items-center justify-between">
+                                                    <span class="text-sm font-bold text-slate-400">{{ $prop->placeholder ?: 'حدد ' . $prop->label }}</span>
+                                                    <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                                </div>
+
+                                            @elseif(in_array($prop->input_type, ['checkbox', 'radio']))
+                                                @php $opts = is_array($prop->options) ? $prop->options : json_decode($prop->options, true) ?? []; @endphp
+                                                <div class="flex flex-wrap gap-5 p-2">
                                                     @foreach($opts as $opt)
                                                         @if(!empty(trim($opt)))
-                                                            <option>{{ $opt }}</option>
+                                                            <div class="flex items-center gap-3 px-5 py-3 bg-[#F8F9FA] border border-slate-100 rounded-2xl">
+                                                                <div class="w-5 h-5 rounded-full border-2 border-slate-200" :class="{{ $prop->input_type == 'checkbox' ? '\'rounded-lg\'' : '' }}"></div>
+                                                                <span class="text-sm font-bold text-slate-600">{{ $opt }}</span>
+                                                            </div>
                                                         @endif
                                                     @endforeach
-                                                </select>
-                                                <svg class="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                                            </div>
-
-                                        @elseif(in_array($prop->input_type, ['checkbox', 'radio']))
-                                            @php
-                                                $opts = is_array($prop->options) ? $prop->options : json_decode($prop->options, true) ?? [];
-                                            @endphp
-                                            <div class="flex flex-wrap gap-4">
-                                                @foreach($opts as $opt)
-                                                    @if(!empty(trim($opt)))
-                                                        <label class="flex items-center gap-2 cursor-not-allowed">
-                                                            <input type="{{ $prop->input_type }}" disabled class="w-4 h-4 text-[#1A73E8] border-slate-300 rounded focus:ring-[#1A73E8]">
-                                                            <span class="text-sm font-bold text-[#1C1C1C]">{{ $opt }}</span>
-                                                        </label>
-                                                    @endif
-                                                @endforeach
-                                            </div>
-
-                                        @elseif($prop->input_type == 'date')
-                                            <input type="date" 
-                                                   class="w-full px-5 py-3.5 bg-[#F8F9FA] border border-slate-200 rounded-xl text-sm font-bold text-[#1C1C1C] focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/10 focus:border-[#1A73E8] transition-all cursor-not-allowed" disabled>
-
-                                        @elseif($prop->input_type == 'file')
-                                            <div class="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center bg-white">
-                                                <div class="w-12 h-12 bg-blue-50 text-[#1A73E8] rounded-xl flex items-center justify-center mx-auto mb-3">
-                                                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.5 12.5h-9v-2h9v2zm0-4h-9v-2h9v2z" opacity="0.3"/>
-                                                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
-                                                    </svg>
                                                 </div>
-                                                <p class="text-sm font-black text-[#1C1C1C] mb-2">اسحب الملف هنا</p>
-                                                <p class="text-xs text-slate-400 font-bold mb-4">أو</p>
-                                                <button type="button" class="px-6 py-2 bg-white border border-[#1A73E8] text-[#1A73E8] rounded-xl text-sm font-black disabled:opacity-50" disabled>
-                                                    تصفح الملفات
-                                                </button>
-                                            </div>
-                                        @endif
-                                        
-                                        @if($prop->help_text)
-                                            <p class="mt-2 text-xs font-bold text-slate-400">{{ $prop->help_text }}</p>
-                                        @endif
-                                    </div>
-                                @endforeach
+
+                                            @elseif($prop->input_type == 'file')
+                                                <div class="w-full border-2 border-dashed border-slate-200 rounded-[2.5rem] p-12 text-center bg-white hover:border-[#1A73E8]/50 transition-colors group">
+                                                    <div class="w-20 h-20 bg-[#F8F9FA] text-[#1A73E8] rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-sm">
+                                                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                                        </svg>
+                                                    </div>
+                                                    <p class="text-base font-black text-[#1C1C1C] mb-2">اسحب الملف هنا</p>
+                                                    <p class="text-xs text-slate-400 font-bold mb-8">أو</p>
+                                                    <div class="inline-block px-10 py-4 border-2 border-[#1A73E8] text-[#1A73E8] rounded-2xl text-sm font-black hover:bg-[#1A73E8] hover:text-white transition-all cursor-pointer shadow-sm">
+                                                        تصفح الملفات
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
                             @endif
                         </div>
                     </div>
-                    
                 </div>
             @empty
-                <div class="py-12 text-center text-slate-500 font-bold text-lg bg-white rounded-2xl border border-slate-100 shadow-sm">
-                    لا توجد صفحات أو خصائص لهذه الفئة بعد
+                <div class="py-20 text-center bg-white rounded-[2.5rem] border border-slate-200 shadow-sm">
+                    <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-10 h-10 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <p class="text-xl font-black text-slate-500">لا توجد حقول معاينة لهذه الفئة</p>
+                    <p class="text-slate-400 mt-2 font-bold">ابدأ بإضافة صفحات وخصائص من لوحة التحكم</p>
                 </div>
             @endforelse
-
-            <!-- Services Section -->
-            @if($services->isNotEmpty())
-                <div class="mt-12 bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                    <div class="px-6 py-4 bg-[#F8F9FA] border-b border-slate-200">
-                        <h3 class="text-sm font-black text-[#1C1C1C]">الخدمات المتاحة</h3>
-                    </div>
-                    <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        @foreach($services as $service)
-                            <div class="flex items-center gap-3 px-4 py-3 bg-[#F8F9FA] rounded-xl border border-slate-100">
-                                <div class="w-8 h-8 bg-[#1A73E8]/10 rounded-lg flex items-center justify-center text-[#1A73E8]">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                </div>
-                                <span class="text-sm font-bold text-[#1C1C1C]">{{ $service->name }}</span>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
         </div>
-        
+
+        <!-- Extra Services Mockup -->
+        @if($services->isNotEmpty())
+        <div class="px-8 space-y-4">
+            <h3 class="text-sm font-black text-[#6F6F6F] px-2 flex items-center gap-2">
+                <div class="w-1.5 h-4 bg-[#1A73E8] rounded-full"></div>
+                الخدمات المقدمة مع هذه الفئة
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                @foreach($services as $service)
+                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+                        <div class="w-10 h-10 bg-[#E8F1FE] text-[#1A73E8] rounded-xl flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                        <span class="text-sm font-black text-[#1C1C1C]">{{ $service->name }}</span>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
     </div>
 </div>
+
+<style>
+[x-cloak] { display: none !important; }
+</style>
 @endsection

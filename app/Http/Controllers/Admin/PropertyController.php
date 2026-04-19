@@ -26,7 +26,7 @@ class PropertyController extends Controller
         $request->validate([
             'properties'               => 'required|array|min:1',
             'properties.*.label'       => 'required|string|max:255',
-            'properties.*.input_type'  => 'nullable|string|in:text,number,select,checkbox,radio,textarea,date',
+            'properties.*.input_type'  => 'nullable|string|in:text,number,price,select,checkbox,radio,textarea,date,file,map',
             'properties.*.placeholder' => 'nullable|string|max:255',
             'properties.*.help_text'   => 'nullable|string|max:500',
             'properties.*.is_required' => 'nullable|in:0,1',
@@ -70,9 +70,10 @@ class PropertyController extends Controller
         $request->validate([
             'label'      => 'required|string|max:255',
             'placeholder'=> 'nullable|string|max:255',
-            'input_type' => 'required|string|in:text,number,select,checkbox,radio,textarea,date',
+            'help_text'  => 'nullable|string|max:500',
+            'input_type' => 'required|string|in:text,number,price,select,checkbox,radio,textarea,date,file,map',
             'options'    => 'nullable|string',
-            'is_required'=> 'nullable|boolean',
+            'is_required'=> 'nullable|in:0,1',
         ]);
 
         $options = null;
@@ -83,6 +84,7 @@ class PropertyController extends Controller
         $property->update([
             'label'       => $request->label,
             'placeholder' => $request->placeholder,
+            'help_text'   => $request->help_text,
             'input_type'  => $request->input_type,
             'options'     => $options ?: null,
             'is_required' => $request->boolean('is_required'),

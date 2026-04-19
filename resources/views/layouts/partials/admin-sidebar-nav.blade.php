@@ -84,8 +84,8 @@
                     </button>
                     <div x-show="open" x-collapse class="pl-4 pr-10 py-2 space-y-1 text-[#6F6F6F]">
                         <a href="{{ route('admin.categories.index') }}" class="block px-4 py-2.5 rounded-xl transition-colors {{ request()->routeIs('admin.categories.*') ? 'bg-[#E8F0FE] text-[#1A73E8] font-bold' : 'hover:text-[#1A73E8] hover:bg-slate-50' }}">إدارة الفئات</a>
-                        <a href="#" class="block px-4 py-2.5 rounded-xl transition-colors hover:text-[#1A73E8] hover:bg-slate-50">إدارة المدن والمناطق</a>
-                        <a href="#" class="block px-4 py-2.5 rounded-xl transition-colors hover:text-[#1A73E8] hover:bg-slate-50">البانرات الإعلانية</a>
+                        <a href="{{ route('admin.cities.index') }}" class="block px-4 py-2.5 rounded-xl transition-colors {{ request()->routeIs('admin.cities.*') ? 'bg-[#E8F0FE] text-[#1A73E8] font-bold' : 'hover:text-[#1A73E8] hover:bg-slate-50' }}">إدارة المدن والمناطق</a>
+                        <a href="{{ route('admin.banners.index') }}" class="block px-4 py-2.5 rounded-xl transition-colors {{ request()->routeIs('admin.banners.*') ? 'bg-[#E8F0FE] text-[#1A73E8] font-bold' : 'hover:text-[#1A73E8] hover:bg-slate-50' }}">البانرات الإعلانية</a>
                     </div>
                 </div>
 

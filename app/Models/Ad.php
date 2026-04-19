@@ -12,7 +12,7 @@ class Ad extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'category_id', 'title', 'description', 'type',
+        'user_id', 'category_id', 'city_id', 'title', 'description', 'type',
         'deposit_amount', 'price', 'bids_count', 'status', 'bid_status'
     ];
 
@@ -44,5 +44,10 @@ class Ad extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
     }
 }

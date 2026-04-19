@@ -14,7 +14,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'password', 'phone', 'address', 'account_type',
         'company_name', 'commercial_register', 'ads_count', 'sales',
-        'purchases', 'status',
+        'purchases', 'status', 'city_id',
     ];
 
     protected $hidden = [
@@ -78,5 +78,10 @@ class User extends Authenticatable
     public function services(): HasMany
     {
         return $this->hasMany(Service::class);
+    }
+
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
     }
 }

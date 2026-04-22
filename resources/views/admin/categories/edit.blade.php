@@ -13,6 +13,16 @@
         <h1 class="text-2xl font-black text-[#1C1C1C]">تعديل بيانات الفئة</h1>
     </div>
 
+    @if ($errors->any())
+        <div class="mb-6 p-4 bg-red-50 border-r-4 border-red-500 rounded-xl">
+            <ul class="list-disc list-inside text-sm text-red-600 font-bold">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <form action="{{ route('admin.categories.update', $category->id) }}" method="POST" enctype="multipart/form-data" class="space-y-8">
         @csrf
         @method('PUT')
@@ -36,7 +46,7 @@
                         <div class="w-full h-full flex flex-col items-center justify-center space-y-4">
                             @if($category->image)
                                 <div class="relative flex flex-col items-center justify-center">
-                                    <img src="{{ asset('uploads/' . $category->image) }}" 
+                                    <img src="{{ asset($category->image) }}" 
                                          style="max-height: 140px; width: auto; display: block;" 
                                          class="rounded-xl shadow-sm border border-slate-100" alt="Existing Image">
                                     <button type="button" @click="document.getElementById('category_image').click()" 

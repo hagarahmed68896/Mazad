@@ -16,4 +16,9 @@ class Ticket extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function logs()
+    {
+        return $this->hasMany(TicketLog::class)->latest();
+    }
 }

@@ -3,9 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [\App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
 Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
 
@@ -24,7 +22,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
 
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
-    Route::middleware('auth')->group(function () {
+    Route::middleware('auth:admin')->group(function () {
         Route::get('verification-success', [AuthController::class, 'showVerificationSuccess'])->name('verification.success');
         Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
 
@@ -148,7 +146,48 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
             Route::delete('/areas/{city}', [\App\Http\Controllers\Admin\CityController::class, 'destroyArea'])->name('areas.destroy');
         });
 
+        // Profile
+        Route::get('profile', [\App\Http\Controllers\Admin\ProfileController::class, 'index'])->name('profile.index');
+        Route::post('profile/update', [\App\Http\Controllers\Admin\ProfileController::class, 'update'])->name('profile.update');
+        Route::post('profile/update-avatar', [\App\Http\Controllers\Admin\ProfileController::class, 'updateAvatar'])->name('profile.update-avatar');
+        Route::post('profile/password', [\App\Http\Controllers\Admin\ProfileController::class, 'updatePassword'])->name('profile.password');
+
+        // Settings
+        Route::get('settings/contacts', [\App\Http\Controllers\Admin\SettingController::class, 'contacts'])->name('settings.contacts');
+        Route::post('settings/contacts', [\App\Http\Controllers\Admin\SettingController::class, 'updateContacts'])->name('settings.contacts.update');
+        Route::get('settings/ads', [\App\Http\Controllers\Admin\SettingController::class, 'ads'])->name('settings.ads');
+        Route::post('settings/ads', [\App\Http\Controllers\Admin\SettingController::class, 'updateAds'])->name('settings.ads.update');
+        Route::get('settings/financial', [\App\Http\Controllers\Admin\SettingController::class, 'financial'])->name('settings.financial');
+        Route::post('settings/financial', [\App\Http\Controllers\Admin\SettingController::class, 'updateFinancial'])->name('settings.financial.update');
+        
+        // Policies
+        Route::post('policies/bulk-destroy', [\App\Http\Controllers\Admin\PolicyController::class, 'bulkDestroy'])->name('policies.bulk-destroy');
+        Route::resource('policies', \App\Http\Controllers\Admin\PolicyController::class);
+
+        // FAQs
+        Route::get('faqs/download', [\App\Http\Controllers\Admin\FaqController::class, 'download'])->name('faqs.download');
+        Route::post('faqs/bulk-destroy', [\App\Http\Controllers\Admin\FaqController::class, 'bulkDestroy'])->name('faqs.bulk-destroy');
+        Route::resource('faqs', \App\Http\Controllers\Admin\FaqController::class);
+
+        // Tickets
+        Route::get('tickets/download', [\App\Http\Controllers\Admin\TicketController::class, 'download'])->name('tickets.download');
+        Route::post('tickets/bulk-destroy', [\App\Http\Controllers\Admin\TicketController::class, 'bulkDestroy'])->name('tickets.bulk-destroy');
+        Route::resource('tickets', \App\Http\Controllers\Admin\TicketController::class);
+
         // Banners Management
         Route::resource('banners', \App\Http\Controllers\Admin\BannerController::class);
+
+        // Reviews Management
+        Route::get('reviews', [\App\Http\Controllers\Admin\ReviewController::class, 'index'])->name('reviews.index');
+        Route::get('reviews-download', [\App\Http\Controllers\Admin\ReviewController::class, 'download'])->name('reviews.download');
+        // Notifications Management
+        Route::post('notifications/mark-all-read', [\App\Http\Controllers\Admin\NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
+        Route::post('notifications/{notification}/mark-read', [\App\Http\Controllers\Admin\NotificationController::class, 'markRead'])->name('notifications.mark-read');
+        Route::post('notifications/{notification}/send', [\App\Http\Controllers\Admin\NotificationController::class, 'send'])->name('notifications.send');
+        Route::post('notifications/bulk-destroy', [\App\Http\Controllers\Admin\NotificationController::class, 'bulkDestroy'])->name('notifications.bulk-destroy');
+        Route::resource('notifications', \App\Http\Controllers\Admin\NotificationController::class);
+        
+        // Reports & Analytics
+        Route::get('reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
     });
 });

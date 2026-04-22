@@ -64,7 +64,7 @@ class AuthController extends Controller
                 $remember = session()->pull('remember_login', false);
                 session()->forget('pending_user_id');
 
-                Auth::login($user, $remember);
+                Auth::guard('admin')->login($user, $remember);
                 $request->session()->regenerate();
 
                 return redirect()->route('admin.verification.success');
@@ -76,7 +76,7 @@ class AuthController extends Controller
 
     public function showVerificationSuccess()
     {
-        if (!Auth::check()) {
+        if (!Auth::guard('admin')->check()) {
             return redirect()->route('admin.login');
         }
         return view('auth.verification-success');
@@ -147,11 +147,11 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        Auth::logout();
+        Auth::guard('admin')->logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('admin.login');
+        return redirect('/');
     }
 }

@@ -3,17 +3,58 @@
 @section('title', 'إدارة البانرات الإعلانية')
 
 @section('content')
-<div class="container-fluid mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl">
+<style>
+    .custom-scrollbar::-webkit-scrollbar { height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    .banners-slider {
+        display: flex;
+        overflow-x: auto;
+        gap: 1.5rem;
+        padding-bottom: 1.25rem;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .banners-slider > div {
+        flex: 0 0 calc(33.33% - 1rem);
+        scroll-snap-align: start;
+    }
+    
+    @media (max-width: 1024px) {
+        .banners-slider > div { flex: 0 0 calc(50% - 0.75rem); }
+    }
+    
+    @media (max-width: 640px) {
+        .banners-slider > div { flex: 0 0 100%; }
+    }
+    
+    .status-active {
+        background-color: #E8F5E9 !important;
+        color: #2E7D32 !important;
+        border: 1px solid rgba(46, 125, 50, 0.1) !important;
+    }
+    .status-disabled {
+        background-color: #FFEBEE !important;
+        color: #C62828 !important;
+        border: 1px solid rgba(198, 40, 40, 0.1) !important;
+    }
+    [x-cloak] { display: none !important; }
+</style>
+
+<div class="container-fluid mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl" x-data="{ deleteModalOpen: false, deleteUrl: '' }">
     
     <!-- Header Section -->
-    <div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div class="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
             <h1 class="text-3xl font-black text-[#1C1C1C] mb-2 ">البانرات الإعلانية</h1>
         </div>
     </div>
 
     <!-- Actions Section -->
-    <div class="flex items-center justify-between gap-4 mb-10 w-full  p-4 rounded-2xl border border-slate-100">
+    <div class="flex items-center justify-between gap-4 mb-4 w-full  p-4 rounded-2xl border border-slate-100">
         <!-- Search Bar (Right visually in RTL) -->
         <form action="{{ route('admin.banners.index') }}" method="GET" class="relative group w-full max-w-sm">
             <input type="text" name="search" value="{{ request('search') }}"
@@ -35,7 +76,7 @@
     <div class="space-y-6">
         @forelse($banners as $banner)
             <!-- Banner Card -->
-            <div class="bg-white border border-slate-100 rounded-[2rem] p-6 lg:p-8 relative">
+            <div class="bg-white border border-slate-100 rounded-md p-6 lg:p-8 relative">
                 
                 <!-- Card Header -->
                 <div class="flex items-center justify-between mb-6">
@@ -43,43 +84,42 @@
                     <div class="flex items-center gap-3">
                         <span class="text-sm text-slate-500 font-bold">{{ $banner->created_at ? $banner->created_at->format('Y/m/d') : '3/12/2025' }}</span>
                         @if($banner->status)
-                            <span class="bg-green-100 text-green-600 px-5 py-1.5 rounded-xl text-xs font-black">نشط</span>
+                            <span class="status-active px-5 py-1.5 rounded-xl text-xs font-black shadow-sm">نشط</span>
                         @else
-                            <span class="bg-slate-200 text-slate-500 px-5 py-1.5 rounded-xl text-xs font-black">معطل</span>
+                            <span class="status-disabled px-5 py-1.5 rounded-xl text-xs font-black shadow-sm">معطل</span>
                         @endif
                     </div>
                 </div>
 
                 <!-- Banners Previews (3 Copies as requested by UI design) -->
                 <!-- The blue banner component -->
-                <div class="flex items-center gap-4 overflow-x-auto custom-scrollbar pb-4 -mx-2 px-2">
-                    @for($i = 0; $i < 3; $i++)
-                        <div class="relative w-[320px] h-[160px] rounded-2xl flex-shrink-0 overflow-hidden shadow-sm flex items-center bg-gradient-to-l from-[#196BE8] to-[#2582F0]">
-                            <!-- Content Right -->
-                            <div class="relative z-10 px-6 py-4 w-2/3 h-full flex flex-col justify-center">
-                                <h4 class="text-white font-black text-[15px] mb-2 leading-tight">{{ $banner->title ?? 'ابحث، بع، أو زايد' }}</h4>
-                                <p class="text-white/90 text-[10px] font-semibold leading-snug mb-3">
-                                    {{ $banner->description ?? 'منصة موثوقة تمكنك من تصفح الإعلانات أو إضافة إعلانك بسهولة.' }}
+                <div class="banners-slider custom-scrollbar">
+                    @foreach($banner->items ?? [] as $item)
+                        <div class="relative w-full h-[140px] rounded-md overflow-hidden shadow-sm flex items-center bg-[#1A73E8]">
+                            <!-- Content Right (60%) -->
+                            <div class="relative z-10 px-5 py-3 w-[60%] h-full flex flex-col justify-center">
+                                <h4 class="text-white font-black text-[14px] mb-1 leading-tight">{{ $item['title'] ?? 'عنوان البانر' }}</h4>
+                                <p class="text-blue-100 text-[10px] font-medium leading-snug mb-2 line-clamp-2">
+                                    {{ $item['description'] ?? '' }}
                                 </p>
+                                @if(isset($item['show_button']) && $item['show_button'] == '1')
                                 <div>
                                     <span class="bg-white text-[#1A73E8] text-[9px] font-black px-4 py-1.5 rounded-lg inline-block whitespace-nowrap shadow-sm">
-                                        {{ $banner->button_text ?? 'أضف إعلانك' }}
+                                        {{ $item['button_text'] ?? 'أضف إعلانك' }}
                                     </span>
                                 </div>
-                            </div>
-                            <!-- Image Left -->
-                            <div class="absolute left-0 bottom-0 top-0 w-[45%] h-full flex items-center justify-start overflow-hidden">
-                                @if($banner->image)
-                                    <img src="{{ asset('storage/' . $banner->image) }}" class="h-full w-auto object-cover object-left" alt="">
-                                @else
-                                    <!-- Placeholder Car matching the image -->
-                                    <div class="w-full h-full bg-slate-200 opacity-20"></div>
                                 @endif
-                                <!-- Add fading effect to blend image with background -->
-                                <div class="absolute inset-0 bg-gradient-to-r from-transparent to-[#196BE8]/90"></div>
+                            </div>
+                            <!-- Image Left (40%) -->
+                            <div class="absolute left-0 bottom-0 top-0 w-[40%] h-full flex items-center justify-center p-2 overflow-hidden">
+                                @if(isset($item['image']) && $item['image'])
+                                    <img src="{{ asset($item['image']) }}" class="h-full w-full object-contain" alt="">
+                                @else
+                                    <div class="w-full h-full bg-white/10 rounded-xl"></div>
+                                @endif
                             </div>
                         </div>
-                    @endfor
+                    @endforeach
                 </div>
 
                 <!-- Slider Indicators (Visual only) -->
@@ -91,14 +131,10 @@
 
                 <!-- Card Actions -->
                 <div class="flex items-center justify-end gap-3 pt-2">
-                    <form action="{{ route('admin.banners.destroy', $banner->id) }}" method="POST" onsubmit="return confirm('هل أنت متأكد من حذف هذا البانر؟');">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="px-6 py-2.5 bg-[#E2E8F0] text-slate-500 rounded-xl font-black text-sm flex items-center gap-2 hover:bg-slate-300 transition-all">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                            <span>حذف</span>
-                        </button>
-                    </form>
+                    <button type="button" @click="deleteUrl = '{{ route('admin.banners.destroy', $banner->id) }}'; deleteModalOpen = true" class="px-6 py-2.5 bg-[#E2E8F0] text-slate-500 rounded-xl font-black text-sm flex items-center gap-2 hover:bg-slate-300 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        <span>حذف</span>
+                    </button>
                     <a href="{{ route('admin.banners.edit', $banner->id) }}" class="px-8 py-2.5 bg-[#1A73E8] text-white rounded-xl font-black text-sm flex items-center gap-2 hover:shadow-lg hover:shadow-[#1A73E8]/20 transition-all cursor-pointer">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                         <span>تعديل</span>
@@ -107,7 +143,7 @@
 
             </div>
         @empty
-            <div class="flex flex-col items-center justify-center text-center p-10 md:p-20 bg-white rounded-[3rem] border border-slate-100 shadow-xl max-w-3xl mx-auto w-full">
+            <div class="flex flex-col items-center justify-center text-center p-10 md:p-20 bg-white rounded-md border border-slate-100 shadow-xl max-w-3xl mx-auto w-full">
                 <div class="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center mb-8 text-slate-300">
                     <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 </div>
@@ -126,5 +162,38 @@
             {{ $banners->links() }}
         </div>
     @endif
+
+    <!-- CUSTOM Delete Confirmation Modal -->
+    <div x-show="deleteModalOpen" 
+         class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+        
+        <div class="bg-white w-full max-w-md rounded-md p-10 text-center shadow-2xl transform transition-all"
+             x-show="deleteModalOpen"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 scale-95 translate-y-8"
+             x-transition:enter-end="opacity-100 scale-100 translate-y-0">
+            
+            <div class="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-8 text-red-500">
+                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+
+            <h3 class="text-2xl font-black text-[#1C1C1C] mb-4">هل أنت متأكد؟</h3>
+            <p class="text-slate-500 font-bold mb-10 leading-relaxed text-sm">سيتم حذف هذا البانر بشكل نهائي. لا يمكن التراجع عن هذا الإجراء.</p>
+
+            <div class="flex flex-col gap-3">
+                <form :action="deleteUrl" method="POST" class="w-full">
+                    @csrf @method('DELETE')
+                    <button type="submit" class="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-sm hover:bg-red-600 transition-all shadow-lg shadow-red-500/20">تأكيد الحذف</button>
+                </form>
+                <button @click="deleteModalOpen = false" class="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all">إلغاء</button>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection

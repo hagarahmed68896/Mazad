@@ -50,7 +50,7 @@ class CategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|image|max:10240',
             'ad_types' => 'nullable|array',
             'deposit_value' => 'nullable|numeric|min:0',
             'tax_value' => 'nullable|numeric|min:0',
@@ -61,6 +61,10 @@ class CategoryController extends Controller
             'services' => 'nullable|array',
             'services.*' => 'required|string|max:255',
             'ad_type' => 'nullable|string|in:ads,tenders',
+        ], [
+            'image.max' => 'عذراً، يجب ألا يتجاوز حجم الصورة 10 ميجابايت.',
+            'image.image' => 'يجب أن يكون الملف المرفوع صورة.',
+            'name.required' => 'يرجى إدخال اسم الفئة.'
         ]);
 
         try {
@@ -70,7 +74,10 @@ class CategoryController extends Controller
             $categoryData['ad_types'] = $request->has('ad_type') ? [$request->ad_type] : [];
             
             if ($request->hasFile('image')) {
-                $categoryData['image'] = $request->file('image')->store('categories', 'public');
+                $image = $request->file('image');
+                $filename = time() . '_' . $image->getClientOriginalName();
+                $image->move(public_path('uploads/categories'), $filename);
+                $categoryData['image'] = 'uploads/categories/' . $filename;
             }
 
             $category = Category::create($categoryData);
@@ -128,7 +135,7 @@ class CategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|image|max:10240',
             'ad_types' => 'nullable|array',
             'deposit_value' => 'nullable|numeric|min:0',
             'tax_value' => 'nullable|numeric|min:0',
@@ -136,6 +143,9 @@ class CategoryController extends Controller
             'pages' => 'nullable|array',
             'services' => 'nullable|array',
             'ad_type' => 'nullable|string|in:ads,tenders',
+        ], [
+            'image.max' => 'عذراً، يجب ألا يتجاوز حجم الصورة 10 ميجابايت.',
+            'image.image' => 'يجب أن يكون الملف المرفوع صورة.'
         ]);
 
         try {
@@ -145,10 +155,13 @@ class CategoryController extends Controller
             $categoryData['ad_types'] = $request->has('ad_type') ? [$request->ad_type] : [];
             
             if ($request->hasFile('image')) {
-                if ($category->image) {
-                    Storage::disk('public')->delete($category->image);
+                if ($category->image && file_exists(public_path($category->image))) {
+                    unlink(public_path($category->image));
                 }
-                $categoryData['image'] = $request->file('image')->store('categories', 'public');
+                $image = $request->file('image');
+                $filename = time() . '_' . $image->getClientOriginalName();
+                $image->move(public_path('uploads/categories'), $filename);
+                $categoryData['image'] = 'uploads/categories/' . $filename;
             }
 
             $category->update($categoryData);

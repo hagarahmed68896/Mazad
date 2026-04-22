@@ -7,14 +7,16 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+use Laravel\Sanctum\HasApiTokens;
+
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
         'name', 'email', 'password', 'phone', 'address', 'account_type',
         'company_name', 'commercial_register', 'ads_count', 'sales',
-        'purchases', 'status', 'city_id',
+        'purchases', 'status', 'city_id', 'avatar',
     ];
 
     protected $hidden = [

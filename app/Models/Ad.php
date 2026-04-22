@@ -12,8 +12,8 @@ class Ad extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'category_id', 'city_id', 'title', 'description', 'type',
-        'deposit_amount', 'price', 'bids_count', 'status', 'bid_status'
+        'user_id', 'category_id', 'city_id', 'title', 'image', 'description', 'type',
+        'deposit_amount', 'price', 'bids_count', 'status', 'end_date', 'bid_status'
     ];
 
     public function user(): BelongsTo

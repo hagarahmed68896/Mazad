@@ -13,7 +13,7 @@ class Ad extends Model
 
     protected $fillable = [
         'user_id', 'category_id', 'city_id', 'title', 'image', 'description', 'type',
-        'deposit_amount', 'price', 'bids_count', 'status', 'end_date', 'bid_status'
+        'deposit_amount', 'price', 'bids_count', 'views_count', 'status', 'end_date', 'bid_status', 'is_featured'
     ];
 
     public function user(): BelongsTo

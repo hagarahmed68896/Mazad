@@ -5,7 +5,28 @@ use App\Http\Controllers\AuthController;
 
 Route::get('/', [\App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
+// Public Ad View — increments views_count
+Route::get('/ads/{ad}', function(\App\Models\Ad $ad) {
+    $ad->increment('views_count');
+    // Redirect to app or return JSON for now (extend when ad show page is ready)
+    return back();
+})->name('ads.show');
+
+Route::middleware('auth')->group(function() {
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::delete('/notifications/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
+    
+    // Location Update
+    Route::post('/location/update', [\App\Http\Controllers\LocationController::class, 'update'])->name('location.update');
+});
+
+
 Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::get('register', [AuthController::class, 'showRegisterTypeForm'])->name('register.type');
+Route::get('register/individual', [AuthController::class, 'showRegisterIndividualForm'])->name('register.individual');
+Route::get('register/company', [AuthController::class, 'showRegisterCompanyForm'])->name('register.company');
+Route::post('register', [AuthController::class, 'register'])->name('register.post');
 
 Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
     Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -19,6 +40,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
 
     Route::get('reset-password', [AuthController::class, 'showResetPasswordForm'])->name('reset-password');
     Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('post-reset-password');
+    Route::get('reset-success', [AuthController::class, 'showResetSuccess'])->name('reset-success');
 
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 

@@ -13,6 +13,10 @@
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
+    <!-- Leaflet (Map) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <!-- Styles -->
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
     <style>
@@ -22,40 +26,10 @@
 <body>
 
     <!-- Navbar -->
-    <nav class="navbar">
-        <div class="container">
-            <div class="nav-right">
-                <div class="logo">Logo</div>
-                <div class="location-picker" onclick="handleLocationClick()">
-                    <i class="fa-solid fa-chevron-down"></i>
-                    <span>كل المدن (السعودية)</span>
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/0/0d/Flag_of_Saudi_Arabia.svg" alt="Saudi Flag" class="flag-icon">
-                </div>
-            </div>
-            
-            <div class="search-bar">
-                <input type="text" >
-                <i class="fa-solid fa-magnifying-glass"></i>
-            </div>
+    @include('partials.navbar')
+    @include('partials.sidebar')
 
-            <div class="nav-actions">
-                @auth
-                    <div style="display: flex; gap: 0.5rem;">
-                        <a href="{{ route('admin.dashboard') }}" class="btn btn-primary">لوحة التحكم</a>
-                        <form action="{{ route('admin.logout') }}" method="POST">
-                            @csrf
-                            <button type="submit" class="btn btn-outline" title="تسجيل الخروج">
-                                <i class="fa-solid fa-right-from-bracket"></i>
-                            </button>
-                        </form>
-                    </div>
-                @else
-                    <a href="{{ route('login') }}" class="btn btn-outline">تسجيل الدخول</a>
-                    <a href="{{ route('login') }}" class="btn btn-primary"> أضف اعلانك</a>
-                @endauth
-            </div>
-    </nav>
-
+    @if($discoveryCategories->count() > 0)
     <div class="categories-nav">
         <div class="container">
             <div class="category-pills">
@@ -67,6 +41,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <main class="container">
         
@@ -150,6 +125,67 @@
             </div>
         </section>
 
+        @auth
+        <!-- Reports Section -->
+        <section class="section reports-section">
+            <div class="section-header" style="margin-top: 2rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                <h2 class="section-title" style="margin: 0;font-weight: bold;font-size: 2rem;">تقاريري</h2>
+                <a href="#" class="view-all-btn" style="margin: 0; padding: 0.5rem 1.25rem; font-size: 0.85rem; border-radius: 10px;">عرض التقرير</a>
+            </div>
+            <div class="reports-card">
+                <div class="reports-info">
+                    <div class="info-item">
+                        <span class="info-label">إجمالي الإيرادات</span>
+                        <div class="info-value">
+                            <span class="value">{{ number_format($totalRevenue) }}</span>
+                            <span class="currency">ر.س</span>
+                            <span class="trend up"><i class="fa-solid fa-arrow-up"></i> 0%</span>
+                        </div>
+                    </div>
+                    <div class="reports-filter">
+                        <select>
+                            <option>أسبوع</option>
+                            <option>شهر</option>
+                            <option>سنة</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="reports-chart">
+                    @php
+                        $maxVal = collect($chartData)->max('total') ?: 100;
+                        $points = "";
+                        foreach($chartData as $index => $data) {
+                            $x = $index * (1000 / 6);
+                            $y = 180 - ($data['total'] / $maxVal * 150);
+                            $points .= ($index == 0 ? "M" : " L") . "$x,$y";
+                        }
+                    @endphp
+                    <!-- Dynamic SVG Chart based on real data -->
+                    <svg viewBox="0 0 1000 200" preserveAspectRatio="none">
+                        <path d="{{ $points }}" fill="none" stroke="#1A73E8" stroke-width="4" stroke-linecap="round" />
+                        @foreach($chartData as $index => $data)
+                            @php 
+                                $x = $index * (1000 / 6);
+                                $y = 180 - ($data['total'] / $maxVal * 150);
+                            @endphp
+                            <circle cx="{{ $x }}" cy="{{ $y }}" r="5" fill="#1A73E8" />
+                            @if($index == count($chartData) - 1 && $data['total'] > 0)
+                                <rect x="{{ $x - 20 }}" y="{{ $y - 40 }}" width="40" height="30" rx="4" fill="#1A73E8" />
+                                <text x="{{ $x }}" y="{{ $y - 20 }}" font-size="12" fill="white" text-anchor="middle">{{ $data['total'] }}</text>
+                            @endif
+                        @endforeach
+                    </svg>
+                    <div class="chart-labels">
+                        @foreach($chartData as $data)
+                            <span>{{ $data['day'] }}</span>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </section>
+        @endauth
+
+        @if($discoveryCategories->count() > 0)
         <!-- Discovery Categories -->
         <section class="section discovery-categories">
             <div class="section-header">
@@ -158,9 +194,7 @@
             </div>
             
             <div class="categories-carousel-container">
-                                <button class="carousel-arrow next" id="catNext"><i class="fa-solid fa-chevron-right"></i></button>
-
-                
+                <button class="carousel-arrow next" id="catNext"><i class="fa-solid fa-chevron-right"></i></button>
                 <div class="categories-carousel">
                     <div class="category-track" id="catTrack">
                         @foreach($discoveryCategories as $index => $category)
@@ -174,188 +208,219 @@
                     </div>
                 </div>
                 <button class="carousel-arrow prev" id="catPrev"><i class="fa-solid fa-chevron-left"></i></button>
-
-            </div>
-
-            <div class="carousel-dots">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot active"></div>
             </div>
         </section>
+        @endif
 
-        <!-- Featured Ads Section -->
-        <section class="section featured-ads">
-            <div class="section-header">
-                <h2 class="section-title">أبرز الإعلانات</h2>
-                <a href="#" class="view-all-btn">عرض الكل</a>
-            </div>
-            
-            <div class="ads-carousel-outer">
-                <button class="carousel-arrow prev" id="adsPrev"><i class="fa-solid fa-chevron-left"></i></button>
-                
-                <div class="ads-track" id="adsTrack">
-                    @forelse($interactiveAds as $ad)
-                        @include('partials.ad-card', ['ad' => $ad])
-                    @empty
-                        <div class="w-full text-center py-10">
-                            <p class="text-slate-500 font-bold">لا توجد إعلانات حالياً</p>
-                        </div>
-                    @endforelse
+        @auth
+            @if($recentlyViewed->count() > 0)
+            <!-- Recently Viewed Section -->
+            <section class="section featured-ads">
+                <div class="section-header">
+                    <h2 class="section-title">الأكثر مشاهدة مؤخراً</h2>
+                    <a href="#" class="view-all-btn">عرض الكل</a>
                 </div>
+                
+                <div class="ads-carousel-outer">
+                    <button class="carousel-arrow next" id="adsNextRV"><i class="fa-solid fa-chevron-right"></i></button>
+                    <div class="ads-track" id="adsTrackRV">
+                        @foreach($recentlyViewed as $ad)
+                            @include('partials.ad-card', ['ad' => $ad])
+                        @endforeach
+                    </div>
+                    <button class="carousel-arrow prev" id="adsPrevRV"><i class="fa-solid fa-chevron-left"></i></button>
+                </div>
+            </section>
+            @endif
 
-                <button class="carousel-arrow next" id="adsNext"><i class="fa-solid fa-chevron-right"></i></button>
-            </div>
-        </section>
+            @if($currentAuctions->count() > 0)
+            <!-- Current Auctions Section -->
+            <section class="section featured-ads">
+                <div class="section-header">
+                    <h2 class="section-title">المزادات الحالية</h2>
+                    <a href="#" class="view-all-btn">عرض الكل</a>
+                </div>
+                
+                <div class="ads-carousel-outer">
+                    <button class="carousel-arrow next" id="adsNextCA"><i class="fa-solid fa-chevron-right"></i></button>
+                    <div class="ads-track" id="adsTrackCA">
+                        @foreach($currentAuctions as $ad)
+                            @include('partials.ad-card', ['ad' => $ad])
+                        @endforeach
+                    </div>
+                    <button class="carousel-arrow prev" id="adsPrevCA"><i class="fa-solid fa-chevron-left"></i></button>
+                </div>
+            </section>
+            @endif
 
-        <script>
-            // Ads Carousel Logic
-            document.addEventListener('DOMContentLoaded', function() {
-                const adsTrack = document.getElementById('adsTrack');
-                const adsPrev = document.getElementById('adsPrev');
-                const adsNext = document.getElementById('adsNext');
+            @if($instantBuy->count() > 0)
+            <!-- Instant Buy Section -->
+            <section class="section featured-ads">
+                <div class="section-header">
+                    <h2 class="section-title">عروض الشراء الفوري</h2>
+                    <a href="#" class="view-all-btn">عرض الكل</a>
+                </div>
+                
+                <div class="ads-carousel-outer">
+                    <button class="carousel-arrow next" id="adsNextIB"><i class="fa-solid fa-chevron-right"></i></button>
+                    <div class="ads-track" id="adsTrackIB">
+                        @foreach($instantBuy as $ad)
+                            @include('partials.ad-card', ['ad' => $ad])
+                        @endforeach
+                    </div>
+                    <button class="carousel-arrow prev" id="adsPrevIB"><i class="fa-solid fa-chevron-left"></i></button>
+                </div>
+            </section>
+            @endif
+        @endauth
 
-                if (adsTrack && adsPrev && adsNext) {
-                    const scrollAmount = 400;
-                    
-                    adsNext.addEventListener('click', () => {
-                        adsTrack.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-                    });
+        @guest
+            @if($featuredAds->count() > 0)
+            <!-- Featured Ads Section -->
+            <section class="section featured-ads">
+                <div class="section-header">
+                    <h2 class="section-title">أبرز الإعلانات</h2>
+                    <a href="#" class="view-all-btn">عرض الكل</a>
+                </div>
+                
+                <div class="ads-carousel-outer">
+                    <button class="carousel-arrow next" id="adsNext1"><i class="fa-solid fa-chevron-right"></i></button>
+                    <div class="ads-track" id="adsTrack1">
+                        @foreach($featuredAds as $ad)
+                            @include('partials.ad-card', ['ad' => $ad])
+                        @endforeach
+                    </div>
+                    <button class="carousel-arrow prev" id="adsPrev1"><i class="fa-solid fa-chevron-left"></i></button>
+                </div>
+            </section>
+            @endif
 
-                    adsPrev.addEventListener('click', () => {
-                        adsTrack.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-                    });
-                }
+            @if($interactiveAds->count() > 0)
+            <!-- Interactive Ads Section -->
+            <section class="section featured-ads">
+                <div class="section-header">
+                    <h2 class="section-title">الإعلانات الأكثر تفاعل</h2>
+                    <a href="#" class="view-all-btn">عرض الكل</a>
+                </div>
+                
+                <div class="ads-carousel-outer">
+                    <button class="carousel-arrow next" id="adsNext2"><i class="fa-solid fa-chevron-right"></i></button>
+                    <div class="ads-track" id="adsTrack2">
+                        @foreach($interactiveAds as $ad)
+                            @include('partials.ad-card', ['ad' => $ad])
+                        @endforeach
+                    </div>
+                    <button class="carousel-arrow prev" id="adsPrev2"><i class="fa-solid fa-chevron-left"></i></button>
+                </div>
+            </section>
+            @endif
 
-                // Countdown Timer Logic
-                function updateCountdowns() {
-                    document.querySelectorAll('.p-countdown').forEach(el => {
-                        const endData = el.dataset.end;
-                        if (!endData) {
-                            el.style.display = 'none';
-                            return;
-                        }
-
-                        const endDate = new Date(endData).getTime();
-                        const now = new Date().getTime();
-                        const diff = endDate - now;
-
-                        const timerSpan = el.querySelector('.countdown-timer');
-
-                        if (isNaN(endDate) || diff <= 0) {
-                            timerSpan.innerText = "منتهي";
-                            return;
-                        }
-
-                        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-                        timerSpan.innerText = `${days} يوم : ${hours} ساعة : ${minutes} دقيقة : ${seconds} ثانية`;
-                    });
-                }
-
-                setInterval(updateCountdowns, 1000);
-                updateCountdowns();
-            });
-        </script>
+            @if($endingSoon->count() > 0)
+            <!-- Ending Soon Ads Section -->
+            <section class="section featured-ads">
+                <div class="section-header">
+                    <h2 class="section-title">الإعلانات قرب الانتهاء</h2>
+                    <a href="#" class="view-all-btn">عرض الكل</a>
+                </div>
+                
+                <div class="ads-carousel-outer">
+                    <button class="carousel-arrow next" id="adsNext3"><i class="fa-solid fa-chevron-right"></i></button>
+                    <div class="ads-track" id="adsTrack3">
+                        @foreach($endingSoon as $ad)
+                            @include('partials.ad-card', ['ad' => $ad])
+                        @endforeach
+                    </div>
+                    <button class="carousel-arrow prev" id="adsPrev3"><i class="fa-solid fa-chevron-left"></i></button>
+                </div>
+            </section>
+            @endif
+        @endguest
 
     </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-grid">
-                <div class="footer-col" style="grid-column: span 2;">
-                    <div class="footer-logo">Logo</div>
-                    <p style="opacity: 0.8; max-width: 300px;">المنصة الرائدة للمزادات العلنية والإلكترونية في المنطقة. نسعى لتوفير تجربة آمنة وشفافة للجميع.</p>
-                    <div class="social-icons">
-                        <a href="#" class="social-icon"><i class="fa-brands fa-facebook-f"></i></a>
-                        <a href="#" class="social-icon"><i class="fa-brands fa-twitter"></i></a>
-                        <a href="#" class="social-icon"><i class="fa-brands fa-instagram"></i></a>
-                        <a href="#" class="social-icon"><i class="fa-brands fa-linkedin-in"></i></a>
-                    </div>
-                </div>
-                <div class="footer-col">
-                    <h4>روابط سريعة</h4>
-                    <ul>
-                        <li><a href="#">الرئيسية</a></li>
-                        <li><a href="#">عن المنصة</a></li>
-                        <li><a href="#">كيفية المشاركة</a></li>
-                        <li><a href="#">تواصل معنا</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h4>الفئات</h4>
-                    <ul>
-                        <li><a href="#">سيارات</a></li>
-                        <li><a href="#">عقارات</a></li>
-                        <li><a href="#">الكترونيات</a></li>
-                        <li><a href="#">خدمات</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h4>المساعدة</h4>
-                    <ul>
-                        <li><a href="#">الأسئلة الشائعة</a></li>
-                        <li><a href="#">سياسة الخصوصية</a></li>
-                        <li><a href="#">الشروط والأحكام</a></li>
-                        <li><a href="#">مركز المساعدة</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                جميع الحقوق محفوظة &copy; {{ date('Y') }} لمزادي. صنع بكل حب.
-            </div>
-        </div>
-    <!-- Location Modal -->
-    <div id="locationModal" class="modal-overlay">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeModal()">&times;</span>
-            <div id="modalBody">
-                {{-- Content will be injected by JS --}}
-            </div>
-        </div>
-    </div>
+    @include('partials.footer')
+
     <script>
+        // Global variables
         let currentSlide = 0;
-        const slides = document.querySelectorAll('.banner-slide');
-        const dots = document.querySelectorAll('.dot');
+        let currentLocationMarker = null;
 
-        function showSlide(n) {
-            slides[currentSlide].classList.remove('active');
-            dots[currentSlide].classList.remove('active');
-            currentSlide = (n + slides.length) % slides.length;
-            slides[currentSlide].classList.add('active');
-            dots[currentSlide].classList.add('active');
-        }
+        // Functions defined globally to be accessible from HTML onclick
+        window.toggleSidebar = function() {
+            const drawer = document.getElementById('sidebarDrawer');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (drawer && overlay) {
+                drawer.classList.toggle('active');
+                overlay.style.display = overlay.style.display === 'block' ? 'none' : 'block';
+                
+                if (drawer.classList.contains('active')) {
+                    ['notificationDropdown', 'cartDropdown', 'profileDropdown'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.style.display = 'none';
+                    });
+                }
+            }
+        };
 
-        function nextSlide() {
-            showSlide(currentSlide + 1);
-        }
+        window.toggleNotifications = function() {
+            const dropdown = document.getElementById('notificationDropdown');
+            if (!dropdown) return;
+            const cartDropdown = document.getElementById('cartDropdown');
+            const profileDropdown = document.getElementById('profileDropdown');
+            if (profileDropdown) profileDropdown.style.display = 'none';
+            if (cartDropdown) cartDropdown.style.display = 'none';
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        };
 
-        function prevSlide() {
-            showSlide(currentSlide - 1);
-        }
+        window.toggleCart = function() {
+            const dropdown = document.getElementById('cartDropdown');
+            if (!dropdown) return;
+            const notifDropdown = document.getElementById('notificationDropdown');
+            const profileDropdown = document.getElementById('profileDropdown');
+            if (profileDropdown) profileDropdown.style.display = 'none';
+            if (notifDropdown) notifDropdown.style.display = 'none';
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        };
 
-        function goToSlide(n) {
-            showSlide(n);
-        }
+        window.toggleProfileDropdown = function() {
+            const dropdown = document.getElementById('profileDropdown');
+            if (!dropdown) return;
+            const notificationDropdown = document.getElementById('notificationDropdown');
+            const cartDropdown = document.getElementById('cartDropdown');
+            if (notificationDropdown) notificationDropdown.style.display = 'none';
+            if (cartDropdown) cartDropdown.style.display = 'none';
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        };
 
-        // Auto slide
-        if (slides.length > 1) {
-            setInterval(nextSlide, 5000);
-        }
+        window.toggleNavbarSearch = function() {
+            const input = document.getElementById('navbarSearchInput');
+            if (!input) return;
+            if (input.style.width === '200px') {
+                input.style.width = '0';
+                input.style.opacity = '0';
+                input.style.padding = '0.4rem 0';
+            } else {
+                input.style.width = '200px';
+                input.style.opacity = '1';
+                input.style.padding = '0.4rem 1rem';
+                input.focus();
+            }
+        };
 
-        function handleLocationClick() {
+        window.closeModal = function() {
+            const modal = document.getElementById('locationModal');
+            if (modal) modal.style.display = 'none';
+        };
+
+        window.handleLocationClick = function() {
             const isLoggedIn = {{ Auth::check() ? 'true' : 'false' }};
             const modal = document.getElementById('locationModal');
             const body = document.getElementById('modalBody');
+            if (!modal || !body) return;
 
             if (!isLoggedIn) {
                 body.innerHTML = `
-                    <div style="padding: 1rem;">
+                    <div style="padding: 1rem; text-align: center;">
                         <i class="fa-solid fa-user-lock" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1.5rem;"></i>
                         <h2 style="margin-bottom: 1rem;">يرجى تسجيل الدخول أولاً</h2>
                         <p style="color: var(--text-muted); margin-bottom: 2rem;">يجب أن تكون مسجلاً لدينا لتتمكن من تحديد عنوانك واختيار مدينتك بدقة.</p>
@@ -365,51 +430,208 @@
                         </div>
                     </div>
                 `;
+                modal.style.display = 'flex';
             } else {
                 body.innerHTML = `
-                    <div style="padding: 1rem;">
+                    <div style="padding: 1rem; text-align: center;">
                         <h2 style="margin-bottom: 0.5rem;">اختر موقعك</h2>
-                        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">حدد العنوان المطلوب لعرض المزادات القريبة منك.</p>
-                        <div class="map-container">
-                            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3624.7!2d46.67!3d24.71!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e2f038!2sRiyadh%20Saudi%20Arabia!5e0!3m2!1sen!2ssa!4v1620000000000" allowfullscreen="" loading="lazy"></iframe>
-                        </div>
-                        <button class="btn btn-primary" style="margin-top: 1.5rem; width: 100%; padding: 1rem;" onclick="closeModal()">تأكيد الموقع</button>
+                        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">قم بالضغط على أي مكان في الخريطة أو سحب العلامة لتحديد موقعك بدقة.</p>
+                        <div id="map" style="height: 350px; border-radius: 12px; margin-bottom: 1rem;"></div>
+                        <button class="btn btn-primary" id="confirmLocationBtn" style="width: 100%; padding: 1rem;" onclick="confirmLocation()">تأكيد هذا الموقع</button>
                     </div>
                 `;
+                modal.style.display = 'flex';
+                
+                setTimeout(() => {
+                    const defaultLat = 24.7136;
+                    const defaultLng = 46.6753;
+                    const map = L.map('map').setView([defaultLat, defaultLng], 6);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+                    
+                    const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+                    currentLocationMarker = marker;
+
+                    // Allow clicking on map to move marker
+                    map.on('click', function(e) {
+                        marker.setLatLng(e.latlng);
+                    });
+
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(position => {
+                            const userLat = position.coords.latitude;
+                            const userLng = position.coords.longitude;
+                            map.setView([userLat, userLng], 13);
+                            marker.setLatLng([userLat, userLng]);
+                        }, () => {
+                            // If user denies or error, stay at default
+                        });
+                    }
+                }, 300);
             }
-            modal.style.display = 'flex';
+        };
+
+        window.confirmLocation = function() {
+            const btn = document.getElementById('confirmLocationBtn');
+            if (!btn) return;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري استنتاج العنوان...';
+            btn.disabled = true;
+
+            if (!currentLocationMarker) return;
+            const pos = currentLocationMarker.getLatLng();
+            
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.lat}&lon=${pos.lng}&accept-language=ar`)
+                .then(res => res.json())
+                .then(data => {
+                    let fullAddress = "السعودية";
+                    let cityOnly = "السعودية";
+                    if (data.address) {
+                        const addr = data.address;
+                        cityOnly = addr.city || addr.town || addr.village || addr.state || "السعودية";
+                        
+                        const parts = [];
+                        if (addr.road) parts.push(addr.road);
+                        if (addr.suburb || addr.neighbourhood || addr.district) parts.push(addr.suburb || addr.neighbourhood || addr.district);
+                        if (addr.city || addr.town || addr.village) parts.push(addr.city || addr.town || addr.village);
+                        if (addr.state) parts.push(addr.state);
+                        if (addr.country) parts.push(addr.country);
+                        fullAddress = parts.length > 0 ? parts.join('، ') : (data.display_name || "السعودية");
+                    }
+                    saveLocation(pos.lat, pos.lng, fullAddress, cityOnly);
+                })
+                .catch(err => {
+                    console.error(err);
+                    saveLocation(pos.lat, pos.lng, "الرياض", "الرياض");
+                });
+        };
+
+        function saveLocation(lat, lng, address, city) {
+            const btn = document.getElementById('confirmLocationBtn');
+            if(btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+
+            fetch('{{ route("location.update") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                body: JSON.stringify({ latitude: lat, longitude: lng, address: address })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const desktopName = document.getElementById('currentLocationName');
+                    const mobileName = document.getElementById('currentLocationNameMobile');
+                    if (desktopName) desktopName.innerText = city;
+                    if (mobileName) mobileName.innerText = city;
+                    closeModal();
+                } else {
+                    alert("خطأ: " + (data.message || "حدث خطأ"));
+                    if(btn) { btn.innerHTML = 'تأكيد هذا الموقع'; btn.disabled = false; }
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("حدث خطأ في الاتصال");
+                if(btn) { btn.innerHTML = 'تأكيد هذا الموقع'; btn.disabled = false; }
+            });
         }
 
-        function closeModal() {
-            document.getElementById('locationModal').style.display = 'none';
-        }
+        // Banner slides logic
+        window.showSlide = function(n) {
+            const slides = document.querySelectorAll('.banner-slide');
+            const dots = document.querySelectorAll('.dot');
+            if (slides.length === 0) return;
+            slides[currentSlide].classList.remove('active');
+            if (dots[currentSlide]) dots[currentSlide].classList.remove('active');
+            currentSlide = (n + slides.length) % slides.length;
+            slides[currentSlide].classList.add('active');
+            if (dots[currentSlide]) dots[currentSlide].classList.add('active');
+        };
 
-        // Close on overlay click
-        window.onclick = function(event) {
-            const modal = document.getElementById('locationModal');
-            if (event.target == modal) {
-                closeModal();
+        window.nextSlide = function() { showSlide(currentSlide + 1); };
+        window.prevSlide = function() { showSlide(currentSlide - 1); };
+        window.goToSlide = function(n) { showSlide(n); };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Banner Auto Slide
+            const slides = document.querySelectorAll('.banner-slide');
+            if (slides.length > 1) {
+                setInterval(nextSlide, 5000);
             }
-        }
-        // Categories Carousel Logic
-        const track = document.getElementById('catTrack');
-        const carousel = track.parentElement;
-        const prevBtn = document.getElementById('catPrev');
-        const nextBtn = document.getElementById('catNext');
-        
-        const scrollStep = 300;
 
-        if (nextBtn) {
-            nextBtn.onclick = () => {
-                carousel.scrollBy({ left: -scrollStep, behavior: 'smooth' });
+            // Carousel initialization helper
+            const setupCarousel = (trackId, prevId, nextId) => {
+                const track = document.getElementById(trackId);
+                const prevBtn = document.getElementById(prevId);
+                const nextBtn = document.getElementById(nextId);
+                if (track && prevBtn && nextBtn) {
+                    const scrollAmount = 400;
+                    nextBtn.onclick = () => track.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+                    prevBtn.onclick = () => track.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                }
             };
-        }
 
-        if (prevBtn) {
-            prevBtn.onclick = () => {
-                carousel.scrollBy({ left: scrollStep, behavior: 'smooth' });
-            };
-        }
+            setupCarousel('adsTrack1', 'adsPrev1', 'adsNext1');
+            setupCarousel('adsTrack2', 'adsPrev2', 'adsNext2');
+            setupCarousel('adsTrack3', 'adsPrev3', 'adsNext3');
+            setupCarousel('adsTrackRV', 'adsPrevRV', 'adsNextRV');
+            setupCarousel('adsTrackCA', 'adsPrevCA', 'adsNextCA');
+            setupCarousel('adsTrackIB', 'adsPrevIB', 'adsNextIB');
+
+            const catTrack = document.getElementById('catTrack');
+            if (catTrack) {
+                const catNext = document.getElementById('catNext');
+                const catPrev = document.getElementById('catPrev');
+                if (catNext) catNext.onclick = () => catTrack.parentElement.scrollBy({ left: -300, behavior: 'smooth' });
+                if (catPrev) catPrev.onclick = () => catTrack.parentElement.scrollBy({ left: 300, behavior: 'smooth' });
+            }
+
+            // Countdown timers
+            function updateCountdowns() {
+                document.querySelectorAll('.p-countdown').forEach(el => {
+                    const endData = el.dataset.end;
+                    if (!endData) return;
+                    const endDate = new Date(endData).getTime();
+                    const now = new Date().getTime();
+                    const diff = endDate - now;
+                    const timerSpan = el.querySelector('.countdown-timer');
+                    if (!timerSpan) return;
+                    if (isNaN(endDate) || diff <= 0) { timerSpan.innerText = "منتهي"; return; }
+                    const d = Math.floor(diff / 86400000);
+                    const h = Math.floor((diff % 86400000) / 3600000);
+                    const m = Math.floor((diff % 3600000) / 60000);
+                    const s = Math.floor((diff % 60000) / 1000);
+                    timerSpan.innerText = `${d} يوم : ${h} ساعة : ${m} دقيقة : ${s} ثانية`;
+                });
+            }
+            setInterval(updateCountdowns, 1000);
+            updateCountdowns();
+        });
+
+        // Outside-click listeners
+        window.addEventListener('click', function(e) {
+            const dropdowns = ['notificationDropdown', 'cartDropdown', 'profileDropdown'];
+            const buttons = ['notificationBtn', 'cartBtn', 'userProfileBtn'];
+            
+            dropdowns.forEach((id, index) => {
+                const drop = document.getElementById(id);
+                const btn = document.getElementById(buttons[index]);
+                if (drop && !drop.contains(e.target) && btn && !btn.contains(e.target)) {
+                    drop.style.display = 'none';
+                }
+            });
+
+            const locModal = document.getElementById('locationModal');
+            if (e.target === locModal) closeModal();
+        });
     </script>
+    <!-- Location Picker Modal -->
+    <div id="locationModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <div id="modalBody">
+                <!-- Content will be injected by handleLocationClick -->
+            </div>
+        </div>
+    </div>
+
+    @include('partials.account-type-modal')
 </body>
 </html>

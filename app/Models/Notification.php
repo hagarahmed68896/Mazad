@@ -16,4 +16,9 @@ class Notification extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function scopeUnread($query)
+    {
+        return $query->whereNull('read_at');
+    }
 }

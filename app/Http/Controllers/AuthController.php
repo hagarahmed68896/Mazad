@@ -5,12 +5,60 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Models\Setting;
 
 class AuthController extends Controller
 {
     public function showLoginForm()
     {
-        return view('auth.login');
+        $settings = Setting::pluck('value', 'key');
+        return view('auth.login', compact('settings'));
+    }
+
+    public function showRegisterIndividualForm()
+    {
+        return view('auth.register-individual');
+    }
+
+    public function showRegisterTypeForm()
+    {
+        return view('auth.register-type');
+    }
+
+    public function showRegisterCompanyForm()
+    {
+        return view('auth.register-company');
+    }
+
+    public function register(Request $request)
+    {
+        $rules = [
+            'name' => 'required|string|max:255',
+            'phone' => ['required', 'string', 'regex:/^5[0-9]{8}$/', 'unique:users,phone'],
+            'email' => 'required|string|email|max:255|unique:users,email',
+            'password' => 'required|string|min:8',
+        ];
+
+        if ($request->has('company_name')) {
+            $rules['company_name'] = 'required|string|max:255';
+            $rules['cr_number'] = 'required|string|max:255';
+        }
+
+        $validated = $request->validate($rules);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'phone' => $validated['phone'],
+            'email' => $validated['email'],
+            'password' => bcrypt($validated['password']),
+            'type' => $request->has('company_name') ? 'company' : 'individual',
+            'company_name' => $validated['company_name'] ?? null,
+            'cr_number' => $validated['cr_number'] ?? null,
+        ]);
+
+        session()->put('pending_user_id', $user->id);
+        
+        return redirect()->route('admin.verify-otp');
     }
 
     public function login(Request $request)
@@ -35,7 +83,7 @@ class AuthController extends Controller
         }
 
         return back()->withErrors([
-            'phone' => __('The provided credentials do not match our records.'),
+            'phone' => 'بيانات الاعتماد المقدمة لا تتطابق مع سجلاتنا.',
         ])->onlyInput('phone');
     }
 
@@ -67,6 +115,8 @@ class AuthController extends Controller
                 Auth::guard('admin')->login($user, $remember);
                 $request->session()->regenerate();
 
+                Auth::login($user);
+                session()->flash('show_interests', true);
                 return redirect()->route('admin.verification.success');
             }
         }
@@ -78,6 +128,9 @@ class AuthController extends Controller
     {
         if (!Auth::guard('admin')->check()) {
             return redirect()->route('admin.login');
+        }
+        if (session()->has('show_interests')) {
+            session()->reflash();
         }
         return view('auth.verification-success');
     }
@@ -142,7 +195,12 @@ class AuthController extends Controller
 
         session()->forget('reset_phone');
 
-        return redirect()->route('admin.login')->with('success', 'تم إعادة تعيين كلمة المرور بنجاح. يمكنك تسجيل الدخول الآن.');
+        return redirect()->route('admin.reset-success');
+    }
+
+    public function showResetSuccess()
+    {
+        return view('auth.reset-success');
     }
 
     public function logout(Request $request)

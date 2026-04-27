@@ -10,7 +10,9 @@
         </div>
 
         <div class="p-badges">
-            <span class="p-badge-pill featured"><i class="fa-solid fa-fire"></i> مميز</span>
+            @if($ad->is_featured)
+                <span class="p-badge-pill featured"><i class="fa-solid fa-fire"></i> مميز</span>
+            @endif
             <span class="p-badge-pill type">
                 @if($ad->type == 'electronic_auction') إلكتروني 
                 @elseif($ad->type == 'hybrid_auction') هجين

@@ -59,8 +59,8 @@
         <!-- Desktop Sidebar -->
         <aside class="desktop-only w-[280px] bg-white border-l border-slate-200 shadow-[0_0_15px_rgba(0,0,0,0.02)] flex flex-col h-full flex-shrink-0 z-40 overflow-y-auto" style="display: flex;">
             <div class="h-28 flex items-center justify-center border-b border-transparent px-6 shrink-0">
-                <a href="{{ route('admin.dashboard') }}" class="text-[3.5rem] font-black tracking-tight text-[#1C1C1C] hover:text-[#1A73E8] transition-colors leading-none">
-                    Logo
+                <a href="{{ route('admin.dashboard') }}" style="text-decoration: none;">
+                    @include('partials.logo')
                 </a>
             </div>
             @include('layouts.partials.admin-sidebar-nav')
@@ -79,8 +79,8 @@
         <aside :class="mobileMenuOpen ? 'sidebar-open' : 'sidebar-closed'"
                class="mobile-only fixed right-0 top-0 w-[280px] bg-white border-l border-slate-200 shadow-xl flex flex-col h-full z-50 transition-all duration-300 overflow-y-auto">
             <div class="h-28 flex items-center justify-between px-6 shrink-0 border-b border-transparent">
-                <a href="{{ route('admin.dashboard') }}" class="text-[3.5rem] font-black tracking-tight text-[#1C1C1C] hover:text-[#1A73E8] transition-colors leading-none">
-                    Logo
+                <a href="{{ route('admin.dashboard') }}" style="text-decoration: none;">
+                    @include('partials.logo')
                 </a>
                 <button @click="mobileMenuOpen = false" class="p-2 text-slate-400 hover:text-slate-600 focus:outline-none bg-slate-50 rounded-xl">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>

@@ -16,7 +16,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'password', 'phone', 'address', 'account_type',
         'company_name', 'commercial_register', 'ads_count', 'sales',
-        'purchases', 'status', 'city_id', 'avatar',
+        'purchases', 'status', 'city_id', 'avatar', 'latitude', 'longitude',
     ];
 
     protected $hidden = [
@@ -75,6 +75,11 @@ class User extends Authenticatable
     public function notifications(): HasMany
     {
         return $this->hasMany(Notification::class);
+    }
+
+    public function unreadNotifications(): HasMany
+    {
+        return $this->hasMany(Notification::class)->whereNull('read_at');
     }
 
     public function services(): HasMany

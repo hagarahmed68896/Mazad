@@ -70,7 +70,7 @@
                     </p>
                 </div>
 
-                <form id="otpForm" action="{{ route('admin.post-verify') }}" method="POST" class="space-y-8">
+                <form id="otpForm" action="{{ route('post-verify') }}" method="POST" class="space-y-8">
                     @csrf
                     <div class="flex justify-center gap-4 dir-ltr" dir="ltr">
                         <input type="text" name="otp[]" maxlength="1" autofocus class="otp-input" inputmode="numeric">

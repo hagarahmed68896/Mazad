@@ -29,19 +29,7 @@
     @include('partials.navbar')
     @include('partials.sidebar')
 
-    @if($discoveryCategories->count() > 0)
-    <div class="categories-nav">
-        <div class="container">
-            <div class="category-pills">
-                @foreach($discoveryCategories as $category)
-                    <a href="#" class="category-pill">{{ $category->name }}</a>
-                @endforeach
-                {{-- Additional placeholders if DB is empty --}}
-             
-            </div>
-        </div>
-    </div>
-    @endif
+    @include('partials.categories-bar')
 
     <main class="container">
         
@@ -218,7 +206,7 @@
             <section class="section featured-ads">
                 <div class="section-header">
                     <h2 class="section-title">الأكثر مشاهدة مؤخراً</h2>
-                    <a href="#" class="view-all-btn">عرض الكل</a>
+                    <a href="{{ route('search') }}" class="view-all-btn">عرض الكل</a>
                 </div>
                 
                 <div class="ads-carousel-outer">
@@ -238,7 +226,7 @@
             <section class="section featured-ads">
                 <div class="section-header">
                     <h2 class="section-title">المزادات الحالية</h2>
-                    <a href="#" class="view-all-btn">عرض الكل</a>
+                    <a href="{{ route('search') }}" class="view-all-btn">عرض الكل</a>
                 </div>
                 
                 <div class="ads-carousel-outer">
@@ -258,7 +246,7 @@
             <section class="section featured-ads">
                 <div class="section-header">
                     <h2 class="section-title">عروض الشراء الفوري</h2>
-                    <a href="#" class="view-all-btn">عرض الكل</a>
+                    <a href="{{ route('search') }}" class="view-all-btn">عرض الكل</a>
                 </div>
                 
                 <div class="ads-carousel-outer">
@@ -280,7 +268,7 @@
             <section class="section featured-ads">
                 <div class="section-header">
                     <h2 class="section-title">أبرز الإعلانات</h2>
-                    <a href="#" class="view-all-btn">عرض الكل</a>
+                    <a href="{{ route('search') }}" class="view-all-btn">عرض الكل</a>
                 </div>
                 
                 <div class="ads-carousel-outer">
@@ -300,7 +288,7 @@
             <section class="section featured-ads">
                 <div class="section-header">
                     <h2 class="section-title">الإعلانات الأكثر تفاعل</h2>
-                    <a href="#" class="view-all-btn">عرض الكل</a>
+                    <a href="{{ route('search') }}" class="view-all-btn">عرض الكل</a>
                 </div>
                 
                 <div class="ads-carousel-outer">
@@ -320,7 +308,7 @@
             <section class="section featured-ads">
                 <div class="section-header">
                     <h2 class="section-title">الإعلانات قرب الانتهاء</h2>
-                    <a href="#" class="view-all-btn">عرض الكل</a>
+                    <a href="{{ route('search') }}" class="view-all-btn">عرض الكل</a>
                 </div>
                 
                 <div class="ads-carousel-outer">

@@ -35,6 +35,10 @@
     <div class="p-card-body">
         <span class="p-category-pill">{{ $ad->category->name ?? 'غير مصنف' }}</span>
         <h3 class="p-ad-title">{{ $ad->title }}</h3>
+        <div class="p-location">
+            <i class="fa-solid fa-location-dot"></i>
+            <span>{{ $ad->address ?? ($ad->city->name ?? 'السعودية') }}</span>
+        </div>
 
         <div class="p-price-row">
             <span class="p-price-label">السعر الحالي</span>

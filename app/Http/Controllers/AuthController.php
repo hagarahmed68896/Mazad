@@ -12,7 +12,8 @@ class AuthController extends Controller
     public function showLoginForm()
     {
         $settings = Setting::pluck('value', 'key');
-        return view('auth.login', compact('settings'));
+        $loginRoute = route('login.post');
+        return view('auth.login', compact('settings', 'loginRoute'));
     }
 
     public function showRegisterIndividualForm()
@@ -58,7 +59,7 @@ class AuthController extends Controller
 
         session()->put('pending_user_id', $user->id);
         
-        return redirect()->route('admin.verify-otp');
+        return redirect()->route('verify-otp');
     }
 
     public function login(Request $request)
@@ -73,13 +74,13 @@ class AuthController extends Controller
         ]);
 
         $phone = $credentials['phone'];
-
         $user = User::where('phone', $phone)->first();
+
         if ($user && app('hash')->check($credentials['password'], $user->password)) {
             session()->put('pending_user_id', $user->id);
             session()->put('remember_login', $request->boolean('remember'));
             
-            return redirect()->route('admin.verify-otp');
+            return redirect()->route('verify-otp');
         }
 
         return back()->withErrors([
@@ -90,7 +91,7 @@ class AuthController extends Controller
     public function showVerifyOtpForm()
     {
         if (!session()->has('pending_user_id')) {
-            return redirect()->route('admin.login');
+            return redirect()->route('login');
         }
         return view('auth.verify-otp');
     }
@@ -112,12 +113,11 @@ class AuthController extends Controller
                 $remember = session()->pull('remember_login', false);
                 session()->forget('pending_user_id');
 
-                Auth::guard('admin')->login($user, $remember);
+                Auth::login($user, $remember);
                 $request->session()->regenerate();
 
-                Auth::login($user);
                 session()->flash('show_interests', true);
-                return redirect()->route('admin.verification.success');
+                return redirect()->route('verification.success');
             }
         }
 
@@ -126,13 +126,14 @@ class AuthController extends Controller
 
     public function showVerificationSuccess()
     {
-        if (!Auth::guard('admin')->check()) {
-            return redirect()->route('admin.login');
+        if (!Auth::check()) {
+            return redirect()->route('login');
         }
-        if (session()->has('show_interests')) {
-            session()->reflash();
-        }
-        return view('auth.verification-success');
+        
+        $redirectUrl = route('home');
+        $redirectText = 'الذهاب للرئيسية';
+        
+        return view('auth.verification-success', compact('redirectUrl', 'redirectText'));
     }
 
     public function showForgotPasswordForm()
@@ -150,12 +151,11 @@ class AuthController extends Controller
         ]);
 
         $phone = $request->phone;
-
         $user = User::where('phone', $phone)->first();
 
         if ($user) {
             session(['reset_phone' => $phone]);
-            return redirect()->route('admin.reset-password');
+            return redirect()->route('reset-password');
         }
 
         return back()->withErrors([
@@ -177,7 +177,7 @@ class AuthController extends Controller
         $phone = session('reset_phone');
 
         if (!$phone) {
-            return redirect()->route('admin.forgot-password')->withErrors([
+            return redirect()->route('forgot-password')->withErrors([
                 'phone' => 'انتهت الجلسة، يرجى إعادة المحاولة.',
             ]);
         }
@@ -185,7 +185,7 @@ class AuthController extends Controller
         $user = User::where('phone', $phone)->first();
 
         if (!$user) {
-            return redirect()->route('admin.forgot-password')->withErrors([
+            return redirect()->route('forgot-password')->withErrors([
                 'phone' => 'رقم الجوال غير مسجل لدينا.',
             ]);
         }
@@ -195,7 +195,7 @@ class AuthController extends Controller
 
         session()->forget('reset_phone');
 
-        return redirect()->route('admin.reset-success');
+        return redirect()->route('reset-success');
     }
 
     public function showResetSuccess()
@@ -205,11 +205,9 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        Auth::guard('admin')->logout();
-
+        Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-
         return redirect('/');
     }
 }

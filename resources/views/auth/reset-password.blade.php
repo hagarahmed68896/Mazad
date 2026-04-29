@@ -59,7 +59,7 @@
                     </div>
                 @endif
 
-                <form action="{{ route('admin.post-reset-password') }}" method="POST" class="space-y-6">
+                <form action="{{ route('post-reset-password') }}" method="POST" class="space-y-6">
                     @csrf
                     <!-- New Password Input -->
                     <div class="space-y-1 text-right">

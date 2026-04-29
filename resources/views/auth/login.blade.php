@@ -77,7 +77,7 @@
                     </div>
                 @endif
 
-                <form action="{{ route('admin.post-login') }}" method="POST" class="space-y-5">
+                <form action="{{ route('login.post') }}" method="POST" class="space-y-5">
                     @csrf
                     <!-- Phone Input -->
                     <div class="space-y-2 text-right">

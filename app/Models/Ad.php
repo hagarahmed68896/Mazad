@@ -12,7 +12,7 @@ class Ad extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'category_id', 'city_id', 'title', 'image', 'description', 'type',
+        'user_id', 'category_id', 'city_id', 'address', 'lat', 'lng', 'title', 'image', 'description', 'type',
         'deposit_amount', 'price', 'bids_count', 'views_count', 'status', 'end_date', 'bid_status', 'is_featured'
     ];
 
@@ -49,5 +49,10 @@ class Ad extends Model
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);
+    }
+
+    public function adProperties(): HasMany
+    {
+        return $this->hasMany(AdProperty::class);
     }
 }

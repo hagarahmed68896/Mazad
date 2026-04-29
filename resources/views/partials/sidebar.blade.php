@@ -1,3 +1,4 @@
+@auth
 <!-- Sidebar Drawer -->
 <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
 <div id="sidebarDrawer" class="sidebar-drawer">
@@ -14,6 +15,14 @@
     <div class="sidebar-content">
         <!-- Account Info Section -->
         <div class="sidebar-section">
+            @if(Auth::user()->email === 'admin@mazad.com')
+                <h4 class="section-title">الإدارة</h4>
+                <a href="{{ route('admin.dashboard') }}" class="sidebar-link" style="color: var(--primary-color); font-weight: 800;">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span>لوحة التحكم</span>
+                </a>
+                <div class="sidebar-divider"></div>
+            @endif
             <h4 class="section-title">معلومات الحساب</h4>
             <a href="#" class="sidebar-link">
                 <i class="fa-regular fa-user"></i>
@@ -121,3 +130,4 @@
         </div>
     </div>
 </div>
+@endauth

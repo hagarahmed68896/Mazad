@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 
 Route::get('/', [\App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/search', [\App\Http\Controllers\HomeController::class, 'search'])->name('search');
 
 // Public Ad View — increments views_count
 Route::get('/ads/{ad}', function(\App\Models\Ad $ad) {
@@ -12,40 +13,55 @@ Route::get('/ads/{ad}', function(\App\Models\Ad $ad) {
     return back();
 })->name('ads.show');
 
+// Location Update
+Route::post('/location/update', [\App\Http\Controllers\LocationController::class, 'update'])->name('location.update');
+Route::get('/location/clear', [\App\Http\Controllers\LocationController::class, 'clear'])->name('location.clear');
+
 Route::middleware('auth')->group(function() {
     Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::delete('/notifications/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
-    
-    // Location Update
-    Route::post('/location/update', [\App\Http\Controllers\LocationController::class, 'update'])->name('location.update');
 });
 
 
+// Public Auth Routes
 Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::post('login', [AuthController::class, 'login'])->name('login.post');
+Route::get('verify-otp', [AuthController::class, 'showVerifyOtpForm'])->name('verify-otp');
+Route::post('verify-otp', [AuthController::class, 'verifyOtp'])->name('post-verify');
+Route::get('verification-success', [AuthController::class, 'showVerificationSuccess'])->name('verification.success');
+
 Route::get('register', [AuthController::class, 'showRegisterTypeForm'])->name('register.type');
 Route::get('register/individual', [AuthController::class, 'showRegisterIndividualForm'])->name('register.individual');
 Route::get('register/company', [AuthController::class, 'showRegisterCompanyForm'])->name('register.company');
 Route::post('register', [AuthController::class, 'register'])->name('register.post');
 
+Route::get('forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('forgot-password');
+Route::post('forgot-password', [AuthController::class, 'sendResetLink'])->name('post-forgot-password');
+Route::get('reset-password', [AuthController::class, 'showResetPasswordForm'])->name('reset-password');
+Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('post-reset-password');
+Route::get('reset-success', [AuthController::class, 'showResetSuccess'])->name('reset-success');
+Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+
+// Admin Auth & Dashboard Routes
 Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
-    Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
-    Route::post('login', [AuthController::class, 'login'])->name('post-login');
+    Route::get('login', [\App\Http\Controllers\Admin\AuthController::class, 'showLoginForm'])->name('login');
+    Route::post('login', [\App\Http\Controllers\Admin\AuthController::class, 'login'])->name('post-login');
 
-    Route::get('verify-otp', [AuthController::class, 'showVerifyOtpForm'])->name('verify-otp');
-    Route::post('verify-otp', [AuthController::class, 'verifyOtp'])->name('post-verify');
+    Route::get('verify-otp', [\App\Http\Controllers\Admin\AuthController::class, 'showVerifyOtpForm'])->name('verify-otp');
+    Route::post('verify-otp', [\App\Http\Controllers\Admin\AuthController::class, 'verifyOtp'])->name('post-verify');
 
-    Route::get('forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('forgot-password');
-    Route::post('forgot-password', [AuthController::class, 'sendResetLink'])->name('post-forgot-password');
+    Route::get('forgot-password', [\App\Http\Controllers\Admin\AuthController::class, 'showForgotPasswordForm'])->name('forgot-password');
+    Route::post('forgot-password', [\App\Http\Controllers\Admin\AuthController::class, 'sendResetLink'])->name('post-forgot-password');
 
-    Route::get('reset-password', [AuthController::class, 'showResetPasswordForm'])->name('reset-password');
-    Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('post-reset-password');
-    Route::get('reset-success', [AuthController::class, 'showResetSuccess'])->name('reset-success');
+    Route::get('reset-password', [\App\Http\Controllers\Admin\AuthController::class, 'showResetPasswordForm'])->name('reset-password');
+    Route::post('reset-password', [\App\Http\Controllers\Admin\AuthController::class, 'resetPassword'])->name('post-reset-password');
+    Route::get('reset-success', [\App\Http\Controllers\Admin\AuthController::class, 'showResetSuccess'])->name('reset-success');
 
-    Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('logout', [\App\Http\Controllers\Admin\AuthController::class, 'logout'])->name('logout');
 
     Route::middleware('auth:admin')->group(function () {
-        Route::get('verification-success', [AuthController::class, 'showVerificationSuccess'])->name('verification.success');
+        Route::get('verification-success', [\App\Http\Controllers\Admin\AuthController::class, 'showVerificationSuccess'])->name('verification.success');
         Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
 
         // Accounts Management

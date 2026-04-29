@@ -9,27 +9,48 @@ class LocationController extends Controller
 {
     public function update(Request $request)
     {
-        if (!Auth::check()) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
-        }
-
         $request->validate([
             'latitude' => 'required',
             'longitude' => 'required',
             'address' => 'required',
         ]);
 
-        $user = Auth::user();
-        $user->update([
-            'latitude' => $request->latitude,
-            'longitude' => $request->longitude,
-            'address' => $request->address,
-        ]);
+        if (Auth::check()) {
+            $user = Auth::user();
+            $user->update([
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+                'address' => $request->address,
+            ]);
+        } else {
+            // Store in session for guests
+            session([
+                'user_latitude' => $request->latitude,
+                'user_longitude' => $request->longitude,
+                'user_address' => $request->address,
+            ]);
+        }
 
         return response()->json([
             'success' => true, 
             'address' => $request->address,
             'message' => 'تم تحديث الموقع بنجاح'
         ]);
+    }
+
+    public function clear()
+    {
+        if (Auth::check()) {
+            $user = Auth::user();
+            $user->update([
+                'latitude' => null,
+                'longitude' => null,
+                'address' => null,
+            ]);
+        }
+        
+        session()->forget(['user_latitude', 'user_longitude', 'user_address']);
+
+        return redirect()->route('search')->with('success', 'تم مسح الموقع وإعادة التعيين بنجاح');
     }
 }

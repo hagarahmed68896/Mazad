@@ -69,8 +69,8 @@
                     تقدر الحين تبدأ تتصفح وتشارك في المزادات.
                 </p>
 
-                <a href="{{ route('home') }}" class="block w-full py-4 bg-[#1A73E8] hover:bg-blue-700 text-white rounded-xl text-lg font-bold transition-all shadow-lg shadow-blue-500/25">
-                    الذهاب للرئيسية
+                <a href="{{ $redirectUrl }}" class="block w-full py-4 bg-[#1A73E8] hover:bg-blue-700 text-white rounded-xl text-lg font-bold transition-all shadow-lg shadow-blue-500/25">
+                    {{ $redirectText }}
                 </a>
             </div>
         </div>

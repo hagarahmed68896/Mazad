@@ -14,7 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectTo(
             guests: 'admin/login',
-            users: 'admin/dashboard'
+            users: function ($request) {
+                if (auth()->check() && auth()->user()->email === 'admin@mazad.com') {
+                    return route('admin.dashboard');
+                }
+                return route('home');
+            }
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {

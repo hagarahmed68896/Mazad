@@ -91,4 +91,14 @@ class User extends Authenticatable
     {
         return $this->belongsTo(City::class);
     }
+
+    public function interests(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Category::class);
+    }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(Favorite::class);
+    }
 }

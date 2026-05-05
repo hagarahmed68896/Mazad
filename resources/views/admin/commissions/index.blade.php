@@ -162,7 +162,7 @@
                             @else
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-sm font-black">{{ number_format($commission->value) }}</span>
-                                    <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                    <x-riyal-icon class="w-4 h-4 opacity-70 inline-block" />
                                 </div>
                             @endif
                         </td>

@@ -159,7 +159,7 @@
                             <input type="number" name="deposit_value" step="0.01" value="{{ old('deposit_value', $category->deposit_value) }}" placeholder="أدخل قيمة العربون"
                                    class="w-full pl-24 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-[15px] font-bold text-[#1C1C1C] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/10 focus:border-[#1A73E8] transition-all">
                             <div class="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none border-r border-slate-200 my-3 pr-4 text-slate-400">
-                                <span class="text-xs font-black">ريال</span>
+                                <x-riyal-icon />
                             </div>
                         </div>
                     </div>
@@ -171,7 +171,7 @@
                             <input type="number" name="tax_value" step="0.01" value="{{ old('tax_value', $category->tax_value) }}" placeholder="أدخل القيمة الضريبية"
                                    class="w-full pl-24 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-[15px] font-bold text-[#1C1C1C] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/10 focus:border-[#1A73E8] transition-all">
                             <div class="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none border-r border-slate-200 my-3 pr-4 text-slate-400">
-                                <span class="text-xs font-black">ريال</span>
+                                <x-riyal-icon />
                             </div>
                         </div>
                     </div>

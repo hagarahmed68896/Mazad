@@ -58,6 +58,7 @@ class AuthController extends Controller
         ]);
 
         session()->put('pending_user_id', $user->id);
+        session(['is_registering' => true]);
         
         return redirect()->route('verify-otp');
     }
@@ -79,6 +80,7 @@ class AuthController extends Controller
         if ($user && app('hash')->check($credentials['password'], $user->password)) {
             session()->put('pending_user_id', $user->id);
             session()->put('remember_login', $request->boolean('remember'));
+            session(['is_registering' => false]);
             
             return redirect()->route('verify-otp');
         }
@@ -116,7 +118,10 @@ class AuthController extends Controller
                 Auth::login($user, $remember);
                 $request->session()->regenerate();
 
-                session()->flash('show_interests', true);
+                if (session('is_registering')) {
+                    session(['show_interests' => true]);
+                }
+                session()->forget('is_registering');
                 return redirect()->route('verification.success');
             }
         }
@@ -209,5 +214,22 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect('/');
+    }
+    public function updateInterests(Request $request)
+    {
+        $request->validate([
+            'category_ids' => 'required|array',
+            'category_ids.*' => 'exists:categories,id',
+        ]);
+
+        Auth::user()->interests()->sync($request->category_ids);
+        session()->forget('show_interests');
+
+        return redirect()->route('home')->with('success', 'تم تحديث اهتماماتك بنجاح');
+    }
+    public function skipInterests()
+    {
+        session()->forget('show_interests');
+        return response()->json(['success' => true]);
     }
 }

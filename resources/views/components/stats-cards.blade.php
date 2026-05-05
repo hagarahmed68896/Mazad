@@ -7,10 +7,10 @@
             <div class="space-y-1">
                 <p class="text-xs font-bold text-[#1A1A31] dark:text-slate-400 opacity-60 ">{{ $stat['label'] }}</p>
                 <div class="flex items-baseline gap-2 ">
-                    @if(isset($stat['is_money']) && $stat['is_money'])
-                        <img src="{{ asset('images/Vector.svg') }}" class="w-5 h-5 opacity-70 mb-1" alt="ريال">
-                    @endif
                     <h3 class="text-3xl font-black text-[#1A1A31] dark:text-white">{{ $stat['value'] }}</h3>
+                    @if(isset($stat['is_money']) && $stat['is_money'])
+                        <x-riyal-icon class="w-6 h-6 mr-1" />
+                    @endif
                     <span class="text-[10px] px-2 py-0.5 rounded-full font-bold border" 
                           style="background-color: {{ $stat['color'] }}10; color: {{ $stat['color'] }}; border-color: {{ $stat['color'] }}20;">
                         {{ $stat['percentage'] }}%+

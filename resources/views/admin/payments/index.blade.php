@@ -205,7 +205,7 @@
                         <td class="px-4 py-4 font-black text-[#1C1C1C]">
                             <div class="flex items-center gap-1.5 justify-end">
                                 <span class="text-sm font-black">{{ number_format($transaction->amount) }}</span>
-                                <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70" alt="ريال">
+                                <x-riyal-icon class="w-4 h-4 opacity-70" />
                             </div>
                         </td>
                         <td class="px-4 py-4 text-slate-500 font-bold">{{ $transaction->payment_method ?? 'طريقة الدفع' }}</td>

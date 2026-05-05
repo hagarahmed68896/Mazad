@@ -159,7 +159,7 @@
 
     @if($banners->hasPages())
         <div class="mt-12 flex justify-center">
-            {{ $banners->links() }}
+            <x-custom-pagination :paginator="$banners" />
         </div>
     @endif
 

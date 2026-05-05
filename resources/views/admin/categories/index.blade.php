@@ -151,7 +151,7 @@
     <!-- Pagination -->
     <div class="mt-8 flex justify-center">
         <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-slate-200 sm:px-6 rounded-2xl shadow-sm">
-            {{ $categories->links() }}
+            <x-custom-pagination :paginator="$categories" />
         </div>
     </div>
 </div>

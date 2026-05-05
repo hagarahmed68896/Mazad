@@ -189,7 +189,7 @@
                         <td class="px-4 py-4 font-black text-[#1C1C1C] border-y border-slate-100 group-hover:border-slate-200">
                             <div class="flex items-center gap-1.5">
                                 <span class="text-sm">{{ number_format($settlement->total_amount ?? 85000) }}</span>
-                                <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                <x-riyal-icon class="w-4 h-4 opacity-70 inline-block" />
                             </div>
                         </td>
                         <td class="px-4 py-4 border-y border-slate-100 group-hover:border-slate-200">طريقة الدفع</td>

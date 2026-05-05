@@ -162,7 +162,7 @@
                         <td class="px-4 py-4 font-black text-[#1C1C1C]">
                             <div class="flex items-center gap-1.5">
                                 <span>{{ number_format($service->price) }}</span>
-                                <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                <x-riyal-icon class="w-4 h-4 opacity-70 inline-block" />
                             </div>
                         </td>
                         <td class="px-4 py-4 rounded-l-2xl text-slate-400 text-xs font-bold" dir="ltr">
@@ -186,7 +186,7 @@
         <!-- Pagination -->
         @if($services->hasPages())
         <div class="mt-6">
-            {{ $services->links() }}
+            <x-custom-pagination :paginator="$services" />
         </div>
         @endif
     </div>

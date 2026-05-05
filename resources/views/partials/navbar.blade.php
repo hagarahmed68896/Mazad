@@ -225,7 +225,10 @@
                                     <span>إعلاناتي</span>
                                 </a>
                                 <div class="profile-divider" style="margin-top: 0.5rem;"></div>
-                                <form action="{{ route('admin.logout') }}" method="POST" id="logout-form" style="display: none;">
+                                @php
+                                    $logoutRoute = (Auth::user()->email === 'admin@mazad.com') ? route('admin.logout') : route('logout');
+                                @endphp
+                                <form action="{{ $logoutRoute }}" method="POST" id="logout-form" style="display: none;">
                                     @csrf
                                 </form>
                                 <a href="#" class="profile-menu-item logout" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">

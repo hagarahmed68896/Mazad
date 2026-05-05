@@ -10,8 +10,27 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1A73E8',
+                    }
+                }
+            }
+        }
+    </script>
     
     <!-- Styles -->
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
@@ -19,29 +38,21 @@
         body { font-family: 'IBM Plex Sans Arabic', 'Outfit', sans-serif; }
         h1, h2, h3, h4, h5, h6 { font-family: 'IBM Plex Sans Arabic', sans-serif; font-weight: 700; }
         
+        /* Force landing.css container behavior even with Tailwind */
+        .container {
+            max-width: 100% !important;
+            padding-left: 64px !important;
+            padding-right: 64px !important;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                padding-left: 24px !important;
+                padding-right: 24px !important;
+            }
+        }
+        
         /* Modern Navbar Fixes */
-        .navbar .container {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            align-items: center;
-            gap: 2rem;
-        }
-        .nav-right-visual {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-            justify-content: flex-start;
-        }
-        .nav-center-visual {
-            display: flex;
-            justify-content: center;
-        }
-        .nav-left-visual {
-            display: flex;
-            align-items: center;
-            gap: 1.25rem;
-            justify-content: flex-end;
-        }
         .add-ad-btn {
             white-space: nowrap;
             padding: 0.75rem 1.5rem !important;
@@ -295,8 +306,11 @@
             }
         }
 
-        @stack('styles')
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .fa-heart.fa-solid { color: #EF4444 !important; }
     </style>
+    @stack('styles')
 </head>
 <body>
 
@@ -312,6 +326,28 @@
         <div class="modal-content">
             <span class="modal-close" onclick="closeModal()">&times;</span>
             <div id="modalBody">
+            </div>
+        </div>
+    </div>
+       <!-- Auth Required Modal (Global) -->
+    <div id="authRequiredModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
+        <div class="bg-white w-full max-w-sm rounded-[28px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.25)] animate-in fade-in zoom-in duration-300" dir="rtl">
+            <!-- Header -->
+            <div class="relative bg-gradient-to-br from-primary to-blue-700 p-8 text-center">
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+                    <i class="fa-solid fa-lock text-white text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-white">تسجيل الدخول مطلوب</h3>
+                <p class="text-blue-100 text-sm font-medium mt-1">يجب تسجيل الدخول أولاً للمتابعة</p>
+                <button onclick="hideAuthModal()" class="absolute top-4 left-4 w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-all">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <!-- Body -->
+            <div class="p-6 space-y-3">
+                <a href="{{ route('login') }}" class="block w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all text-center text-lg shadow-lg shadow-blue-200">
+                    <i class="fa-solid fa-right-to-bracket ml-2"></i> تسجيل الدخول
+                </a>
             </div>
         </div>
     </div>
@@ -410,9 +446,97 @@
             document.getElementById('locationModal').style.display = 'none';
         }
 
+        // Global Auth Guard
+        const isLoggedIn = {{ auth()->check() ? 'true' : 'false' }};
+
+        function requireAuth(callback) {
+            console.log('requireAuth check, isLoggedIn:', isLoggedIn);
+            if (isLoggedIn) {
+                if (typeof callback === 'function') callback();
+            } else {
+                console.log('User not logged in, showing modal');
+                showAuthModal();
+            }
+        }
+
+        function showAuthModal() {
+            const modal = document.getElementById('authRequiredModal');
+            if(modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function hideAuthModal() {
+            const modal = document.getElementById('authRequiredModal');
+            if(modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Global Wishlist Logic
+        function toggleGlobalWishlist(event, adId) {
+            console.log('Toggling Wishlist for Ad:', adId);
+            const icons = document.querySelectorAll(`.wishlist-icon-${adId}`);
+            
+            fetch(`/wishlist/toggle/${adId}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Wishlist Response:', data);
+                if (data.status === 'success') {
+                    if (icons.length > 0) {
+                        icons.forEach(icon => {
+                            if (data.action === 'added') {
+                                icon.classList.remove('fa-regular');
+                                icon.classList.add('fa-solid');
+                                icon.style.setProperty('color', '#EF4444', 'important');
+                            } else {
+                                icon.classList.remove('fa-solid');
+                                icon.classList.add('fa-regular');
+                                icon.style.color = '';
+                            }
+                        });
+                    }
+
+                    // Special case for ad details page
+                    if (typeof toggleWishlistUI === 'function') {
+                        toggleWishlistUI(data.action);
+                    }
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: data.message,
+                        showConfirmButton: false,
+                        timer: 1500,
+                        position: 'top-end',
+                        toast: true
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Wishlist Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'حدث خطأ أثناء تحديث المفضلة'
+                });
+            });
+        }
+
         window.onclick = function(event) {
-            const modal = document.getElementById('locationModal');
-            if (event.target == modal) closeModal();
+            const locModal = document.getElementById('locationModal');
+            const authModal = document.getElementById('authRequiredModal');
+            if (event.target == locModal) closeModal();
+            if (event.target == authModal) hideAuthModal();
         }
     </script>
     @include('partials.account-type-modal')

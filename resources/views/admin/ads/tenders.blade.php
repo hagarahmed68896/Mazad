@@ -203,13 +203,13 @@
                         <td class="px-4 py-4 font-black text-[#1C1C1C]">
                             <div class="flex items-center gap-1.5">
                                 <span>{{ number_format($ad->deposit_amount) }}</span>
-                                <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                <x-riyal-icon class="w-4 h-4 opacity-70 inline-block" />
                             </div>
                         </td>
                         <td class="px-4 py-4 font-black text-[#1C1C1C]">
                             <div class="flex items-center gap-1.5">
                                 <span>{{ number_format($ad->price) }}</span>
-                                <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                <x-riyal-icon class="w-4 h-4 opacity-70 inline-block" />
                             </div>
                         </td>
                         <td class="px-4 py-4 text-center font-black text-[#1C1C1C]">{{ $ad->bids_count }}</td>
@@ -245,7 +245,7 @@
         <!-- Pagination -->
         @if($ads->hasPages())
         <div class="mt-6">
-            {{ $ads->links() }}
+            <x-custom-pagination :paginator="$ads" />
         </div>
         @endif
     </div>

@@ -74,7 +74,7 @@
 
     @if($regions->hasPages())
         <div class="mt-16 flex justify-center">
-            {{ $regions->links() }}
+            <x-custom-pagination :paginator="$regions" />
         </div>
     @endif
 

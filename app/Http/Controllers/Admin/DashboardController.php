@@ -55,6 +55,7 @@ class DashboardController extends Controller
                 'percentage' => $growthData['revenue'],
                 'color' => '#6366F1',
                 'icon' => 'scheduled',
+                'is_money' => true,
                 'sparkline' => [10, 20, 15, 30, 25, 45, 40]
             ],
         ];

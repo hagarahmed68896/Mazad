@@ -192,10 +192,10 @@
                             <div class="h-[300px] overflow-y-auto" style="overflow-y: auto !important; height: 300px !important;">
                                 <template x-for="notif in notifications.slice(0, limit)" :key="notif.id">
                                     <div @click="window.location.href = notif.link" 
-                                         class="relative group border-b border-slate-50 transition-all hover:bg-slate-50 cursor-pointer overflow-hidden" 
+                                         class="relative group border-b border-slate-50 transition-all hover:bg-slate-50 cursor-pointer" 
                                          :class="notif.unread ? 'bg-blue-50/40' : 'bg-white'">
                                         
-                                        <div class="p-4 flex items-start gap-4">
+                                        <div class="p-4 pl-6 flex items-start gap-4">
                                             <!-- Avatar & Unread Indicator -->
                                             <div class="relative flex-shrink-0">
                                                 <div class="w-11 h-11 rounded-full flex items-center justify-center font-black transition-colors"
@@ -206,9 +206,9 @@
                                             </div>
 
                                             <!-- Content -->
-                                            <div class="flex-1 text-right">
+                                            <div class="flex-1 text-right min-w-0">
                                                 <div class="flex items-center justify-between mb-1 gap-2">
-                                                    <h4 class="text-[14px] font-black text-[#1C1C1C] group-hover:text-[#1A73E8] transition-colors" x-text="notif.title"></h4>
+                                                    <h4 class="text-[14px] font-black text-[#1C1C1C] group-hover:text-[#1A73E8] transition-colors truncate" x-text="notif.title"></h4>
                                                     <span class="text-[10px] font-bold text-slate-400 whitespace-nowrap" x-text="notif.time"></span>
                                                 </div>
                                                 <p class="text-[11px] font-bold leading-relaxed text-slate-500 mb-2 truncate" x-text="notif.desc"></p>

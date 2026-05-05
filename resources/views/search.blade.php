@@ -13,6 +13,20 @@
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1A73E8',
+                    }
+                }
+            }
+        }
+    </script>
+
     <!-- Leaflet (Map) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -24,6 +38,14 @@
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
     <style>
         body { font-family: 'Cairo', 'Outfit', sans-serif; background-color: #F8FAFC; }
+        .container {
+            max-width: 100% !important;
+            padding-left: 64px !important;
+            padding-right: 64px !important;
+        }
+        @media (max-width: 1024px) {
+            .container { padding-left: 24px !important; padding-right: 24px !important; }
+        }
 
         /* ===== Pagination ===== */
         .mazad-pagination {
@@ -289,8 +311,12 @@
                 width: 18px !important;
                 height: 18px !important;
             }
+        @media (max-width: 768px) {
+            /* ... */
         }
+        .fa-heart.fa-solid { color: #EF4444 !important; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -359,15 +385,15 @@
                             <span>نوع الاعلان</span>
                             <i class="fa-solid fa-chevron-down"></i>
                         </div>
-                        <div class="filter-group-content">
+                        <div class="filter-group-content active">
                             <div class="filter-pills">
                                 <label class="filter-pill-label">
                                     <input type="radio" name="type" value="" {{ !request('type') ? 'checked' : '' }} onchange="this.form.submit()">
                                     <span>الكل</span>
                                 </label>
                                 <label class="filter-pill-label">
-                                    <input type="radio" name="type" value="electronic_auction" {{ request('type') == 'electronic_auction' ? 'checked' : '' }} onchange="this.form.submit()">
-                                    <span>مزاد</span>
+                                    <input type="radio" name="type" value="auction" {{ request('type') == 'auction' || request('type') == 'electronic_auction' || request('type') == 'hybrid_auction' ? 'checked' : '' }} onchange="this.form.submit()">
+                                    <span>مزادات</span>
                                 </label>
                                 <label class="filter-pill-label">
                                     <input type="radio" name="type" value="direct_purchase" {{ request('type') == 'direct_purchase' ? 'checked' : '' }} onchange="this.form.submit()">
@@ -378,41 +404,82 @@
                                     <span>مناقصات</span>
                                 </label>
                             </div>
+
+                            <!-- Sub-filters for Auction -->
+                            @if(request('type') == 'auction' || request('type') == 'electronic_auction' || request('type') == 'hybrid_auction')
+                                <div class="auction-sub-filters" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px dashed #E2E8F0;">
+                                    <span style="display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.75rem;">نوع المزاد</span>
+                                    <div class="filter-pills">
+                                        <label class="filter-pill-label">
+                                            <input type="radio" name="type" value="auction" {{ request('type') == 'auction' ? 'checked' : '' }} onchange="this.form.submit()">
+                                            <span>الكل</span>
+                                        </label>
+                                        <label class="filter-pill-label">
+                                            <input type="radio" name="type" value="electronic_auction" {{ request('type') == 'electronic_auction' ? 'checked' : '' }} onchange="this.form.submit()">
+                                            <span>إلكتروني</span>
+                                        </label>
+                                        <label class="filter-pill-label">
+                                            <input type="radio" name="type" value="hybrid_auction" {{ request('type') == 'hybrid_auction' ? 'checked' : '' }} onchange="this.form.submit()">
+                                            <span>هجين</span>
+                                        </label>
+                                    </div>
+
+                                    <div style="margin-top: 1rem;">
+                                        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                                            <input type="checkbox" name="is_enfaz" value="1" {{ request('is_enfaz') ? 'checked' : '' }} onchange="this.form.submit()" style="width: 18px; height: 18px;">
+                                            <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-main);">عن طريق إنفاذ</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
 
                     <!-- Dynamic Category Properties -->
-                    @if(isset($activeCategory) && $activeCategory->properties->count() > 0)
-                        @foreach($activeCategory->properties->sortBy('sort_order') as $prop)
-                            <div class="filter-group">
-                                <div class="filter-group-header" onclick="toggleFilter(this)">
-                                    <span>{{ $prop->label }}</span>
-                                    <i class="fa-solid fa-chevron-down"></i>
-                                </div>
-                                <div class="filter-group-content active">
-                                    @if($prop->input_type == 'select')
-                                        <select name="props[{{ $prop->id }}]" class="filter-select" onchange="this.form.submit()">
-                                            <option value="">{{ $prop->placeholder ?? 'الكل' }}</option>
-                                            @foreach($prop->options ?? [] as $opt)
-                                                <option value="{{ $opt }}" {{ (request('props')[$prop->id] ?? '') == $opt ? 'selected' : '' }}>{{ $opt }}</option>
-                                            @endforeach
-                                        </select>
-                                    @elseif($prop->input_type == 'radio' || $prop->input_type == 'checkbox')
-                                        <div class="filter-options-list">
-                                            @foreach($prop->options ?? [] as $opt)
-                                                <label class="filter-option-item">
-                                                    <input type="{{ $prop->input_type }}" name="props[{{ $prop->id }}]{{ $prop->input_type == 'checkbox' ? '[]' : '' }}" value="{{ $opt }}" 
-                                                        {{ in_array($opt, (array)(request('props')[$prop->id] ?? [])) ? 'checked' : '' }} onchange="this.form.submit()">
-                                                    <span class="custom-check-pill">{{ $opt }}</span>
-                                                </label>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                         <input type="{{ $prop->input_type == 'price' ? 'number' : ($prop->input_type ?: 'text') }}" name="props[{{ $prop->id }}]" class="filter-input-text" placeholder="{{ $prop->placeholder }}" value="{{ is_array(request('props')[$prop->id] ?? '') ? '' : (request('props')[$prop->id] ?? '') }}" onchange="this.form.submit()">
-                                    @endif
-                                </div>
+                    @if(isset($activeCategory))
+                        <div class="active-category-info" style="background: #E8F1FE; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; border: 1px solid rgba(26, 115, 232, 0.1);">
+                            <div style="width: 40px; height: 40px; background: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary-color); font-size: 1.1rem;">
+                                <i class="fa-solid fa-tags"></i>
                             </div>
-                        @endforeach
+                            <div>
+                                <span style="display: block; font-size: 0.75rem; color: #64748B; font-weight: 700;">الفئة المختارة</span>
+                                <span style="display: block; font-size: 1rem; color: var(--primary-color); font-weight: 800;">{{ $activeCategory->name }}</span>
+                            </div>
+                            <a href="{{ request()->fullUrlWithQuery(['category' => null, 'props' => null]) }}" style="margin-right: auto; color: #EF4444; font-size: 0.9rem;" title="إلغاء الفئة"><i class="fa-solid fa-circle-xmark"></i></a>
+                        </div>
+
+                        @if($activeCategory->properties->count() > 0)
+                            @foreach($activeCategory->properties->sortBy('sort_order') as $prop)
+                                <div class="filter-group">
+                                    <div class="filter-group-header" onclick="toggleFilter(this)">
+                                        <span>{{ $prop->label }}</span>
+                                        <i class="fa-solid fa-chevron-down"></i>
+                                    </div>
+                                    <div class="filter-group-content active">
+                                        @if($prop->input_type == 'select')
+                                            <select name="props[{{ $prop->id }}]" class="filter-select" onchange="this.form.submit()">
+                                                <option value="">{{ $prop->placeholder ?? 'الكل' }}</option>
+                                                @foreach($prop->options ?? [] as $opt)
+                                                    <option value="{{ $opt }}" {{ (request('props')[$prop->id] ?? '') == $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                                @endforeach
+                                            </select>
+                                        @elseif($prop->input_type == 'radio' || $prop->input_type == 'checkbox')
+                                            <div class="filter-options-list">
+                                                @foreach($prop->options ?? [] as $opt)
+                                                    <label class="filter-option-item">
+                                                        <input type="{{ $prop->input_type }}" name="props[{{ $prop->id }}]{{ $prop->input_type == 'checkbox' ? '[]' : '' }}" value="{{ $opt }}" 
+                                                            {{ in_array($opt, (array)(request('props')[$prop->id] ?? [])) ? 'checked' : '' }} onchange="this.form.submit()">
+                                                        <span class="custom-check-pill">{{ $opt }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                             <input type="{{ $prop->input_type == 'price' ? 'number' : ($prop->input_type ?: 'text') }}" name="props[{{ $prop->id }}]" class="filter-input-text" placeholder="{{ $prop->placeholder }}" value="{{ is_array(request('props')[$prop->id] ?? '') ? '' : (request('props')[$prop->id] ?? '') }}" onchange="this.form.submit()">
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        @endif
                     @endif
 
                     <!-- حالة الاعلان -->
@@ -439,15 +506,19 @@
                         </div>
                     </div>
 
-                    <!-- الفئات (Hide if category is already selected) -->
-                    @if(!request('category'))
+                    <!-- الفئات -->
                     <div class="filter-group">
                         <div class="filter-group-header" onclick="toggleFilter(this)">
-                            <span>الفئات</span>
+                            <span>تغيير الفئة</span>
                             <i class="fa-solid fa-chevron-down"></i>
                         </div>
-                        <div class="filter-group-content active">
+                        <div class="filter-group-content {{ !request('category') ? 'active' : '' }}">
                             <div class="filter-categories-list">
+                                <label class="category-filter-item">
+                                    <input type="radio" name="category" value="" {{ !request('category') ? 'checked' : '' }} onchange="this.form.submit()">
+                                    <span class="radio-custom"></span>
+                                    <span class="cat-name">كل الفئات</span>
+                                </label>
                                 @foreach($categories as $cat)
                                     <label class="category-filter-item">
                                         <input type="radio" name="category" value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'checked' : '' }} onchange="this.form.submit()">
@@ -458,7 +529,6 @@
                             </div>
                         </div>
                     </div>
-                    @endif
                     
                     <!-- المعلن -->
                     <div class="filter-group">
@@ -601,6 +671,29 @@
     </main>
 
     @include('partials.footer')
+
+    <!-- Auth Required Modal (Global) -->
+    <div id="authRequiredModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
+        <div class="bg-white w-full max-w-sm rounded-[28px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.25)] animate-in fade-in zoom-in duration-300" dir="rtl">
+            <!-- Header -->
+            <div class="relative bg-gradient-to-br from-primary to-blue-700 p-8 text-center">
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+                    <i class="fa-solid fa-lock text-white text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-white">تسجيل الدخول مطلوب</h3>
+                <p class="text-blue-100 text-sm font-medium mt-1">يجب تسجيل الدخول أولاً للمتابعة</p>
+                <button onclick="hideAuthModal()" class="absolute top-4 left-4 w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-all">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <!-- Body -->
+            <div class="p-6 space-y-3">
+                <a href="{{ route('login') }}" class="block w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all text-center text-lg shadow-lg shadow-blue-200">
+                    <i class="fa-solid fa-right-to-bracket ml-2"></i> تسجيل الدخول
+                </a>
+            </div>
+        </div>
+    </div>
 
     <!-- Location Modal -->
     <div id="locationModal" class="modal-overlay">
@@ -934,6 +1027,82 @@
             setInterval(updateCountdowns, 1000);
             updateCountdowns();
         });
+        // Global Auth Guard
+        const isLoggedIn = {{ auth()->check() ? 'true' : 'false' }};
+
+        function requireAuth(callback) {
+            if (isLoggedIn) {
+                if (typeof callback === 'function') callback();
+            } else {
+                showAuthModal();
+            }
+        }
+
+        function showAuthModal() {
+            const modal = document.getElementById('authRequiredModal');
+            if(modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function hideAuthModal() {
+            const modal = document.getElementById('authRequiredModal');
+            if(modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Global Wishlist Logic
+        function toggleGlobalWishlist(event, adId) {
+            const icons = document.querySelectorAll(`.wishlist-icon-${adId}`);
+            
+            fetch(`/wishlist/toggle/${adId}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (icons.length > 0) {
+                        icons.forEach(icon => {
+                            if (data.action === 'added') {
+                                icon.classList.remove('fa-regular');
+                                icon.classList.add('fa-solid');
+                                icon.style.color = '#EF4444';
+                            } else {
+                                icon.classList.remove('fa-solid');
+                                icon.classList.add('fa-regular');
+                                icon.style.color = '';
+                            }
+                        });
+                    }
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: data.message,
+                        showConfirmButton: false,
+                        timer: 1500,
+                        position: 'top-end',
+                        toast: true
+                    });
+                }
+            })
+            .catch(error => console.error('Wishlist Error:', error));
+        }
+
+        window.onclick = function(event) {
+            const locModal = document.getElementById('locationModal');
+            const authModal = document.getElementById('authRequiredModal');
+            if (event.target == locModal) locModal.style.display = 'none';
+            if (event.target == authModal) hideAuthModal();
+        }
     </script>
     @include('partials.account-type-modal')
 </body>

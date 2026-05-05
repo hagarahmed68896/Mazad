@@ -293,7 +293,7 @@
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">
                                                 <div class="flex items-center justify-center gap-1.5">
                                                     <span>{{ number_format($order->final_price, 0) }}</span>
-                                                    <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                                    <x-riyal-icon />
                                                 </div>
                                             </td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">{{ $order->award_duration ?? '-' }}</td>
@@ -362,7 +362,7 @@
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">
                                                 <div class="flex items-center justify-center gap-1.5">
                                                     <span>{{ number_format($payment->amount, 0) }}</span>
-                                                    <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                                    <x-riyal-icon />
                                                 </div>
                                             </td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">{{ $payment->payment_method ?? 'طريقة الدفع' }}</td>
@@ -426,7 +426,7 @@
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">
                                                 <div class="flex items-center justify-center gap-1.5">
                                                     <span>{{ number_format($settlement->total_amount, 0) }}</span>
-                                                    <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                                    <x-riyal-icon />
                                                 </div>
                                             </td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100">{{ $settlement->payment_method ?? 'طريقة الدفع' }}</td>
@@ -495,7 +495,7 @@
                                         <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">
                                             <div class="flex items-center justify-center gap-1.5">
                                                 <span>{{ number_format($service->price, 0) }}</span>
-                                                <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                                <x-riyal-icon />
                                             </div>
                                         </td>
                                         <td class="py-3 px-4 text-center rounded-l-xl bg-white group-hover:bg-blue-50/30 border-y border-l border-slate-100" dir="ltr">{{ $service->created_at->format('Y/m/d') }}</td>
@@ -569,13 +569,13 @@
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">
                                                 <div class="flex items-center justify-center gap-1.5">
                                                     <span>{{ number_format($ad->deposit_amount, 0) }}</span>
-                                                    <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                                    <x-riyal-icon />
                                                 </div>
                                             </td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">
                                                 <div class="flex items-center justify-center gap-1.5">
                                                     <span>{{ number_format($ad->price, 0) }}</span>
-                                                    <img src="{{ asset('images/Vector.svg') }}" class="w-4 h-4 opacity-70 inline-block" alt="ريال">
+                                                    <x-riyal-icon />
                                                 </div>
                                             </td>
                                             <td class="py-3 px-4 text-center bg-white group-hover:bg-blue-50/30 border-y border-slate-100 text-[#1C1C1C]">{{ $ad->bids_count }}</td>

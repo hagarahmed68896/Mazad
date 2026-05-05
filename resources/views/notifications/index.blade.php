@@ -5,34 +5,16 @@
 @push('styles')
     <style>
         .notifications-container {
-            margin-top: 40px;
-            margin-bottom: 60px;
-        }
-
-        .breadcrumbs {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 24px;
-            font-size: 0.9rem;
-            color: #64748B;
-        }
-
-        .breadcrumbs a {
-            color: #1A73E8;
-            text-decoration: none;
-            font-weight: 600;
+            margin-top: 60px;
+            margin-bottom: 80px;
         }
 
         .page-header {
             margin-bottom: 32px;
         }
 
-        .page-header h1 {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #1E293B;
-            margin-top: 0;
+        .page-header {
+            margin-bottom: 32px;
         }
 
         .notif-card-list {
@@ -229,15 +211,16 @@
 @endpush
 
 @section('content')
-    <div class="container notifications-container " style="margin-top: 4rem;">
-        <div class="breadcrumbs  bg-[#1A73E8] p-2">
-            <a href="/">الرئيسية</a>
-            <i class="fa-solid fa-chevron-left" style="font-size: 0.7rem; margin: 0 5px;"></i>
-            <span>إشعارات</span>
+    <div class="container notifications-container">
+        <!-- Breadcrumbs -->
+        <div class="flex items-center gap-2 text-sm text-gray-400 mb-8 font-bold">
+            <a href="/" class="hover:text-primary transition-colors">الرئيسية</a>
+            <i class="fa-solid fa-chevron-left text-[8px]"></i>
+            <span class="text-primary">إشعاراتي</span>
         </div>
 
-        <div class="page-header">
-            <h1>إشعارات</h1>
+        <div class="page-header mb-12">
+            <h1 class="text-4xl font-black text-gray-900">الإشعارات</h1>
         </div>
 
         @if($notifications->count() > 0)

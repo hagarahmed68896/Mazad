@@ -12,6 +12,20 @@
     
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1A73E8',
+                    }
+                }
+            }
+        }
+    </script>
 
     <!-- Leaflet (Map) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -21,7 +35,17 @@
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
     <style>
         body { font-family: 'Cairo', 'Outfit', sans-serif; }
+        .container {
+            max-width: 100% !important;
+            padding-left: 64px !important;
+            padding-right: 64px !important;
+        }
+        @media (max-width: 1024px) {
+            .container { padding-left: 24px !important; padding-right: 24px !important; }
+        }
+        .fa-heart.fa-solid { color: #EF4444 !important; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -116,58 +140,71 @@
         @auth
         <!-- Reports Section -->
         <section class="section reports-section">
-            <div class="section-header" style="margin-top: 2rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+            <div class="section-header d-flex justify-content-between align-items-center">
                 <h2 class="section-title" style="margin: 0;font-weight: bold;font-size: 2rem;">تقاريري</h2>
-                <a href="#" class="view-all-btn" style="margin: 0; padding: 0.5rem 1.25rem; font-size: 0.85rem; border-radius: 10px;">عرض التقرير</a>
+                <a href="#" class="view-all-btn">عرض التفاصيل</a>
             </div>
             <div class="reports-card">
                 <div class="reports-info">
                     <div class="info-item">
-                        <span class="info-label">إجمالي الإيرادات</span>
+                        <span class="info-label">الإيرادات</span>
                         <div class="info-value">
                             <span class="value">{{ number_format($totalRevenue) }}</span>
                             <span class="currency">ر.س</span>
-                            <span class="trend up"><i class="fa-solid fa-arrow-up"></i> 0%</span>
+                            <span class="trend up"><i class="fa-solid fa-arrow-up"></i> 0.43%</span>
                         </div>
                     </div>
                     <div class="reports-filter">
-                        <select>
-                            <option>أسبوع</option>
-                            <option>شهر</option>
-                            <option>سنة</option>
+                        <select onchange="window.location.href='?filter=' + this.value">
+                            <option value="weekly" {{ request('filter') == 'weekly' ? 'selected' : '' }}>أسبوعي</option>
+                            <option value="monthly" {{ request('filter') == 'monthly' ? 'selected' : '' }}>شهري</option>
+                            <option value="yearly" {{ request('filter') == 'yearly' ? 'selected' : '' }}>سنوي</option>
                         </select>
                     </div>
                 </div>
                 <div class="reports-chart">
+                    <!-- Y Axis Labels -->
+                    <div class="chart-y-labels">
+                        <span>100M</span>
+                        <span>50M</span>
+                        <span>25M</span>
+                        <span>0</span>
+                    </div>
+                    
+                    <!-- Grid Lines -->
+                    <div class="chart-grid">
+                        <div class="grid-line"></div>
+                        <div class="grid-line"></div>
+                        <div class="grid-line"></div>
+                        <div class="grid-line"></div>
+                    </div>
+
                     @php
                         $maxVal = collect($chartData)->max('total') ?: 100;
+                        $count = count($chartData);
                         $points = "";
                         foreach($chartData as $index => $data) {
-                            $x = $index * (1000 / 6);
-                            $y = 180 - ($data['total'] / $maxVal * 150);
+                            $x = $index * (1000 / ($count - 1));
+                            $y = 200 - ($data['total'] / $maxVal * 180);
                             $points .= ($index == 0 ? "M" : " L") . "$x,$y";
                         }
                     @endphp
-                    <!-- Dynamic SVG Chart based on real data -->
+                    <!-- Dynamic SVG Chart -->
                     <svg viewBox="0 0 1000 200" preserveAspectRatio="none">
                         <path d="{{ $points }}" fill="none" stroke="#1A73E8" stroke-width="4" stroke-linecap="round" />
                         @foreach($chartData as $index => $data)
                             @php 
-                                $x = $index * (1000 / 6);
-                                $y = 180 - ($data['total'] / $maxVal * 150);
+                                $x = $index * (1000 / ($count - 1));
+                                $y = 200 - ($data['total'] / $maxVal * 180);
                             @endphp
-                            <circle cx="{{ $x }}" cy="{{ $y }}" r="5" fill="#1A73E8" />
-                            @if($index == count($chartData) - 1 && $data['total'] > 0)
-                                <rect x="{{ $x - 20 }}" y="{{ $y - 40 }}" width="40" height="30" rx="4" fill="#1A73E8" />
-                                <text x="{{ $x }}" y="{{ $y - 20 }}" font-size="12" fill="white" text-anchor="middle">{{ $data['total'] }}</text>
-                            @endif
+                            <circle cx="{{ $x }}" cy="{{ $y }}" r="6" fill="#1A73E8" stroke="white" stroke-width="2" />
                         @endforeach
                     </svg>
-                    <div class="chart-labels">
-                        @foreach($chartData as $data)
-                            <span>{{ $data['day'] }}</span>
-                        @endforeach
-                    </div>
+                </div>
+                <div class="chart-labels">
+                    @foreach($chartData as $data)
+                        <span>{{ $data['day'] }}</span>
+                    @endforeach
                 </div>
             </div>
         </section>
@@ -176,7 +213,7 @@
         @if($discoveryCategories->count() > 0)
         <!-- Discovery Categories -->
         <section class="section discovery-categories">
-            <div class="section-header">
+            <div class="section-header d-flex justify-content-between align-items-center">
                 <h2 class="section-title">اكتشف أبرز الفئات</h2>
                 <a href="#" class="view-all-btn">عرض الكل</a>
             </div>
@@ -204,7 +241,7 @@
             @if($recentlyViewed->count() > 0)
             <!-- Recently Viewed Section -->
             <section class="section featured-ads">
-                <div class="section-header">
+                <div class="section-header d-flex justify-content-between align-items-center">
                     <h2 class="section-title">الأكثر مشاهدة مؤخراً</h2>
                     <a href="{{ route('search') }}" class="view-all-btn">عرض الكل</a>
                 </div>
@@ -224,7 +261,7 @@
             @if($currentAuctions->count() > 0)
             <!-- Current Auctions Section -->
             <section class="section featured-ads">
-                <div class="section-header">
+                <div class="section-header d-flex justify-content-between align-items-center">
                     <h2 class="section-title">المزادات الحالية</h2>
                     <a href="{{ route('search') }}" class="view-all-btn">عرض الكل</a>
                 </div>
@@ -244,7 +281,7 @@
             @if($instantBuy->count() > 0)
             <!-- Instant Buy Section -->
             <section class="section featured-ads">
-                <div class="section-header">
+                <div class="section-header d-flex justify-content-between align-items-center">
                     <h2 class="section-title">عروض الشراء الفوري</h2>
                     <a href="{{ route('search') }}" class="view-all-btn">عرض الكل</a>
                 </div>
@@ -266,7 +303,7 @@
             @if($featuredAds->count() > 0)
             <!-- Featured Ads Section -->
             <section class="section featured-ads">
-                <div class="section-header">
+                <div class="section-header d-flex justify-content-between align-items-center">
                     <h2 class="section-title">أبرز الإعلانات</h2>
                     <a href="{{ route('search') }}" class="view-all-btn">عرض الكل</a>
                 </div>
@@ -286,7 +323,7 @@
             @if($interactiveAds->count() > 0)
             <!-- Interactive Ads Section -->
             <section class="section featured-ads">
-                <div class="section-header">
+                <div class="section-header d-flex justify-content-between align-items-center">
                     <h2 class="section-title">الإعلانات الأكثر تفاعل</h2>
                     <a href="{{ route('search') }}" class="view-all-btn">عرض الكل</a>
                 </div>
@@ -402,6 +439,9 @@
 
         window.handleLocationClick = function() {
             const isLoggedIn = {{ Auth::check() ? 'true' : 'false' }};
+            const userSavedLat = {{ Auth::check() && Auth::user()->latitude ? Auth::user()->latitude : 'null' }};
+            const userSavedLng = {{ Auth::check() && Auth::user()->longitude ? Auth::user()->longitude : 'null' }};
+            
             const modal = document.getElementById('locationModal');
             const body = document.getElementById('modalBody');
             if (!modal || !body) return;
@@ -431,28 +471,27 @@
                 modal.style.display = 'flex';
                 
                 setTimeout(() => {
-                    const defaultLat = 24.7136;
-                    const defaultLng = 46.6753;
-                    const map = L.map('map').setView([defaultLat, defaultLng], 6);
+                    const initialLat = userSavedLat || 24.7136;
+                    const initialLng = userSavedLng || 46.6753;
+                    const zoomLevel = userSavedLat ? 14 : 6;
+                    
+                    const map = L.map('map').setView([initialLat, initialLng], zoomLevel);
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
                     
-                    const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+                    const marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
                     currentLocationMarker = marker;
 
-                    // Allow clicking on map to move marker
                     map.on('click', function(e) {
                         marker.setLatLng(e.latlng);
                     });
 
-                    if (navigator.geolocation) {
+                    if (!userSavedLat && navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(position => {
                             const userLat = position.coords.latitude;
                             const userLng = position.coords.longitude;
                             map.setView([userLat, userLng], 13);
                             marker.setLatLng([userLat, userLng]);
-                        }, () => {
-                            // If user denies or error, stay at default
-                        });
+                        }, () => {});
                     }
                 }, 300);
             }
@@ -470,25 +509,18 @@
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.lat}&lon=${pos.lng}&accept-language=ar`)
                 .then(res => res.json())
                 .then(data => {
-                    let fullAddress = "السعودية";
                     let cityOnly = "السعودية";
                     if (data.address) {
                         const addr = data.address;
-                        cityOnly = addr.city || addr.town || addr.village || addr.state || "السعودية";
-                        
-                        const parts = [];
-                        if (addr.road) parts.push(addr.road);
-                        if (addr.suburb || addr.neighbourhood || addr.district) parts.push(addr.suburb || addr.neighbourhood || addr.district);
-                        if (addr.city || addr.town || addr.village) parts.push(addr.city || addr.town || addr.village);
-                        if (addr.state) parts.push(addr.state);
-                        if (addr.country) parts.push(addr.country);
-                        fullAddress = parts.length > 0 ? parts.join('، ') : (data.display_name || "السعودية");
+                        let city = addr.city || addr.town || addr.village || addr.state || "السعودية";
+                        city = city.replace(/محافظة |منطقة |مدينة /g, '');
+                        cityOnly = city + "، السعودية";
                     }
-                    saveLocation(pos.lat, pos.lng, fullAddress, cityOnly);
+                    saveLocation(pos.lat, pos.lng, cityOnly, cityOnly);
                 })
                 .catch(err => {
                     console.error(err);
-                    saveLocation(pos.lat, pos.lng, "الرياض", "الرياض");
+                    saveLocation(pos.lat, pos.lng, "الرياض، السعودية", "الرياض، السعودية");
                 });
         };
 
@@ -607,8 +639,80 @@
             });
 
             const locModal = document.getElementById('locationModal');
+            const authModal = document.getElementById('authRequiredModal');
             if (e.target === locModal) closeModal();
+            if (e.target === authModal) hideAuthModal();
         });
+
+        // Global Auth Guard
+        const isLoggedIn = {{ auth()->check() ? 'true' : 'false' }};
+
+        function requireAuth(callback) {
+            if (isLoggedIn) {
+                if (typeof callback === 'function') callback();
+            } else {
+                showAuthModal();
+            }
+        }
+
+        function showAuthModal() {
+            const modal = document.getElementById('authRequiredModal');
+            if(modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function hideAuthModal() {
+            const modal = document.getElementById('authRequiredModal');
+            if(modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Global Wishlist Logic
+        function toggleGlobalWishlist(event, adId) {
+            const icons = document.querySelectorAll(`.wishlist-icon-${adId}`);
+            
+            fetch(`/wishlist/toggle/${adId}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (icons.length > 0) {
+                        icons.forEach(icon => {
+                            if (data.action === 'added') {
+                                icon.classList.remove('fa-regular');
+                                icon.classList.add('fa-solid');
+                                icon.style.color = '#EF4444';
+                            } else {
+                                icon.classList.remove('fa-solid');
+                                icon.classList.add('fa-regular');
+                                icon.style.color = '';
+                            }
+                        });
+                    }
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: data.message,
+                        showConfirmButton: false,
+                        timer: 1500,
+                        position: 'top-end',
+                        toast: true
+                    });
+                }
+            })
+            .catch(error => console.error('Wishlist Error:', error));
+        }
     </script>
     <!-- Location Picker Modal -->
     <div id="locationModal" class="modal">
@@ -621,5 +725,29 @@
     </div>
 
     @include('partials.account-type-modal')
+    @include('partials.interests-modal')
+
+    <!-- Auth Required Modal (Global) -->
+    <div id="authRequiredModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
+        <div class="bg-white w-full max-w-sm rounded-[28px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.25)] animate-in fade-in zoom-in duration-300" dir="rtl">
+            <!-- Header -->
+            <div class="relative bg-gradient-to-br from-primary to-blue-700 p-8 text-center">
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+                    <i class="fa-solid fa-lock text-white text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-white">تسجيل الدخول مطلوب</h3>
+                <p class="text-blue-100 text-sm font-medium mt-1">يجب تسجيل الدخول أولاً للمتابعة</p>
+                <button onclick="hideAuthModal()" class="absolute top-4 left-4 w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-all">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <!-- Body -->
+            <div class="p-6 space-y-3">
+                <a href="{{ route('login') }}" class="block w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all text-center text-lg shadow-lg shadow-blue-200">
+                    <i class="fa-solid fa-right-to-bracket ml-2"></i> تسجيل الدخول
+                </a>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

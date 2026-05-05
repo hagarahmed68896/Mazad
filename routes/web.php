@@ -7,11 +7,10 @@ Route::get('/', [\App\Http\Controllers\HomeController::class, 'index'])->name('h
 Route::get('/search', [\App\Http\Controllers\HomeController::class, 'search'])->name('search');
 
 // Public Ad View — increments views_count
-Route::get('/ads/{ad}', function(\App\Models\Ad $ad) {
-    $ad->increment('views_count');
-    // Redirect to app or return JSON for now (extend when ad show page is ready)
-    return back();
-})->name('ads.show');
+Route::get('/ads/{id}', [\App\Http\Controllers\HomeController::class, 'showAd'])->name('ads.show');
+Route::get('/ads/{id}/gallery/{index?}', [\App\Http\Controllers\HomeController::class, 'showGallery'])->name('ads.gallery');
+Route::post('/ads/{id}/bid', [\App\Http\Controllers\BidController::class, 'store'])->name('bids.store')->middleware('auth');
+Route::post('/ads/{id}/order', [\App\Http\Controllers\OrderController::class, 'store'])->name('orders.store')->middleware('auth');
 
 // Location Update
 Route::post('/location/update', [\App\Http\Controllers\LocationController::class, 'update'])->name('location.update');
@@ -21,6 +20,10 @@ Route::middleware('auth')->group(function() {
     Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::delete('/notifications/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
+    Route::post('/update-interests', [AuthController::class, 'updateInterests'])->name('update-interests.web');
+    Route::post('/skip-interests', [AuthController::class, 'skipInterests'])->name('skip-interests.web');
+    Route::post('/wishlist/toggle/{adId}', [\App\Http\Controllers\WishlistController::class, 'toggle'])->name('wishlist.toggle');
+    Route::post('/ads/{id}/question', [\App\Http\Controllers\AdQuestionController::class, 'store'])->name('ads.question.store');
 });
 
 

@@ -13,7 +13,7 @@ class Ad extends Model
 
     protected $fillable = [
         'user_id', 'category_id', 'city_id', 'address', 'lat', 'lng', 'title', 'image', 'description', 'type',
-        'deposit_amount', 'price', 'bids_count', 'views_count', 'status', 'end_date', 'bid_status', 'is_featured'
+        'deposit_amount', 'price', 'bids_count', 'views_count', 'status', 'end_date', 'bid_status', 'is_featured', 'is_enfaz'
     ];
 
     public function user(): BelongsTo
@@ -54,5 +54,25 @@ class Ad extends Model
     public function adProperties(): HasMany
     {
         return $this->hasMany(AdProperty::class);
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(AdImage::class);
+    }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(Favorite::class);
+    }
+
+    public function questions(): HasMany
+    {
+        return $this->hasMany(AdQuestion::class);
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(AdAttachment::class);
     }
 }

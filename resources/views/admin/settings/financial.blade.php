@@ -41,7 +41,7 @@
                     <input type="number" step="0.01" name="admin_fees" value="{{ $settings['admin_fees'] ?? '' }}" placeholder="أدخل مصاريف ادارية"
                            class="w-full h-14 bg-white border border-slate-200 rounded-2xl pr-4 pl-16 text-sm font-bold text-[#1C1C1C] outline-none focus:border-[#1A73E8] focus:ring-4 focus:ring-blue-50 transition-all text-right">
                     <div class="absolute inset-y-0 left-0 px-4 flex items-center justify-center border-l border-slate-200 bg-slate-50 rounded-l-2xl text-slate-400 font-black text-lg w-16">
-                        <img src="{{ asset('images/Vector.svg') }}" class="w-6 h-6 opacity-60" alt="ر.س">
+                        <x-riyal-icon class="w-6 h-6 opacity-60" />
                     </div>
                 </div>
             </div>
@@ -53,7 +53,7 @@
                     <input type="number" step="0.01" name="transfer_fees" value="{{ $settings['transfer_fees'] ?? '' }}" placeholder="أدخل مصاريف نقل ملكية"
                            class="w-full h-14 bg-white border border-slate-200 rounded-2xl pr-4 pl-16 text-sm font-bold text-[#1C1C1C] outline-none focus:border-[#1A73E8] focus:ring-4 focus:ring-blue-50 transition-all text-right">
                     <div class="absolute inset-y-0 left-0 px-4 flex items-center justify-center border-l border-slate-200 bg-slate-50 rounded-l-2xl text-slate-400 font-black text-lg w-16">
-                        <img src="{{ asset('images/Vector.svg') }}" class="w-6 h-6 opacity-60" alt="ر.س">
+                        <x-riyal-icon class="w-6 h-6 opacity-60" />
                     </div>
                 </div>
             </div>
@@ -65,7 +65,7 @@
                     <input type="number" step="0.01" name="promotion_price" value="{{ $settings['promotion_price'] ?? '' }}" placeholder="أدخل سعر تميز الإعلان"
                            class="w-full h-14 bg-white border border-slate-200 rounded-2xl pr-4 pl-16 text-sm font-bold text-[#1C1C1C] outline-none focus:border-[#1A73E8] focus:ring-4 focus:ring-blue-50 transition-all text-right">
                     <div class="absolute inset-y-0 left-0 px-4 flex items-center justify-center border-l border-slate-200 bg-slate-50 rounded-l-2xl text-slate-400 font-black text-lg w-16">
-                        <img src="{{ asset('images/Vector.svg') }}" class="w-6 h-6 opacity-60" alt="ر.س">
+                        <x-riyal-icon class="w-6 h-6 opacity-60" />
                     </div>
                 </div>
             </div>

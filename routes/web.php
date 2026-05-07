@@ -9,6 +9,7 @@ Route::get('/search', [\App\Http\Controllers\HomeController::class, 'search'])->
 // Public Ad View — increments views_count
 Route::get('/ads/{id}', [\App\Http\Controllers\HomeController::class, 'showAd'])->name('ads.show');
 Route::get('/ads/{id}/gallery/{index?}', [\App\Http\Controllers\HomeController::class, 'showGallery'])->name('ads.gallery');
+Route::get('/users/{id}/profile', [\App\Http\Controllers\HomeController::class, 'showProfile'])->name('users.profile');
 Route::post('/ads/{id}/bid', [\App\Http\Controllers\BidController::class, 'store'])->name('bids.store')->middleware('auth');
 Route::post('/ads/{id}/order', [\App\Http\Controllers\OrderController::class, 'store'])->name('orders.store')->middleware('auth');
 

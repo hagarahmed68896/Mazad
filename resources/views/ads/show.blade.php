@@ -116,7 +116,7 @@
             <button onclick="switchTab('description')" id="btn-description" class="tab-btn active px-8 py-4 rounded-2xl font-bold transition-all whitespace-nowrap bg-primary text-white shadow-xl shadow-blue-100">نبذة عن الإعلان</button>
             <button onclick="switchTab('details')" id="btn-details" class="tab-btn px-8 py-4 rounded-2xl font-bold transition-all whitespace-nowrap bg-white text-gray-500 border border-gray-100 hover:border-primary/20">التفاصيل</button>
             <button onclick="switchTab('location')" id="btn-location" class="tab-btn px-8 py-4 rounded-2xl font-bold transition-all whitespace-nowrap bg-white text-gray-500 border border-gray-100 hover:border-primary/20">العنوان ووقت المعاينة</button>
-            <button onclick="switchTab('seller')" id="btn-seller" class="tab-btn px-8 py-4 rounded-2xl font-bold transition-all whitespace-nowrap bg-white text-gray-500 border border-gray-100 hover:border-primary/20">معلومات المعلن</button>
+            <button onclick="switchTab('seller')" id="btn-seller" class="tab-btn px-8 py-4 rounded-2xl font-bold transition-all whitespace-nowrap bg-white text-gray-500 border border-gray-100 hover:border-primary/20"> بيانات المعلن</button>
             <button onclick="switchTab('reviews')" id="btn-reviews" class="tab-btn px-8 py-4 rounded-2xl font-bold transition-all whitespace-nowrap bg-white text-gray-500 border border-gray-100 hover:border-primary/20">التقييمات</button>
             <button onclick="switchTab('questions')" id="btn-questions" class="tab-btn px-8 py-4 rounded-2xl font-bold transition-all whitespace-nowrap bg-white text-gray-500 border border-gray-100 hover:border-primary/20">الأسئلة والأجوبة</button>
             <button onclick="switchTab('attachments')" id="btn-attachments" class="tab-btn px-8 py-4 rounded-2xl font-bold transition-all whitespace-nowrap bg-white text-gray-500 border border-gray-100 hover:border-primary/20">المرفقات</button>
@@ -259,21 +259,20 @@
                     @endphp
                     <div id="tab-seller" class="tab-content hidden transition-all duration-500">
                         <h3 class="text-2xl font-black mb-8 relative inline-block">
-                            معلومات المعلن
+                            بيانات المعلن
                             <span class="absolute -bottom-2 right-0 w-12 h-1.5 bg-primary rounded-full"></span>
                         </h3>
                         <div class="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm">
                             <div class="flex items-start gap-6 mb-8">
-                                <div class="relative">
-                                    <img src="{{ $seller->avatar ? asset('storage/'.$seller->avatar) : 'https://ui-avatars.com/api/?name='.urlencode($seller->name).'&background=1A73E8&color=fff&size=128' }}" class="w-24 h-24 rounded-[24px] object-cover shadow-lg border-4 border-white">
-                                    <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 rounded-full border-4 border-white flex items-center justify-center">
-                                        <i class="fa-solid fa-check text-white text-[10px]"></i>
-                                    </div>
-                                </div>
+                                <a href="{{ route('users.profile', $seller->id) }}" class="relative group cursor-pointer">
+                                    <img src="{{ $seller->avatar ? asset($seller->avatar) : 'https://ui-avatars.com/api/?name='.urlencode($seller->name).'&background=1A73E8&color=fff&size=128' }}" class="w-24 h-24 rounded-[24px] object-cover shadow-lg border-4 border-white transition-transform group-hover:scale-105">
+                                </a>
                                 <div class="flex-1">
-                                    <h4 class="text-2xl font-black text-gray-900 mb-1">{{ $seller->name }}</h4>
+                                    <a href="{{ route('users.profile', $seller->id) }}" class="hover:text-primary transition-colors">
+                                        <h4 class="text-2xl font-black text-gray-900 mb-1">{{ $seller->name }}</h4>
+                                    </a>
                                     <p class="text-gray-400 font-bold mb-3">{{ $seller->account_type == 'company' ? ($seller->company_name ?? 'شركة معتمدة') : 'عضو فردي' }}</p>
-                                    <a href="#" class="text-primary font-black text-sm hover:underline flex items-center gap-2">
+                                    <a href="{{ route('users.profile', $seller->id) }}" class="text-primary font-black text-sm hover:underline flex items-center gap-2">
                                         عرض جميع الإعلانات <i class="fa-solid fa-arrow-left text-[10px]"></i>
                                     </a>
                                 </div>

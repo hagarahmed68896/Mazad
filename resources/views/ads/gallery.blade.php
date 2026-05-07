@@ -99,7 +99,9 @@
                             <h2 class="text-2xl md:text-4xl font-black text-gray-900">{{ $ad->title }}</h2>
                             <span class="bg-amber-100 text-amber-600 px-4 py-1.5 rounded-full text-xs font-bold border border-amber-200">شراء فوري</span>
                         </div>
-
+                        <a href="{{ route('users.profile', $ad->user_id) }}" class="text-gray-400 font-bold text-sm hover:text-primary transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-user-tie text-xs"></i> المعلن: <span class="text-gray-900">{{ $ad->user->name }}</span>
+                        </a>
                     </div>
                  </div>
             @php

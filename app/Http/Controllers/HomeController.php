@@ -314,4 +314,75 @@ class HomeController extends Controller
 
         return view('ads.gallery', compact('ad', 'allImages', 'seller', 'categories', 'settings', 'startIndex'));
     }
+    public function showProfile(Request $request, $id)
+    {
+        $user = \App\Models\User::with(['ads.category', 'ads.city'])->findOrFail($id);
+        $categories = Category::whereNull('parent_id')->get();
+        $settings = Setting::pluck('value', 'key')->toArray();
+        $cities = City::all();
+        
+        // Stats for the profile card
+        $adsCount = $user->ads()->count();
+        $soldCount = $user->sales()->where('status', 'delivered')->count();
+        $rating = $user->reviewsReceived()->avg('rating') ?: 5.0;
+        $reviewsCount = $user->reviewsReceived()->count();
+
+        // Filtering ads for the Products tab
+        $query = $user->ads()->with(['category', 'user', 'city']);
+
+        if ($request->filled('q')) {
+            $query->where('title', 'like', '%' . $request->q . '%');
+        }
+        if ($request->filled('type')) {
+            if ($request->type === 'auction') {
+                $query->whereIn('type', ['electronic_auction', 'hybrid_auction']);
+            } else {
+                $query->where('type', $request->type);
+            }
+        }
+        
+        $activeCategory = null;
+        if ($request->filled('category')) {
+            $activeCategory = Category::with('properties')->find($request->category);
+            $query->where('category_id', $request->category);
+        }
+
+        // Dynamic Properties Filter
+        if ($request->has('props') && is_array($request->props)) {
+            foreach ($request->props as $propId => $value) {
+                if (!empty($value)) {
+                    $query->whereHas('adProperties', function($pq) use ($propId, $value) {
+                        $pq->where('property_id', $propId);
+                        if (is_array($value)) {
+                            $pq->whereIn('value', $value);
+                        } else {
+                            $pq->where('value', $value);
+                        }
+                    });
+                }
+            }
+        }
+
+        if ($request->filled('city')) {
+            $query->where('city_id', $request->city);
+        }
+        if ($request->filled('ad_status')) {
+            if ($request->ad_status === 'active') {
+                $query->where('status', 'active')->where(function($q) {
+                    $q->whereNull('end_date')->orWhere('end_date', '>', now());
+                });
+            } else {
+                $query->where('status', $request->ad_status);
+            }
+        }
+
+        $sort = $request->get('sort', 'newest');
+        if ($sort === 'price_high') $query->orderBy('price', 'desc');
+        elseif ($sort === 'price_low') $query->orderBy('price', 'asc');
+        else $query->orderBy('created_at', 'desc');
+
+        $ads = $query->paginate(12)->appends($request->all());
+        
+        return view('users.profile', compact('user', 'categories', 'settings', 'adsCount', 'soldCount', 'rating', 'reviewsCount', 'cities', 'ads', 'activeCategory'));
+    }
 }

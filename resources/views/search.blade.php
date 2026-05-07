@@ -315,6 +315,9 @@
             /* ... */
         }
         .fa-heart.fa-solid { color: #EF4444 !important; }
+        .search-container-grid.sidebar-hidden {
+            grid-template-columns: 1fr !important;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
@@ -335,9 +338,9 @@
         </div>
     </div>
 
-    <main class="container search-container-grid">
+    <main id="searchContainer" class="container search-container-grid sidebar-hidden">
         <!-- Sidebar Filters -->
-        <aside class="search-sidebar">
+        <aside class="search-sidebar hidden" id="searchSidebar">
             <div class="filter-card">
                 <div class="filter-header">
                     <h3>تصفية النتائج</h3>
@@ -562,27 +565,32 @@
             <!-- New Search Action Bar -->
             <div class="search-action-bar">
                 <!-- Search Input Side (Right in RTL) -->
-                <form action="{{ route('search') }}" method="GET" class="search-input-group" style="flex: 1; max-width: 350px;">
-                    @foreach(request()->except('q', 'page', 'category', 'props') as $key => $value)
-                        @if(is_array($value))
-                            @foreach($value as $k => $v)
-                                @if(is_array($v))
-                                    @foreach($v as $nv)
-                                        <input type="hidden" name="{{ $key }}[{{ $k }}][]" value="{{ $nv }}">
-                                    @endforeach
-                                @else
-                                    <input type="hidden" name="{{ $key }}[{{ $k }}]" value="{{ $v }}">
-                                @endif
-                            @endforeach
-                        @else
-                            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                        @endif
-                    @endforeach
-                    <div style="position: relative; width: 100%;">
-                        <input type="text" name="q" value="{{ request('q') }}" placeholder="ابحث عن..." class="search-bar-input" style="width: 100%;">
-                        <i class="fa-solid fa-magnifying-glass search-bar-icon" style="position: absolute; top: 50%; transform: translateY(-50%); right: 1rem; left: auto; color: #94A3B8;"></i>
-                    </div>
-                </form> 
+                <div class="flex items-center gap-3 flex-1 max-w-[400px]">
+                    <button type="button" onclick="toggleSearchSidebar()" class="action-btn" style="width: 42px; height: 42px; min-width: 42px; justify-content: center; padding: 0; background: white; border: 1.5px solid #E2E8F0; border-radius: 10px; color: #64748B;">
+                        <i class="fa-solid fa-sliders"></i>
+                    </button>
+                    <form action="{{ route('search') }}" method="GET" class="search-input-group" style="flex: 1;">
+                        @foreach(request()->except('q', 'page', 'category', 'props') as $key => $value)
+                            @if(is_array($value))
+                                @foreach($value as $k => $v)
+                                    @if(is_array($v))
+                                        @foreach($v as $nv)
+                                            <input type="hidden" name="{{ $key }}[{{ $k }}][]" value="{{ $nv }}">
+                                        @endforeach
+                                    @else
+                                        <input type="hidden" name="{{ $key }}[{{ $k }}]" value="{{ $v }}">
+                                    @endif
+                                @endforeach
+                            @else
+                                <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                            @endif
+                        @endforeach
+                        <div style="position: relative; width: 100%;">
+                            <input type="text" name="q" value="{{ request('q') }}" placeholder="ابحث عن..." class="search-bar-input" style="width: 100%;">
+                            <i class="fa-solid fa-magnifying-glass search-bar-icon" style="position: absolute; top: 50%; transform: translateY(-50%); right: 1rem; left: auto; color: #94A3B8;"></i>
+                        </div>
+                    </form> 
+                </div>
 
                 <!-- Action Buttons Side (Left in RTL) -->
                 <div class="action-buttons-group">
@@ -723,6 +731,23 @@
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('searchContainer');
+            const sidebar = document.getElementById('searchSidebar');
+            if (localStorage.getItem('searchSidebarOpen') === 'true') {
+                sidebar.classList.remove('hidden');
+                container.classList.remove('sidebar-hidden');
+            }
+        });
+
+        function toggleSearchSidebar() {
+            const container = document.getElementById('searchContainer');
+            const sidebar = document.getElementById('searchSidebar');
+            sidebar.classList.toggle('hidden');
+            container.classList.toggle('sidebar-hidden');
+            localStorage.setItem('searchSidebarOpen', !sidebar.classList.contains('hidden'));
+        }
+
         function toggleFilter(header) {
             const group = header.parentElement;
             const content = group.querySelector('.filter-group-content');

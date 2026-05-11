@@ -73,7 +73,7 @@
             <span class="p-price-label" style="font-size: 0.85rem; color: #64748B; font-weight: 700;">{{ $price_label }}</span>
             <div class="flex items-center gap-1 text-primary">
                 <span class="text-xl font-black">{{ number_format($ad->price) }}</span>
-                <x-riyal-icon class="w-8 h-8" />
+                <x-riyal-icon class="w-5 h-5" />
             </div>
         </div>
 

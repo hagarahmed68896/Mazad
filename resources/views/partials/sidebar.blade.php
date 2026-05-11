@@ -40,7 +40,7 @@
                     </a>
                 @endif
             @endauth
-            <a href="#" class="sidebar-link">
+            <a href="{{ route('chats.index') }}" class="sidebar-link">
                 <i class="fa-regular fa-comment-dots"></i>
                 <span>الدردشات</span>
             </a>

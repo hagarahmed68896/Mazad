@@ -25,14 +25,10 @@ body {
     color: var(--text-main);
     line-height: 1.5;
     direction: rtl;
-    user-select: none;
-    cursor: default;
 }
 
 input,
 textarea {
-    user-select: text;
-    cursor: text;
 }
 
 a {
@@ -243,12 +239,19 @@ ul {
     box-shadow: 0 4px 12px rgba(26, 115, 232, 0.2);
 }
 
+.profile-wrapper,
+.notification-wrapper,
+.cart-wrapper {
+    position: relative;
+}
+
 /* Dropdowns */
 .notification-dropdown,
 .profile-dropdown {
     position: absolute;
     top: calc(100% + 10px);
-    left: 0;
+    right: 0;
+    left: auto;
     width: 350px;
     background: white;
     border-radius: 20px;

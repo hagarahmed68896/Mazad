@@ -3,6 +3,13 @@
 @section('title', 'الملف الشخصي | ' . $user->name)
 
 @push('styles')
+<!-- Leaflet (Map) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
 <style>
     .profile-page {
         background-color: #F8FAFC;
@@ -49,11 +56,105 @@
         border-color: #1A73E820;
         box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05);
     }
+
+    /* Map View Styles */
+    .map-view-container {
+        display: none;
+        width: 100%;
+        height: 600px;
+        background: #fff;
+        border-radius: 32px;
+        overflow: hidden;
+        border: 1px solid #F1F5F9;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+
+    .map-view-container.active {
+        display: block;
+    }
+
+    .map-ad-detail-floating {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        z-index: 1000;
+        display: none;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .map-ad-detail-floating.active {
+        display: block;
+        animation: slideUpFade 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes slideUpFade {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .custom-marker-cluster {
+        background: #1A73E8;
+        border: 3px solid rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        color: white;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 15px rgba(26, 115, 232, 0.4);
+        font-size: 0.8rem;
+    }
+
+    .custom-marker-single {
+        width: 20px;
+        height: 20px;
+        background: #1A73E8;
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 0 10px rgba(26, 115, 232, 0.5);
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .custom-marker-single.selected {
+        background: #EF4444;
+        transform: scale(1.2);
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+    }
 </style>
 @endpush
 
 @section('content')
 <div class="profile-page pb-20" dir="rtl">
+    <!-- Success Message Alert -->
+    @if(session('success'))
+        <div class="fixed top-8 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-top duration-500" id="successAlert">
+            <div class="bg-white border border-green-100 rounded-[24px] p-4 shadow-2xl flex items-center gap-4 min-w-[320px] border-b-4 border-b-green-500">
+                <div class="w-12 h-12 bg-green-50 text-green-500 rounded-2xl flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-check text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-xs font-bold text-gray-400 mb-0.5">تمت العملية بنجاح</p>
+                    <p class="text-sm font-black text-gray-900">{{ session('success') }}</p>
+                </div>
+                <button onclick="this.parentElement.parentElement.remove()" class="text-gray-300 hover:text-gray-500 transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+        <script>
+            setTimeout(() => {
+                const alert = document.getElementById('successAlert');
+                if(alert) {
+                    alert.classList.add('fade-out');
+                    setTimeout(() => alert.remove(), 500);
+                }
+            }, 5000);
+        </script>
+    @endif
+
     <!-- Profile Banner -->
     <div class="profile-banner bg-gray-900">
         @php
@@ -110,7 +211,7 @@
                             <button onclick="shareProfile()" class="w-14 h-14 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center hover:text-primary hover:bg-blue-50 transition-all border border-gray-100">
                                 <i class="fa-solid fa-share-nodes text-xl"></i>
                             </button>
-                            <button class="w-14 h-14 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center hover:text-red-500 hover:bg-red-50 transition-all border border-gray-100">
+                            <button onclick="toggleReportModal()" class="w-14 h-14 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center hover:text-red-500 hover:bg-red-50 transition-all border border-gray-100" title="الإبلاغ عن هذا المستخدم">
                                 <i class="fa-solid fa-circle-exclamation text-xl"></i>
                             </button>
                         </div>
@@ -208,8 +309,11 @@
                         <!-- Top Action Bar -->
                         <div class="bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                             <div class="flex items-center gap-4 w-full md:w-auto flex-1">
-                                <button onclick="toggleProfileSidebar()" class="w-12 h-12 bg-gray-50 border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-primary hover:bg-blue-50 transition-all shrink-0">
+                                <button onclick="toggleProfileSidebar()" class="w-12 h-12 bg-gray-50 border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-primary hover:bg-blue-50 transition-all shrink-0" title="تصفية">
                                     <i class="fa-solid fa-sliders"></i>
+                                </button>
+                                <button type="button" onclick="setView('map')" id="mapViewBtn" class="w-12 h-12 bg-gray-50 border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-primary hover:bg-blue-50 transition-all shrink-0" title="عرض الخريطة">
+                                    <i class="fa-solid fa-map-location-dot"></i>
                                 </button>
                                 <div class="relative flex-1 max-w-md">
                                     <input type="text" id="profileSearchInput" form="profileFilterForm" name="q" value="{{ request('q') }}" placeholder="بحث في منتجات المعلن..." class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 pr-12 pl-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm transition-all">
@@ -227,6 +331,16 @@
                                     <i class="fa-solid fa-arrow-down-wide-short absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
                                     <i class="fa-solid fa-chevron-down absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Map View Container -->
+                        <div id="mapViewContainer" class="map-view-container">
+                            <div id="profileMap" style="width: 100%; height: 100%;"></div>
+                            
+                            <!-- Floating Ad Detail -->
+                            <div id="mapAdDetail" class="map-ad-detail-floating">
+                                <!-- Content will be injected via JS -->
                             </div>
                         </div>
 
@@ -260,15 +374,51 @@
                                 <!-- الموقع -->
                                 <div class="space-y-3">
                                     <label class="text-sm font-black text-gray-900 block">الموقع</label>
-                                    <div class="relative">
-                                        <select name="city" onchange="this.form.submit()" class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm appearance-none">
-                                            <option value="">كل المواقع</option>
-                                            @foreach($cities as $city)
-                                                <option value="{{ $city->id }}" {{ request('city') == $city->id ? 'selected' : '' }}>{{ $city->name }}</option>
-                                            @endforeach
-                                        </select>
-                                        <i class="fa-solid fa-chevron-down absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="handleLocationClick()" class="w-12 h-12 bg-primary text-white rounded-2xl flex items-center justify-center hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 shrink-0">
+                                            <i class="fa-solid fa-location-dot"></i>
+                                        </button>
+                                        <div class="relative flex-1">
+                                            <select name="city" onchange="this.form.submit()" class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm appearance-none">
+                                                <option value="">كل المواقع</option>
+                                                @foreach($cities as $city)
+                                                    <option value="{{ $city->id }}" {{ request('city') == $city->id ? 'selected' : '' }}>{{ $city->name }}</option>
+                                                @endforeach
+                                            </select>
+                                            <i class="fa-solid fa-chevron-down absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+                                        </div>
                                     </div>
+                                    @php
+                                        $currentAddr = Auth::check() ? Auth::user()->address : session('user_address');
+                                        $selectedCity = request('city') ? $cities->firstWhere('id', request('city')) : null;
+                                    @endphp
+                                    
+                                    @if($selectedCity)
+                                        <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center gap-3 mt-3 animate-in fade-in zoom-in duration-300">
+                                            <i class="fa-solid fa-city text-gray-400"></i>
+                                            <div class="flex-1 min-w-0">
+                                                <span class="block text-[10px] font-bold text-gray-400">المنطقة المختارة:</span>
+                                                <span class="block text-xs font-black text-gray-900 truncate">{{ $selectedCity->name }}</span>
+                                            </div>
+                                            <a href="{{ route('users.profile', $user->id) }}?city=&{{ http_build_query(request()->except(['city', 'page'])) }}#tab-ads" class="text-gray-400 hover:text-red-500 transition-colors">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </a>
+                                        </div>
+                                    @endif
+
+                                    @if($currentAddr && !$selectedCity)
+                                        <div class="bg-blue-50/50 p-3 rounded-xl border border-blue-100/50 flex items-center gap-3 mt-3 animate-in fade-in zoom-in duration-300">
+                                            <input type="hidden" name="nearby" value="1" form="profileFilterForm">
+                                            <i class="fa-solid fa-location-crosshairs text-primary"></i>
+                                            <div class="flex-1 min-w-0">
+                                                <span class="block text-[10px] font-bold text-gray-400">نتائج قريبة من:</span>
+                                                <span class="block text-xs font-black text-gray-900 truncate" title="{{ $currentAddr }}">{{ $currentAddr }}</span>
+                                            </div>
+                                            <a href="{{ route('location.clear') }}" class="text-gray-400 hover:text-red-500 transition-colors">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </a>
+                                        </div>
+                                    @endif
                                 </div>
 
                                 <!-- نوع الإعلان -->
@@ -393,26 +543,219 @@
         </div>
     </div>
 </div>
+
+<!-- Report Modal -->
+<div id="reportModal" class="fixed inset-0 z-[100] hidden items-center justify-center">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="toggleReportModal()"></div>
+    <div class="bg-white rounded-[32px] w-full max-w-md p-8 relative z-10 animate-in zoom-in duration-300">
+        <button onclick="toggleReportModal()" class="absolute top-6 left-6 text-gray-400 hover:text-gray-600 transition-all">
+            <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+        
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-circle-exclamation text-3xl"></i>
+            </div>
+            <h3 class="text-2xl font-black text-gray-900">الإبلاغ عن هذا المستخدم</h3>
+            <p class="text-gray-400 text-sm font-bold mt-2">يرجى كتابة سبب الإبلاغ بالتفصيل</p>
+        </div>
+
+        <form action="{{ route('users.report', $user->id) }}" method="POST" class="space-y-6">
+            @csrf
+            <div class="space-y-3">
+                <label class="text-sm font-black text-gray-900 block">سبب الإبلاغ</label>
+                <textarea name="description" rows="4" required class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm transition-all" placeholder="اكتب تفاصيل البلاغ هنا..."></textarea>
+            </div>
+
+            <div class="flex gap-3 pt-4">
+                <button type="submit" id="submitReportBtn" onclick="this.innerHTML='<i class=\'fa-solid fa-spinner fa-spin\'></i> جاري الإرسال...'; this.classList.add('opacity-70', 'cursor-not-allowed');" class="flex-1 bg-primary text-white py-4 rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all">إرسال</button>
+                <button type="button" onclick="toggleReportModal()" class="flex-1 bg-gray-100 text-gray-400 py-4 rounded-2xl font-black hover:bg-gray-200 transition-all">إلغاء</button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
 <script>
     // Initialize gallery state on load
     document.addEventListener('DOMContentLoaded', () => {
-        // Check if we should open the products tab (if filters are active)
+        // Check if we should open the products tab (if filters are active or hash is present)
         const urlParams = new URLSearchParams(window.location.search);
-        const hasFilters = urlParams.has('q') || urlParams.has('type') || urlParams.has('city') || 
-                          urlParams.has('category') || urlParams.has('ad_status') || urlParams.has('sort') ||
-                          window.location.hash === '#tab-ads';
         
-        if (hasFilters) {
+        // If there's a specific hash, use it. Otherwise, if there are any query params, default to 'ads'
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#tab-')) {
+            switchTab(hash.replace('#tab-', ''));
+        } else if (window.location.search !== '') {
             switchTab('ads');
-            // If filters are active, keep the sidebar visible if it was opened
-            if(localStorage.getItem('profileSidebarOpen') === 'true') {
-                document.getElementById('profileSidebar').classList.remove('hidden');
-            }
+        }
+
+        // If filters are active, keep the sidebar visible if it was opened
+        if(localStorage.getItem('profileSidebarOpen') === 'true') {
+            const sidebar = document.getElementById('profileSidebar');
+            if (sidebar) sidebar.classList.remove('hidden');
+        }
+        
+        // Ensure form submission preserves the tab hash
+        const filterForm = document.getElementById('profileFilterForm');
+        if (filterForm) {
+            filterForm.addEventListener('submit', function() {
+                const actionUrl = new URL(this.action);
+                actionUrl.hash = 'tab-ads';
+                this.action = actionUrl.toString();
+            });
+        }
+
+        // Handle initial view (map vs grid)
+        const initialView = "{{ request('view', 'grid') }}";
+        if (initialView === 'map') {
+            setView('map');
         }
     });
+
+    let profileMapInstance = null;
+    let markersClusterGroup = null;
+
+    function setView(view) {
+        const grid = document.getElementById('profileAdsGrid');
+        const mapContainer = document.getElementById('mapViewContainer');
+        const mapBtn = document.getElementById('mapViewBtn');
+        
+        if (view === 'map') {
+            if (mapContainer.classList.contains('active')) {
+                // Toggle off
+                mapContainer.classList.remove('active');
+                grid.classList.remove('hidden');
+                mapBtn.classList.remove('bg-primary', 'text-white', 'shadow-lg');
+                mapBtn.classList.add('bg-gray-50', 'text-gray-400');
+                
+                const url = new URL(window.location);
+                url.searchParams.delete('view');
+                window.history.pushState({}, '', url);
+            } else {
+                // Toggle on
+                mapContainer.classList.add('active');
+                grid.classList.add('hidden');
+                mapBtn.classList.add('bg-primary', 'text-white', 'shadow-lg');
+                mapBtn.classList.remove('bg-gray-50', 'text-gray-400');
+                
+                initProfileMap();
+                
+                const url = new URL(window.location);
+                url.searchParams.set('view', 'map');
+                window.history.pushState({}, '', url);
+            }
+        } else {
+            mapContainer.classList.remove('active');
+            grid.classList.remove('hidden');
+            mapBtn.classList.remove('bg-primary', 'text-white', 'shadow-lg');
+            mapBtn.classList.add('bg-gray-50', 'text-gray-400');
+        }
+    }
+
+    function initProfileMap() {
+        if (profileMapInstance) {
+            profileMapInstance.invalidateSize();
+            return;
+        }
+
+        // Default center (Saudi Arabia)
+        profileMapInstance = L.map('profileMap', { zoomControl: false }).setView([24.7136, 46.6753], 6);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(profileMapInstance);
+
+        markersClusterGroup = L.markerClusterGroup({
+            iconCreateFunction: function(cluster) {
+                return L.divIcon({
+                    html: `<span>${cluster.getChildCount()}</span>`,
+                    className: 'custom-marker-cluster',
+                    iconSize: L.point(40, 40)
+                });
+            }
+        });
+
+        const ads = @json($ads->items());
+        
+        ads.forEach(ad => {
+            const lat = parseFloat(ad.lat);
+            const lng = parseFloat(ad.lng);
+            
+            if (!isNaN(lat) && !isNaN(lng)) {
+                const customIcon = L.divIcon({
+                    className: 'custom-marker-single',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+
+                const marker = L.marker([lat, lng], { icon: customIcon });
+                
+                marker.on('click', (e) => {
+                    document.querySelectorAll('.custom-marker-single').forEach(el => el.classList.remove('selected'));
+                    e.target.getElement().classList.add('selected');
+                    showFloatingDetail(ad);
+                    profileMapInstance.panTo([lat - 0.01, lng]);
+                });
+
+                markersClusterGroup.addLayer(marker);
+            }
+        });
+
+        profileMapInstance.addLayer(markersClusterGroup);
+
+        if (markersClusterGroup.getLayers().length > 0) {
+            profileMapInstance.fitBounds(markersClusterGroup.getBounds().pad(0.1));
+        }
+
+        profileMapInstance.on('click', (e) => {
+            if (e.originalEvent.target.id === 'profileMap') {
+                hideFloatingDetail();
+            }
+        });
+    }
+
+    function showFloatingDetail(ad) {
+        const detailBox = document.getElementById('mapAdDetail');
+        if (!detailBox) return;
+
+        const formatPrice = (p) => new Intl.NumberFormat().format(p);
+        
+        detailBox.innerHTML = `
+            <div class="bg-white rounded-3xl overflow-hidden shadow-2xl border border-gray-100" dir="rtl">
+                <div class="relative h-48">
+                    <img src="${ad.image ? '{{ asset('') }}' + ad.image : '{{ asset('images/laptop.png') }}'}" class="w-full h-full object-cover">
+                    <div class="absolute top-4 right-4 flex flex-col gap-2">
+                        ${ad.is_featured ? '<span class="bg-red-500 text-white px-3 py-1 rounded-lg text-[10px] font-black shadow-lg">مميز</span>' : ''}
+                        <span class="bg-primary text-white px-3 py-1 rounded-lg text-[10px] font-black shadow-lg">${ad.type === 'direct_purchase' ? 'شراء فوري' : 'مزاد'}</span>
+                    </div>
+                </div>
+                <div class="p-5">
+                    <span class="text-primary bg-blue-50 px-3 py-1 rounded-lg text-[10px] font-black">${ad.category ? ad.category.name : ''}</span>
+                    <h4 class="mt-3 text-lg font-black text-gray-900 truncate">${ad.title}</h4>
+                    <p class="text-gray-400 text-xs font-bold mt-1 flex items-center gap-1">
+                        <i class="fa-solid fa-location-dot text-primary"></i>
+                        ${ad.city ? ad.city.name : 'السعودية'}
+                    </p>
+                    <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-50">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-gray-400">السعر</span>
+                            <span class="text-xl font-black text-primary">${formatPrice(ad.price)} <small class="text-xs font-bold">ر.س</small></span>
+                        </div>
+                        <a href="/ads/${ad.id}" class="bg-primary text-white px-6 py-3 rounded-xl font-black text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">تفاصيل</a>
+                    </div>
+                </div>
+            </div>
+        `;
+        detailBox.classList.add('active');
+    }
+
+    function hideFloatingDetail() {
+        const detailBox = document.getElementById('mapAdDetail');
+        if (detailBox) detailBox.classList.remove('active');
+        document.querySelectorAll('.custom-marker-single').forEach(el => el.classList.remove('selected'));
+    }
 
     function toggleProfileSidebar() {
         const sidebar = document.getElementById('profileSidebar');
@@ -444,6 +787,23 @@
                 text: 'شاهد إعلانات وعروض {{ $user->name }} على منصة مزاد',
                 url: window.location.href
             });
+        }
+    }
+
+    function toggleReportModal() {
+        @if(!Auth::check())
+            window.location.href = "{{ route('login') }}";
+            return;
+        @endif
+        const modal = document.getElementById('reportModal');
+        if (modal.classList.contains('hidden')) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        } else {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto';
         }
     }
 </script>

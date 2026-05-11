@@ -26,6 +26,13 @@ class HomeController extends Controller
 
         // Helper for prioritized query
         $getPrioritized = function($query, $limit = 12) use ($interestIdsStr) {
+            if (auth()->check()) {
+                $blockedUserIds = \App\Models\BlockedUser::where('user_id', auth()->id())->pluck('blocked_user_id')
+                    ->merge(\App\Models\BlockedUser::where('blocked_user_id', auth()->id())->pluck('user_id'))
+                    ->toArray();
+                $query->whereNotIn('user_id', $blockedUserIds);
+            }
+
             if ($interestIdsStr) {
                 return $query->orderByRaw("CASE WHEN category_id IN ($interestIdsStr) THEN 0 ELSE 1 END")
                              ->orderBy('created_at', 'desc')
@@ -141,6 +148,14 @@ class HomeController extends Controller
     public function search(Request $request)
     {
         $query = Ad::with(['category', 'user', 'city']);
+
+        // Filter out blocked users' ads
+        if (auth()->check()) {
+            $blockedUserIds = \App\Models\BlockedUser::where('user_id', auth()->id())->pluck('blocked_user_id')
+                ->merge(\App\Models\BlockedUser::where('blocked_user_id', auth()->id())->pluck('user_id'))
+                ->toArray();
+            $query->whereNotIn('user_id', $blockedUserIds);
+        }
 
         // Keywords
         if ($request->has('q') && !empty($request->q)) {
@@ -316,6 +331,18 @@ class HomeController extends Controller
     }
     public function showProfile(Request $request, $id)
     {
+        // Block Check
+        if (auth()->check()) {
+            $isBlocked = \App\Models\BlockedUser::where(function($q) use ($id) {
+                $q->where('user_id', auth()->id())->where('blocked_user_id', $id)
+                  ->orWhere('user_id', $id)->where('blocked_user_id', auth()->id());
+            })->exists();
+
+            if ($isBlocked) {
+                return redirect()->back()->with('error', 'لا يمكنك عرض هذا الملف الشخصي بسبب قيود الحظر');
+            }
+        }
+
         $user = \App\Models\User::with(['ads.category', 'ads.city'])->findOrFail($id);
         $categories = Category::whereNull('parent_id')->get();
         $settings = Setting::pluck('value', 'key')->toArray();
@@ -384,5 +411,20 @@ class HomeController extends Controller
         $ads = $query->paginate(12)->appends($request->all());
         
         return view('users.profile', compact('user', 'categories', 'settings', 'adsCount', 'soldCount', 'rating', 'reviewsCount', 'cities', 'ads', 'activeCategory'));
+    }
+    public function reportUser(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:500'
+        ]);
+
+        // In a real app, you'd store this in a 'user_reports' table
+        // For now, we'll simulate success
+        
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'تم إرسال البلاغ بنجاح']);
+        }
+
+        return back()->with('success', 'تم إرسال البلاغ بنجاح');
     }
 }

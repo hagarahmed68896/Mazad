@@ -1109,14 +1109,14 @@
             <div class="mt-20">
                 <div class="flex items-center justify-between mb-8">
                     <h2 class="text-3xl font-black text-gray-900">خدمات مقترحة لهذا المنتج</h2>
-                    <a href="#" class="bg-[#D4B55E] text-white px-6 py-2 rounded-xl font-bold hover:bg-[#C0A04D] transition-all">عرض الكل</a>
+                    <a href="{{ route('ads.services', $ad->id) }}" class="bg-[#D4B55E] text-white px-6 py-2 rounded-xl font-bold hover:bg-[#C0A04D] transition-all">عرض الكل</a>
                 </div>
                 
                 <div class="flex gap-6 overflow-x-auto no-scrollbar pb-6">
                     @foreach($suggestedServices as $service)
                     <div class="min-w-[450px] bg-gradient-to-l from-blue-600 to-blue-500 rounded-[32px] overflow-hidden flex items-center p-6 gap-6 shadow-xl shadow-blue-900/10 relative group">
                         <div class="w-40 h-40 rounded-2xl overflow-hidden flex-shrink-0 border-4 border-white/10">
-                            <img src="{{ $service->image ? asset('storage/'.$service->image) : 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400&q=80' }}" class="w-full h-full object-cover">
+                            <img src="{{ $service->image ? asset($service->image) : 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400&q=80' }}" class="w-full h-full object-cover">
                         </div>
                         <div class="flex-1 text-white">
                             <h3 class="text-2xl font-black mb-2">{{ $service->title }}</h3>
@@ -1219,36 +1219,6 @@
         btn.classList.remove('bg-white', 'text-gray-500', 'border-gray-100');
     }
 
-    // Countdown Timer Logic
-    function updateCountdowns() {
-        document.querySelectorAll('.p-countdown, .sidebar-countdown').forEach(card => {
-            const endDateStr = card.getAttribute('data-end');
-            if (!endDateStr) return;
-
-            const endDate = new Date(endDateStr).getTime();
-            const now = new Date().getTime();
-            const distance = endDate - now;
-
-            const timerEl = card.querySelector('.countdown-timer');
-            if (!timerEl) return;
-
-            if (distance < 0) {
-                timerEl.innerHTML = "منتهي";
-                timerEl.classList.add('text-red-500');
-                return;
-            }
-
-            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-            timerEl.innerHTML = `${days} d : ${hours} h : ${minutes} m : ${seconds} s`;
-        });
-    }
-
-    setInterval(updateCountdowns, 1000);
-    updateCountdowns();
 
     // Modal Logic
     function showPriceModal() {
@@ -1469,51 +1439,6 @@
         }
     }
 
-    // Countdown Logic
-    function initCountdowns() {
-        const countdowns = document.querySelectorAll('.sidebar-countdown');
-        countdowns.forEach(container => {
-            const endDate = container.getAttribute('data-end');
-            if (!endDate) return;
-
-            const targetDate = new Date(endDate).getTime();
-            const display = container.querySelector('.countdown-timer');
-
-            const timer = setInterval(() => {
-                const now = new Date().getTime();
-                const distance = targetDate - now;
-
-                if (distance < 0) {
-                    clearInterval(timer);
-                    display.innerHTML = "منتهي";
-                    return;
-                }
-
-                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-                const fD = days.toString().padStart(2, '0');
-                const fH = hours.toString().padStart(2, '0');
-                const fM = minutes.toString().padStart(2, '0');
-                const fS = seconds.toString().padStart(2, '0');
-
-                const dEl = container.querySelector('.days');
-                const hEl = container.querySelector('.hours');
-                const mEl = container.querySelector('.minutes');
-                const sEl = container.querySelector('.seconds');
-
-                if(dEl) dEl.innerText = fD;
-                if(hEl) hEl.innerText = fH;
-                if(mEl) mEl.innerText = fM;
-                if(sEl) sEl.innerText = fS;
-            }, 1000);
-        });
-    }
-
-    // Call init on load
-    document.addEventListener('DOMContentLoaded', initCountdowns);
 
     // Quantity Logic (Global Scope)
     let currentQty = 1;

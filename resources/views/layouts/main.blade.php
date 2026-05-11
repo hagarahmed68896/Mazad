@@ -304,9 +304,8 @@
             .add-ad-btn {
                 display: none;
             }
-        }
-
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         .fa-heart.fa-solid { color: #EF4444 !important; }
     </style>
@@ -540,6 +539,35 @@
         }
     </script>
     @include('partials.account-type-modal')
+    @if(session('success'))
+        <script>
+            Swal.fire({
+                icon: 'success',
+                title: '{{ session('success') }}',
+                showConfirmButton: false,
+                timer: 2000,
+                customClass: { popup: 'rounded-[32px]' }
+            });
+        </script>
+    @endif
+
+    @if(session('error'))
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'عذراً',
+                text: '{{ session('error') }}',
+                confirmButtonText: 'حسناً',
+                confirmButtonColor: '#1A73E8',
+                customClass: { 
+                    popup: 'rounded-[32px] p-8',
+                    confirmButton: 'rounded-xl px-10 py-3 font-bold',
+                    title: 'font-black text-2xl',
+                    htmlContainer: 'font-bold text-gray-500'
+                }
+            });
+        </script>
+    @endif
     @stack('scripts')
 </body>
 </html>

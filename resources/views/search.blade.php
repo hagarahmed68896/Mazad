@@ -315,8 +315,115 @@
             /* ... */
         }
         .fa-heart.fa-solid { color: #EF4444 !important; }
-        .search-container-grid.sidebar-hidden {
+        
+        .fa-heart.fa-solid { color: #EF4444 !important; }
+        
+        .fa-heart.fa-solid { color: #EF4444 !important; }
+        
+        /* Restore Original Layout */
+        .search-container-grid {
+            display: grid !important;
+            grid-template-columns: 320px 1fr !important;
+            gap: 2.5rem !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            background: transparent !important;
+            margin-bottom: 4rem !important;
+            padding: 0 64px !important;
+        }
+
+        .search-sidebar {
+            width: 320px !important;
+        }
+
+        .search-main-content {
+            min-width: 0 !important;
+        }
+
+        /* Results Grid - 3 Columns */
+        .ads-results-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 2rem !important;
+            width: 100% !important;
+        }
+
+        .ads-results-grid.list-view {
             grid-template-columns: 1fr !important;
+        }
+
+        /* Fix Ad Card Width */
+        .ads-results-grid .p-ad-card {
+            width: 100% !important;
+            max-width: 100% !important;
+            flex: none !important;
+            margin: 0 !important;
+        }
+
+        /* Action Bar Styling */
+        .search-action-bar {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            background: white !important;
+            padding: 1.25rem 1.5rem !important;
+            border-radius: 20px !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03) !important;
+            margin-bottom: 2.5rem !important;
+            gap: 2rem !important;
+        }
+
+        .search-input-group {
+            flex: 1 !important;
+            max-width: 500px !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        .action-buttons-group {
+            display: flex !important;
+            align-items: center !important;
+            gap: 1rem !important;
+        }
+
+        @media (max-width: 1280px) {
+            .ads-results-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .search-container-grid {
+                grid-template-columns: 1fr !important;
+                padding: 0 24px !important;
+            }
+            .search-sidebar {
+                display: none !important; /* Hide sidebar on mobile/tablet to keep it clean */
+            }
+        }
+
+        @media (max-width: 768px) {
+            .ads-results-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .search-action-bar {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+            .search-input-group {
+                max-width: 100% !important;
+            }
+        }
+
+        .results-summary {
+            font-weight: 800 !important;
+            color: #64748B !important;
+            margin-bottom: 2rem !important;
+            font-size: 1.1rem !important;
+        }
+
+        .results-summary .keyword {
+            color: #1A73E8 !important;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -338,9 +445,9 @@
         </div>
     </div>
 
-    <main id="searchContainer" class="container search-container-grid sidebar-hidden">
+    <main id="searchContainer" class="container search-container-grid">
         <!-- Sidebar Filters -->
-        <aside class="search-sidebar hidden" id="searchSidebar">
+        <aside class="search-sidebar" id="searchSidebar">
             <div class="filter-card">
                 <div class="filter-header">
                     <h3>تصفية النتائج</h3>
@@ -566,9 +673,6 @@
             <div class="search-action-bar">
                 <!-- Search Input Side (Right in RTL) -->
                 <div class="flex items-center gap-3 flex-1 max-w-[400px]">
-                    <button type="button" onclick="toggleSearchSidebar()" class="action-btn" style="width: 42px; height: 42px; min-width: 42px; justify-content: center; padding: 0; background: white; border: 1.5px solid #E2E8F0; border-radius: 10px; color: #64748B;">
-                        <i class="fa-solid fa-sliders"></i>
-                    </button>
                     <form action="{{ route('search') }}" method="GET" class="search-input-group" style="flex: 1;">
                         @foreach(request()->except('q', 'page', 'category', 'props') as $key => $value)
                             @if(is_array($value))
@@ -707,7 +811,6 @@
     <div id="locationModal" class="modal-overlay">
         <div class="modal-content">
             <span class="modal-close" onclick="document.getElementById('locationModal').style.display='none'">&times;</span>
-            @auth
             <h2 style="margin-bottom: 1.5rem; font-weight: 800;">حدد موقعك</h2>
             <p style="color: var(--text-muted); margin-bottom: 2rem;">اختر المدينة لعرض الإعلانات القريبة منك</p>
             
@@ -716,17 +819,6 @@
             </div>
             
             <button id="confirmLocationBtn" class="btn btn-primary" style="width: 100%; margin-top: 2rem; padding: 1rem;" onclick="confirmLocation()">تأكيد هذا الموقع</button>
-            @else
-            <div style="padding: 1rem; text-align:center;">
-                <i class="fa-solid fa-user-lock" style="font-size: 3rem; color: #1A73E8; margin-bottom: 1.5rem;"></i>
-                <h2 style="margin-bottom: 1rem;">يرجى تسجيل الدخول أولاً</h2>
-                <p style="color: #64748B; margin-bottom: 2rem;">يجب أن تكون مسجلاً لدينا لتتمكن من تحديد عنوانك واختيار مدينتك بدقة.</p>
-                <div style="display: flex; gap: 1rem; justify-content: center;">
-                    <a href="{{ route('login') }}" class="btn btn-primary" style="padding: 0.75rem 2rem;">تسجيل الدخول</a>
-                    <button class="btn btn-outline" onclick="document.getElementById('locationModal').style.display='none'" style="padding: 0.75rem 2rem;">إلغاء</button>
-                </div>
-            </div>
-            @endauth
         </div>
     </div>
 
@@ -744,7 +836,7 @@
             const container = document.getElementById('searchContainer');
             const sidebar = document.getElementById('searchSidebar');
             sidebar.classList.toggle('hidden');
-            container.classList.toggle('sidebar-hidden');
+            // No longer using container.classList.toggle('sidebar-hidden') as we use flexbox now
             localStorage.setItem('searchSidebarOpen', !sidebar.classList.contains('hidden'));
         }
 
@@ -935,16 +1027,18 @@
             if (modal) {
                 modal.style.display = 'flex';
                 
-                @auth
                 // Small delay to ensure modal is visible for Leaflet
                 setTimeout(() => {
+                    const savedLat = {{ Auth::check() ? (Auth::user()->latitude ?? 'null') : (session('user_latitude') ?? 'null') }};
+                    const savedLng = {{ Auth::check() ? (Auth::user()->longitude ?? 'null') : (session('user_longitude') ?? 'null') }};
+                    
                     if (!locationMapInstance) {
-                        locationMapInstance = L.map('locationMap').setView([24.7136, 46.6753], 6);
+                        locationMapInstance = L.map('locationMap').setView([savedLat || 24.7136, savedLng || 46.6753], savedLat ? 13 : 6);
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(locationMapInstance);
                         
-                        currentLocationMarker = L.marker([24.7136, 46.6753], { draggable: true }).addTo(locationMapInstance);
+                        currentLocationMarker = L.marker([savedLat || 24.7136, savedLng || 46.6753], { draggable: true }).addTo(locationMapInstance);
                         
-                        if (navigator.geolocation) {
+                        if (!savedLat && navigator.geolocation) {
                             navigator.geolocation.getCurrentPosition(pos => {
                                 const lat = pos.coords.latitude;
                                 const lng = pos.coords.longitude;
@@ -956,7 +1050,6 @@
                         locationMapInstance.invalidateSize();
                     }
                 }, 300);
-                @endauth
             }
         }
 
@@ -1007,51 +1100,23 @@
                 if(btn) { btn.innerHTML = 'تأكيد هذا الموقع'; btn.disabled = false; }
             });
         }
-        window.toggleSidebar = function() {
-            const drawer = document.getElementById('sidebarDrawer');
-            const overlay = document.getElementById('sidebarOverlay');
-            if (drawer && overlay) {
-                drawer.classList.toggle('active');
-                overlay.style.display = overlay.style.display === 'block' ? 'none' : 'block';
-            }
-        };
 
         window.toggleNavbarSearch = function() {
             // Already on search page, maybe just focus input
-            document.querySelector('.main-search-input').focus();
+            const mainSearch = document.querySelector('.main-search-input');
+            if (mainSearch) mainSearch.focus();
         };
 
         // Countdown timers
-        function updateCountdowns() {
-            document.querySelectorAll('.p-countdown').forEach(el => {
-                const endData = el.dataset.end;
-                if (!endData) return;
-                const endDate = new Date(endData).getTime();
-                const now = new Date().getTime();
-                const diff = endDate - now;
-                const timerSpan = el.querySelector('.countdown-timer');
-                if (!timerSpan) return;
-                if (isNaN(endDate) || diff <= 0) { 
-                    timerSpan.innerText = "منتهي"; 
-                    return; 
-                }
-                const d = Math.floor(diff / 86400000);
-                const h = Math.floor((diff % 86400000) / 3600000);
-                const m = Math.floor((diff % 3600000) / 60000);
-                const s = Math.floor((diff % 60000) / 1000);
-                timerSpan.innerText = `${d} يوم : ${h} ساعة : ${m} دقيقة : ${s} ثانية`;
-            });
-        }
-        
+
         document.addEventListener('DOMContentLoaded', function() {
+
             const initialView = "{{ request('view', 'grid') }}";
             if (initialView !== 'grid') {
                 setView(initialView);
             }
-            
-            setInterval(updateCountdowns, 1000);
-            updateCountdowns();
         });
+
         // Global Auth Guard
         const isLoggedIn = {{ auth()->check() ? 'true' : 'false' }};
 

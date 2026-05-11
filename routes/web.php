@@ -8,7 +8,10 @@ Route::get('/search', [\App\Http\Controllers\HomeController::class, 'search'])->
 
 // Public Ad View — increments views_count
 Route::get('/ads/{id}', [\App\Http\Controllers\HomeController::class, 'showAd'])->name('ads.show');
+Route::get('/ads/{id}/services', [\App\Http\Controllers\HomeController::class, 'adServices'])->name('ads.services');
+Route::get('/services/{id}', [\App\Http\Controllers\HomeController::class, 'serviceShow'])->name('services.show');
 Route::get('/ads/{id}/gallery/{index?}', [\App\Http\Controllers\HomeController::class, 'showGallery'])->name('ads.gallery');
+Route::get('/services/{id}/gallery/{index?}', [\App\Http\Controllers\HomeController::class, 'serviceGallery'])->name('services.gallery');
 Route::get('/users/{id}/profile', [\App\Http\Controllers\HomeController::class, 'showProfile'])->name('users.profile');
 Route::post('/ads/{id}/bid', [\App\Http\Controllers\BidController::class, 'store'])->name('bids.store')->middleware('auth');
 Route::post('/ads/{id}/order', [\App\Http\Controllers\OrderController::class, 'store'])->name('orders.store')->middleware('auth');
@@ -25,6 +28,14 @@ Route::middleware('auth')->group(function() {
     Route::post('/skip-interests', [AuthController::class, 'skipInterests'])->name('skip-interests.web');
     Route::post('/wishlist/toggle/{adId}', [\App\Http\Controllers\WishlistController::class, 'toggle'])->name('wishlist.toggle');
     Route::post('/ads/{id}/question', [\App\Http\Controllers\AdQuestionController::class, 'store'])->name('ads.question.store');
+    Route::post('/users/{id}/report', [\App\Http\Controllers\HomeController::class, 'reportUser'])->name('users.report');
+    Route::post('/reviews', [\App\Http\Controllers\ReviewController::class, 'store'])->name('reviews.store');
+    Route::get('/chats', [\App\Http\Controllers\ChatController::class, 'index'])->name('chats.index');
+    Route::post('/chats/{id}/message', [\App\Http\Controllers\ChatController::class, 'sendMessage'])->name('chats.send');
+    Route::delete('/chats/{id}', [\App\Http\Controllers\ChatController::class, 'destroy'])->name('chats.destroy');
+    Route::post('/chats/{id}/toggle-pin', [\App\Http\Controllers\ChatController::class, 'togglePin'])->name('chats.pin');
+    Route::post('/chats/{id}/toggle-mute', [\App\Http\Controllers\ChatController::class, 'toggleMute'])->name('chats.mute');
+    Route::post('/users/{id}/toggle-block', [\App\Http\Controllers\ChatController::class, 'toggleBlock'])->name('users.block');
 });
 
 

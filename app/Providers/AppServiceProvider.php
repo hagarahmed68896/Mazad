@@ -21,5 +21,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::defaultView('vendor.pagination.custom');
+
+        view()->composer(['layouts.main', 'welcome', 'partials.interests-modal', 'partials.categories-bar'], function ($view) {
+            $view->with('categories', \App\Models\Category::whereNull('parent_id')->get());
+        });
     }
 }

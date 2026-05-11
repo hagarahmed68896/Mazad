@@ -10,7 +10,7 @@
         <form id="interestsForm" action="{{ route('update-interests.web') }}" method="POST">
             @csrf
             <div class="interests-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2.5rem;">
-                @foreach($discoveryCategories as $category)
+                @foreach($categories as $category)
                     <div class="interest-item" onclick="toggleInterest(this, {{ $category->id }})" style="cursor: pointer; transition: all 0.3s ease; border: 2px solid #F1F5F9; border-radius: 20px; padding: 1rem; position: relative; background: #F8FAFC;">
                         <input type="checkbox" name="category_ids[]" value="{{ $category->id }}" style="display: none;">
                         <div class="interest-icon" style="height: 60px; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">

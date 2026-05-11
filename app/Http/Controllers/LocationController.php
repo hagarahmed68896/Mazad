@@ -51,6 +51,6 @@ class LocationController extends Controller
         
         session()->forget(['user_latitude', 'user_longitude', 'user_address']);
 
-        return redirect()->route('search')->with('success', 'تم مسح الموقع وإعادة التعيين بنجاح');
+        return back()->with('success', 'تم مسح الموقع وإعادة التعيين بنجاح');
     }
 }

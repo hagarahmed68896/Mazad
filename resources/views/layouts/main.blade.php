@@ -85,6 +85,9 @@
         .notification-dropdown.active {
             display: flex;
         }
+        .profile-dropdown.active {
+            display: block !important;
+        }
         .empty-notifications p {
             font-size: 1.1rem;
             font-weight: 800;
@@ -240,12 +243,82 @@
         .bell-rays span:nth-child(1) { transform: rotate(45deg); }
         .bell-rays span:nth-child(3) { transform: rotate(-45deg); }
         
+        /* Search Bar Responsive Fix */
+        .search-container.active #navbarSearchInput {
+            width: 200px !important;
+            opacity: 1 !important;
+            padding: 0.4rem 1rem !important;
+            margin-left: 0.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .navbar.search-mode .nav-right-visual,
+            .navbar.search-mode .auth-actions,
+            .navbar.search-mode .guest-actions {
+                opacity: 0.1; /* Fade out other elements instead of hiding to keep layout stable, or hide them if preferred */
+                pointer-events: none;
+            }
+
+            .search-container.active {
+                position: absolute !important;
+                top: 100% !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100vw !important;
+                background: white !important;
+                padding: 1rem 2rem !important;
+                border-top: 1px solid #F1F5F9 !important;
+                box-shadow: 0 15px 25px -5px rgba(0,0,0,0.1) !important;
+                z-index: 9999 !important;
+                display: flex !important;
+                margin: 0 !important;
+            }
+            .search-container.active #navSearchForm {
+                flex: 1;
+            }
+            .search-container.active #navbarSearchInput {
+                width: 100% !important;
+                height: 50px !important;
+                background: #F8FAFC !important;
+                border: 1px solid #E2E8F0 !important;
+                border-radius: 16px !important;
+                padding: 0 1.5rem !important;
+                font-size: 1.1rem !important;
+                opacity: 1 !important;
+                display: block !important;
+            }
+            .search-container.active #searchBtn {
+                display: none !important;
+            }
+            .search-container.active .close-search {
+                display: flex !important;
+                margin-right: 1rem;
+                background: #FEE2E2;
+                color: #EF4444;
+                width: 45px;
+                height: 45px;
+                border-radius: 14px;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+        
         /* Responsive Fixes for Navbar */
         @media (max-width: 1024px) {
             .navbar .container {
-                grid-template-columns: auto 1fr;
-                gap: 1rem;
-                padding-bottom: 0.5rem;
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                gap: 0.5rem;
+            }
+            .nav-right-visual {
+                order: 1;
+                flex: 0 0 auto;
+            }
+            .nav-left-visual {
+                order: 2;
+                flex: 1;
+                justify-content: flex-end !important;
             }
             .nav-center-visual {
                 display: none;
@@ -344,7 +417,7 @@
             </div>
             <!-- Body -->
             <div class="p-6 space-y-3">
-                <a href="{{ route('login') }}" class="block w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all text-center text-lg shadow-lg shadow-blue-200">
+                <a href="{{ route('login', ['redirect' => url()->current()]) }}" class="block w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all text-center text-lg shadow-lg shadow-blue-200">
                     <i class="fa-solid fa-right-to-bracket ml-2"></i> تسجيل الدخول
                 </a>
             </div>
@@ -368,26 +441,53 @@
     </div>
 
     <script>
+        const isLoggedIn = {{ Auth::check() ? 'true' : 'false' }};
+
         function toggleNavbarSearch() {
+            // If screen is mobile/tablet, go straight to search page
+            if (window.innerWidth <= 1024) {
+                window.location.href = "{{ route('search') }}";
+                return;
+            }
+
+            const navbar = document.querySelector('.navbar');
+            const container = document.querySelector('.search-container');
             const input = document.getElementById('navbarSearchInput');
-            if(!input) return;
-            const isExpanded = input.style.width === '180px';
+            if(!navbar || !container || !input) return;
             
-            if (isExpanded) {
-                input.style.width = '0';
-                input.style.opacity = '0';
-                input.style.padding = '0.4rem 0';
-            } else {
-                input.style.width = '180px';
-                input.style.opacity = '1';
-                input.style.padding = '0.4rem 1rem';
+            container.classList.toggle('active');
+            navbar.classList.toggle('search-mode');
+            
+            if (container.classList.contains('active')) {
                 input.focus();
+            } else {
+                input.value = '';
             }
         }
 
         function toggleNotifications() {
             const dropdown = document.getElementById('notificationDropdown');
+            const cartDropdown = document.getElementById('cartDropdown');
             if(!dropdown) return;
+            
+            if(cartDropdown) cartDropdown.classList.remove('active');
+            dropdown.classList.toggle('active');
+            
+            if (dropdown.classList.contains('active')) {
+                const searchInput = document.getElementById('navbarSearchInput');
+                if(searchInput) {
+                    searchInput.style.width = '0';
+                    searchInput.style.opacity = '0';
+                }
+            }
+        }
+
+        function toggleCart() {
+            const dropdown = document.getElementById('cartDropdown');
+            const notifDropdown = document.getElementById('notificationDropdown');
+            if(!dropdown) return;
+
+            if(notifDropdown) notifDropdown.classList.remove('active');
             dropdown.classList.toggle('active');
             
             if (dropdown.classList.contains('active')) {
@@ -402,15 +502,65 @@
         document.addEventListener('click', function(event) {
             const dropdown = document.getElementById('notificationDropdown');
             const btn = document.getElementById('notificationBtn');
-            if (!dropdown || !btn) return;
+            const cartDropdown = document.getElementById('cartDropdown');
+            const cartBtn = document.getElementById('cartBtn');
             
-            if (!dropdown.contains(event.target) && !btn.contains(event.target)) {
+            if (dropdown && btn && !dropdown.contains(event.target) && !btn.contains(event.target)) {
                 dropdown.classList.remove('active');
+            }
+            
+            if (cartDropdown && cartBtn && !cartDropdown.contains(event.target) && !cartBtn.contains(event.target)) {
+                cartDropdown.classList.remove('active');
+            }
+
+            const addAdDropdown = document.getElementById('addAdDropdown');
+            const addAdBtn = document.getElementById('addAdBtn');
+            const addAdDropdownGuest = document.getElementById('addAdDropdownGuest');
+            const addAdBtnGuest = document.getElementById('addAdBtnGuest');
+
+            if (addAdDropdown && addAdBtn && !addAdDropdown.contains(event.target) && !addAdBtn.contains(event.target)) {
+                addAdDropdown.classList.remove('active');
+            }
+            if (addAdDropdownGuest && addAdBtnGuest && !addAdDropdownGuest.contains(event.target) && !addAdBtnGuest.contains(event.target)) {
+                addAdDropdownGuest.classList.remove('active');
+            }
+
+            const profileDropdown = document.getElementById('profileDropdown');
+            const userProfileBtn = document.getElementById('userProfileBtn');
+            if (profileDropdown && userProfileBtn && !profileDropdown.contains(event.target) && !userProfileBtn.contains(event.target)) {
+                profileDropdown.classList.remove('active');
             }
         });
 
+        function toggleAddAdDropdown() {
+            const dropdown = document.getElementById('addAdDropdown') || document.getElementById('addAdDropdownGuest');
+            const cartDropdown = document.getElementById('cartDropdown');
+            const notifDropdown = document.getElementById('notificationDropdown');
+            
+            if(!dropdown) return;
+            
+            if(cartDropdown) cartDropdown.classList.remove('active');
+            if(notifDropdown) notifDropdown.classList.remove('active');
+            
+            dropdown.classList.toggle('active');
+        }
+
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            const notifDropdown = document.getElementById('notificationDropdown');
+            const cartDropdown = document.getElementById('cartDropdown');
+            const addAdDropdown = document.getElementById('addAdDropdown') || document.getElementById('addAdDropdownGuest');
+            
+            if(!dropdown) return;
+            
+            if(notifDropdown) notifDropdown.classList.remove('active');
+            if(cartDropdown) cartDropdown.classList.remove('active');
+            if(addAdDropdown) addAdDropdown.classList.remove('active');
+            
+            dropdown.classList.toggle('active');
+        }
+
         function handleLocationClick() {
-            const isLoggedIn = {{ Auth::check() ? 'true' : 'false' }};
             const modal = document.getElementById('locationModal');
             const body = document.getElementById('modalBody');
 
@@ -446,7 +596,7 @@
         }
 
         // Global Auth Guard
-        const isLoggedIn = {{ auth()->check() ? 'true' : 'false' }};
+        // isLoggedIn is already defined at the top of the script tag
 
         function requireAuth(callback) {
             console.log('requireAuth check, isLoggedIn:', isLoggedIn);
@@ -531,6 +681,30 @@
             });
         }
 
+        function showLoginRequiredAlert() {
+            Swal.fire({
+                title: 'تسجيل الدخول مطلوب',
+                text: 'يرجى تسجيل الدخول أولاً لتتمكن من إضافة إعلانك والوصول لكامل المميزات.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'تسجيل الدخول',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#1A73E8',
+                cancelButtonColor: '#94A3B8',
+                customClass: {
+                    popup: 'rounded-[32px] p-8',
+                    confirmButton: 'rounded-xl px-8 py-3 font-bold',
+                    cancelButton: 'rounded-xl px-8 py-3 font-bold',
+                    title: 'font-black text-2xl',
+                    htmlContainer: 'font-bold text-gray-500'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    openAccountModal();
+                }
+            });
+        }
+
         window.onclick = function(event) {
             const locModal = document.getElementById('locationModal');
             const authModal = document.getElementById('authRequiredModal');
@@ -538,6 +712,7 @@
             if (event.target == authModal) hideAuthModal();
         }
     </script>
+    @include('partials.add-ad-modal')
     @include('partials.account-type-modal')
     @if(session('success'))
         <script>

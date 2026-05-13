@@ -6,6 +6,13 @@ use App\Http\Controllers\AuthController;
 Route::get('/', [\App\Http\Controllers\HomeController::class, 'index'])->name('home');
 Route::get('/search', [\App\Http\Controllers\HomeController::class, 'search'])->name('search');
 
+// Ad Creation
+Route::middleware('auth')->group(function() {
+    Route::get('/ads/create', [\App\Http\Controllers\AdController::class, 'create'])->name('ads.create');
+    Route::get('/ads/create/details', [\App\Http\Controllers\AdController::class, 'createDetails'])->name('ads.create.details');
+    Route::post('/ads', [\App\Http\Controllers\AdController::class, 'store'])->name('ads.store');
+});
+
 // Public Ad View — increments views_count
 Route::get('/ads/{id}', [\App\Http\Controllers\HomeController::class, 'showAd'])->name('ads.show');
 Route::get('/ads/{id}/services', [\App\Http\Controllers\HomeController::class, 'adServices'])->name('ads.services');
@@ -36,6 +43,14 @@ Route::middleware('auth')->group(function() {
     Route::post('/chats/{id}/toggle-pin', [\App\Http\Controllers\ChatController::class, 'togglePin'])->name('chats.pin');
     Route::post('/chats/{id}/toggle-mute', [\App\Http\Controllers\ChatController::class, 'toggleMute'])->name('chats.mute');
     Route::post('/users/{id}/toggle-block', [\App\Http\Controllers\ChatController::class, 'toggleBlock'])->name('users.block');
+
+
+
+    // Cart Routes
+    Route::get('/cart', [\App\Http\Controllers\CartController::class, 'index'])->name('cart.index');
+    Route::post('/cart/add', [\App\Http\Controllers\CartController::class, 'store'])->name('cart.add');
+    Route::patch('/cart/update/{id}', [\App\Http\Controllers\CartController::class, 'update'])->name('cart.update');
+    Route::delete('/cart/remove/{id}', [\App\Http\Controllers\CartController::class, 'destroy'])->name('cart.remove');
 });
 
 

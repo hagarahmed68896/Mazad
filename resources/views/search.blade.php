@@ -425,6 +425,9 @@
         .results-summary .keyword {
             color: #1A73E8 !important;
         }
+        .profile-dropdown.active {
+            display: block !important;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
@@ -1118,7 +1121,7 @@
         });
 
         // Global Auth Guard
-        const isLoggedIn = {{ auth()->check() ? 'true' : 'false' }};
+        // isLoggedIn is handled globally or at the end of the script
 
         function requireAuth(callback) {
             if (isLoggedIn) {
@@ -1187,13 +1190,85 @@
             .catch(error => console.error('Wishlist Error:', error));
         }
 
+        const isLoggedIn = {{ Auth::check() ? 'true' : 'false' }};
+
+        function showLoginRequiredAlert() {
+            Swal.fire({
+                title: 'تسجيل الدخول مطلوب',
+                text: 'يرجى تسجيل الدخول أولاً لتتمكن من إضافة إعلانك والوصول لكامل المميزات.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'تسجيل الدخول',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#1A73E8',
+                cancelButtonColor: '#94A3B8',
+                customClass: {
+                    popup: 'rounded-[32px] p-8',
+                    confirmButton: 'rounded-xl px-8 py-3 font-bold',
+                    cancelButton: 'rounded-xl px-8 py-3 font-bold',
+                    title: 'font-black text-2xl',
+                    htmlContainer: 'font-bold text-gray-500'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    openAccountModal();
+                }
+            });
+        }
+
         window.onclick = function(event) {
             const locModal = document.getElementById('locationModal');
             const authModal = document.getElementById('authRequiredModal');
             if (event.target == locModal) locModal.style.display = 'none';
             if (event.target == authModal) hideAuthModal();
+
+            const addAdDropdown = document.getElementById('addAdDropdown');
+            const addAdBtn = document.getElementById('addAdBtn');
+            const addAdDropdownGuest = document.getElementById('addAdDropdownGuest');
+            const addAdBtnGuest = document.getElementById('addAdBtnGuest');
+
+            if (addAdDropdown && addAdBtn && !addAdDropdown.contains(event.target) && !addAdBtn.contains(event.target)) {
+                addAdDropdown.style.display = 'none';
+            }
+            if (addAdDropdownGuest && addAdBtnGuest && !addAdDropdownGuest.contains(event.target) && !addAdBtnGuest.contains(event.target)) {
+                addAdDropdownGuest.style.display = 'none';
+            }
+
+            const profileDropdown = document.getElementById('profileDropdown');
+            const userProfileBtn = document.getElementById('userProfileBtn');
+            if (profileDropdown && userProfileBtn && !profileDropdown.contains(event.target) && !userProfileBtn.contains(event.target)) {
+                profileDropdown.classList.remove('active');
+            }
         }
+
+        window.toggleProfileDropdown = function() {
+            const dropdown = document.getElementById('profileDropdown');
+            if(!dropdown) return;
+            
+            ['notificationDropdown', 'cartDropdown', 'addAdDropdown', 'addAdDropdownGuest'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.style.display = 'none';
+                    el.classList.remove('active');
+                }
+            });
+            
+            dropdown.classList.toggle('active');
+        };
+
+        window.toggleAddAdDropdown = function() {
+            const dropdown = document.getElementById('addAdDropdown') || document.getElementById('addAdDropdownGuest');
+            if(!dropdown) return;
+            
+            ['notificationDropdown', 'cartDropdown', 'profileDropdown'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            
+            dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+        };
     </script>
+    @include('partials.add-ad-modal')
     @include('partials.account-type-modal')
 </body>
 </html>

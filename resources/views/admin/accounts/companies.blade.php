@@ -18,9 +18,9 @@
             }
         },
         openBlockModal(id, name) {
-            this.userToBlock = id;
+            this.userT oBlock = id;
             this.userNameToBlock = name;
-            this.showBlockModal = true;
+           this.showBlockModal = true;
         },
         submitBulkAction(status) {
             if (this.selected.length === 0) return;

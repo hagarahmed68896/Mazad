@@ -158,6 +158,7 @@
             });
         }
     </script>
+    @include('partials.add-ad-modal')
     @include('partials.account-type-modal')
 </body>
 </html>

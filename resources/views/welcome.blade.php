@@ -438,7 +438,7 @@
         };
 
         window.handleLocationClick = function() {
-            const isLoggedIn = {{ Auth::check() ? 'true' : 'false' }};
+            // using global isLoggedIn
             const userSavedLat = {{ Auth::check() && Auth::user()->latitude ? Auth::user()->latitude : 'null' }};
             const userSavedLng = {{ Auth::check() && Auth::user()->longitude ? Auth::user()->longitude : 'null' }};
             
@@ -642,10 +642,34 @@
             const authModal = document.getElementById('authRequiredModal');
             if (e.target === locModal) closeModal();
             if (e.target === authModal) hideAuthModal();
+
+            const addAdDropdown = document.getElementById('addAdDropdown');
+            const addAdBtn = document.getElementById('addAdBtn');
+            const addAdDropdownGuest = document.getElementById('addAdDropdownGuest');
+            const addAdBtnGuest = document.getElementById('addAdBtnGuest');
+
+            if (addAdDropdown && addAdBtn && !addAdDropdown.contains(e.target) && !addAdBtn.contains(e.target)) {
+                addAdDropdown.style.display = 'none';
+            }
+            if (addAdDropdownGuest && addAdBtnGuest && !addAdDropdownGuest.contains(e.target) && !addAdBtnGuest.contains(e.target)) {
+                addAdDropdownGuest.style.display = 'none';
+            }
         });
 
+        window.toggleAddAdDropdown = function() {
+            const dropdown = document.getElementById('addAdDropdown') || document.getElementById('addAdDropdownGuest');
+            if(!dropdown) return;
+            
+            ['notificationDropdown', 'cartDropdown', 'profileDropdown'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            
+            dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+        };
+
         // Global Auth Guard
-        const isLoggedIn = {{ auth()->check() ? 'true' : 'false' }};
+        // using global isLoggedIn below
 
         function requireAuth(callback) {
             if (isLoggedIn) {
@@ -671,6 +695,32 @@
                 modal.classList.remove('flex');
                 document.body.style.overflow = 'auto';
             }
+        }
+
+        const isLoggedIn = {{ Auth::check() ? 'true' : 'false' }};
+
+        function showLoginRequiredAlert() {
+            Swal.fire({
+                title: 'تسجيل الدخول مطلوب',
+                text: 'يرجى تسجيل الدخول أولاً لتتمكن من إضافة إعلانك والوصول لكامل المميزات.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'تسجيل الدخول',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#1A73E8',
+                cancelButtonColor: '#94A3B8',
+                customClass: {
+                    popup: 'rounded-[32px] p-8',
+                    confirmButton: 'rounded-xl px-8 py-3 font-bold',
+                    cancelButton: 'rounded-xl px-8 py-3 font-bold',
+                    title: 'font-black text-2xl',
+                    htmlContainer: 'font-bold text-gray-500'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    openAccountModal();
+                }
+            });
         }
 
         // Global Wishlist Logic
@@ -724,6 +774,7 @@
         </div>
     </div>
 
+    @include('partials.add-ad-modal')
     @include('partials.account-type-modal')
     @include('partials.interests-modal')
 

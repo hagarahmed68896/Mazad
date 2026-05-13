@@ -10,7 +10,13 @@ class Bid extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['ad_id', 'user_id', 'amount', 'status', 'validity_days', 'type', 'min_limit'];
+    protected $fillable = ['ad_id', 'user_id', 'amount', 'max_limit', 'is_auto', 'status', 'validity_days', 'type', 'min_limit'];
+
+    protected $casts = [
+        'amount' => 'decimal:2',
+        'max_limit' => 'decimal:2',
+        'is_auto' => 'boolean',
+    ];
 
     public function ad(): BelongsTo
     {

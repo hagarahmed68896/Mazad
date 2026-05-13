@@ -178,19 +178,13 @@
                                 </div>
                             </div>
 
-                            @php
-                                $preview_prop = $ad->adProperties->filter(function($p) {
-                                    return str_contains($p->property->label, 'معاينة') || str_contains($p->property->label, 'المعاينة');
-                                })->first();
-                            @endphp
-
                             <div class="flex items-center gap-5 p-7 bg-amber-50/50 rounded-[32px] border border-amber-100/50">
                                 <div class="w-16 h-16 bg-amber-500 text-white rounded-2xl flex items-center justify-center text-2xl shadow-xl shadow-amber-100">
                                     <i class="fa-solid fa-clock"></i>
                                 </div>
                                 <div>
                                     <div class="text-sm text-gray-500 font-bold mb-1">وقت المعاينة</div>
-                                    <div class="font-black text-xl text-gray-900">{{ $preview_prop ? $preview_prop->value : 'يتم التنسيق مع المعلن' }}</div>
+                                    <div class="font-black text-xl text-gray-900">{{ $ad->inspection_info ?? 'يتم التنسيق مع المعلن' }}</div>
                                 </div>
                             </div>
                             <div id="adMap" class="h-[450px] bg-gray-100 rounded-[40px] overflow-hidden relative border-[12px] border-white shadow-2xl z-0">
@@ -546,6 +540,13 @@
                                     <div class="flex items-center gap-0.5"><span class="seconds">00</span><span>s</span></div>
                                 </div>
                             </div>
+
+                            @if($ad->inspection_info)
+                            <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
+                                <span class="text-gray-900 font-bold text-sm whitespace-nowrap">وقت المعاينة</span>
+                                <span class="text-gray-500 font-black text-sm text-left">{{ $ad->inspection_info }}</span>
+                            </div>
+                            @endif
                             <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
                                 <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المشاهدات</span>
                                 <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->views_count) }}</span>
@@ -623,40 +624,35 @@
 
                         @if(!$is_closed)
                         <div class="space-y-3">
-                            @if($ad->type == 'electronic_auction')
-                                @if($b_status == 'upcoming')
-                                    <button onclick="requireAuth(showJoinAuctionModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
-                                        اشترك في المزاد
+                            @if($ad->type == 'electronic_auction' || $ad->type == 'hybrid_auction')
+                                @php
+                                    $has_joined = \App\Models\Bid::where('ad_id', $ad->id)->where('user_id', auth()->id())->where('type', 'deposit')->exists();
+                                @endphp
+
+                                @if(!$has_joined && $b_status != 'upcoming')
+                                    <button onclick="requireAuth(showJoinAuctionModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg mb-3">
+                                        اشترك في المزاد الآن
+                                    </button>
+                                @elseif($b_status == 'upcoming')
+                                    <button onclick="requireAuth(showJoinAuctionModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg mb-3">
+                                        اشترك في المزاد (قريباً)
                                     </button>
                                 @else
-                                    <button onclick="requireAuth(showJoinAuctionModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
-                                        زايد الآن
-                                    </button>
+                                    <!-- Joined or Active: Show Separate Bidding Buttons -->
+                                    <div class="grid grid-cols-2 gap-3 mb-3">
+                                        <button onclick="requireAuth(showBidModal)" class="bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
+                                            زايد الآن
+                                        </button>
+                                        <button onclick="requireAuth(showAutoBidModal)" class="border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-sm">
+                                            المزايدة التلقائية
+                                        </button>
+                                    </div>
                                 @endif
-                                <button onclick="requireAuth(showPurchaseModal)" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-lg">
+
+                                <button onclick="requireAuth(showPurchaseModal)" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-lg mb-3">
                                     اشترِ الآن
                                 </button>
-                                <button onclick="requireAuth()" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-lg">
-                                     أضف الي السلة <i class="fa-solid fa-cart-shopping text-sm"></i>
-                                </button>
-                            @elseif($ad->type == 'hybrid_auction')
-                                @if($b_status == 'upcoming')
-                                    <button onclick="requireAuth(showJoinAuctionModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
-                                        اشتراك في المزاد
-                                    </button>
-                                @else
-                                    <button onclick="requireAuth(showJoinAuctionModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg flex items-center justify-center gap-3">
-                                        المشاركة في المزاد 
-                                        <div class="flex items-center gap-1 text-white">
-                                            <span class="font-black">{{ number_format($ad->price) }}</span>
-                                            <x-riyal-icon class="w-5 h-5" />
-                                        </div>
-                                    </button>
-                                @endif
-                                <button onclick="requireAuth(showPurchaseModal)" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-lg">
-                                    اشترِ الآن
-                                </button>
-                                <button onclick="requireAuth()" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-lg">
+                                <button onclick="requireAuth(() => addToCart({{ $ad->id }}))" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-lg">
                                      أضف الي السلة <i class="fa-solid fa-cart-shopping text-sm"></i>
                                 </button>
                             @elseif($ad->type == 'tender')
@@ -674,7 +670,7 @@
                                         <button onclick="requireAuth(showPurchaseModal)" class="bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 text-lg order-2">اشترِ الآن</button>
                                         <button onclick="requireAuth(showOfferModal)" class="border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-lg order-1">قدم عرضك</button>
                                     </div>
-                                    <button onclick="requireAuth()" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-lg">
+                                    <button onclick="requireAuth(() => addToCart({{ $ad->id }}))" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-lg">
                                          أضف الي السلة <i class="fa-solid fa-cart-shopping text-sm"></i>
                                     </button>
                                 </div>
@@ -895,10 +891,107 @@
 
 
 
-        <!-- Join Auction Modal -->
+        <!-- 1. Manual Bid Modal (زايد الآن) -->
+        <div id="bidModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
+            <div class="bg-white w-full max-w-md rounded-[28px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in fade-in zoom-in duration-300" dir="rtl">
+                <div class="p-6 flex justify-start">
+                    <button onclick="hideBidModal()" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-all">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+                
+                <form action="{{ route('bids.store', $ad->id) }}" method="POST" class="px-8 pb-8 text-center" id="bidForm">
+                    @csrf
+                    <input type="hidden" name="type" value="bid">
+                    <h3 class="text-3xl font-black text-gray-900 mb-6">زايد الآن</h3>
+
+                    <!-- Current Price Info -->
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <div class="bg-gray-50 rounded-2xl p-4 text-center border border-gray-100">
+                            <span class="text-gray-500 font-bold text-xs block mb-1">السعر الحالي</span>
+                            <div class="flex items-center justify-center gap-1 text-gray-900">
+                                <span class="font-black text-xl">{{ number_format($ad->price) }}</span>
+                                <x-riyal-icon class="w-5 h-5" />
+                            </div>
+                        </div>
+                        <div class="bg-primary/5 rounded-2xl p-4 text-center border border-primary/10">
+                            <span class="text-primary font-bold text-xs block mb-1">أقل مزايدة</span>
+                            <div class="flex items-center justify-center gap-1 text-primary">
+                                <span class="font-black text-xl">{{ number_format($ad->price + ($ad->bid_increment ?? 500)) }}</span>
+                                <x-riyal-icon class="w-5 h-5" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bid Amount with +/- Buttons -->
+                    <div class="bg-gray-50 rounded-3xl p-6 mb-8">
+                        <div class="flex items-center justify-between gap-4 mb-4">
+                            <button type="button" id="btnDecreaseBid" class="w-14 h-14 flex items-center justify-center rounded-xl bg-white border border-gray-200 text-gray-400 transition-all" disabled>
+                                <i class="fa-solid fa-minus text-xl"></i>
+                            </button>
+                            
+                            <div class="flex-1 text-center">
+                                <div class="flex items-center justify-center gap-2 text-gray-900 mb-1">
+                                    <span id="bidAmountDisplay" class="font-black text-4xl">{{ number_format($ad->price + ($ad->bid_increment ?? 500)) }}</span>
+                                    <x-riyal-icon class="w-8 h-8" />
+                                </div>
+                            </div>
+
+                            <button type="button" id="btnIncreaseBid" class="w-14 h-14 flex items-center justify-center rounded-xl bg-white border border-primary text-primary hover:bg-primary hover:text-white transition-all">
+                                <i class="fa-solid fa-plus text-xl"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" name="amount" id="bidAmountInput" value="{{ $ad->price + ($ad->bid_increment ?? 500) }}">
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button type="submit" class="flex-1 bg-primary text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">تأكيد المزايدة</button>
+                        <button type="button" onclick="hideBidModal()" class="flex-1 bg-gray-200 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-300 transition-all text-lg">إلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 2. Auto Bid Modal (المزايدة التلقائية) -->
+        <div id="autoBidModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
+            <div class="bg-white w-full max-w-md rounded-[28px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in fade-in zoom-in duration-300" dir="rtl">
+                <div class="p-6 flex justify-start">
+                    <button onclick="hideAutoBidModal()" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-all">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+                
+                <form action="{{ route('bids.store', $ad->id) }}" method="POST" class="px-8 pb-8 text-center" id="autoBidForm">
+                    @csrf
+                    <input type="hidden" name="type" value="bid">
+                    <input type="hidden" name="is_auto" value="1">
+                    <h3 class="text-3xl font-black text-gray-900 mb-2">المزايدة التلقائية</h3>
+                    <p class="text-gray-500 text-sm font-medium leading-relaxed mb-8">
+                        أدخل الحد الأعلى الذي ترغب بالمزايدة حتى الوصول إليه. النظام سيزايد تلقائياً بدلاً عنك.
+                    </p>
+
+                    <!-- Limit Amount Input -->
+                    <div class="text-right mb-8">
+                        <label class="block text-gray-700 font-bold mb-2 pr-2">الحد الأعلى للمزايدة</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r border-gray-100 px-4 my-2">
+                                <x-riyal-icon class="w-5 h-5 text-gray-900" />
+                            </div>
+                            <input type="number" name="amount" required placeholder="أدخل الحد الأعلى" class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 pr-4 pl-16 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold transition-all text-lg">
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button type="submit" class="flex-1 bg-primary text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">تفعيل</button>
+                        <button type="button" onclick="hideAutoBidModal()" class="flex-1 bg-gray-200 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-300 transition-all text-lg">إلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 3. Join Auction Modal (اشترك في المزاد) -->
         <div id="joinAuctionModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
             <div class="bg-white w-full max-w-md rounded-[28px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in fade-in zoom-in duration-300" dir="rtl">
-                <!-- Close Button -->
                 <div class="p-6 flex justify-start">
                     <button onclick="hideJoinAuctionModal()" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-all">
                         <i class="fa-solid fa-xmark text-lg"></i>
@@ -926,15 +1019,19 @@
                         </p>
                     </div>
 
-                    <div class="flex gap-4">
-                        <button class="flex-1 bg-primary text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">دفع العربون</button>
-                        <button onclick="hideJoinAuctionModal()" class="flex-1 bg-gray-100 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-200 transition-all">إلغاء</button>
-                    </div>
+                    <form action="{{ route('bids.store', $ad->id) }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="type" value="deposit">
+                        <div class="flex gap-4">
+                            <button type="submit" class="flex-1 bg-primary text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">دفع العربون</button>
+                            <button type="button" onclick="hideJoinAuctionModal()" class="flex-1 bg-gray-100 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-200 transition-all">إلغاء</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <!-- Offer Modal (قدم عرضك - Image 3) -->
+        <!-- Offer Modal (قدم عرضك) -->
         <div id="offerModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
             <div class="bg-white w-full max-w-md rounded-[28px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in fade-in zoom-in duration-300" dir="rtl">
                 <div class="p-6 flex justify-start">
@@ -1046,7 +1143,7 @@
             </div>
         </div>
 
-        </div>
+
 
 
 
@@ -1096,6 +1193,31 @@
                         <button type="button" onclick="hideAutoTenderModal()" class="flex-1 bg-gray-200 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-300 transition-all text-lg">إلغاء</button>
                     </div>
                 </form>
+            </div>
+        </div>
+        <!-- Auth Required Modal -->
+        <div id="authRequiredModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
+            <div class="bg-white w-full max-w-md rounded-[28px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in fade-in zoom-in duration-300" dir="rtl">
+                <div class="p-6 flex justify-start">
+                    <button onclick="hideAuthModal()" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-all">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+                
+                <div class="px-8 pb-10 text-center">
+                    <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fa-solid fa-user-lock text-3xl text-primary"></i>
+                    </div>
+                    <h3 class="text-2xl font-black text-gray-900 mb-2">تسجيل الدخول مطلوب</h3>
+                    <p class="text-gray-500 text-sm font-medium leading-relaxed mb-8">
+                        يرجى تسجيل الدخول لتتمكن من المزايدة أو تنفيذ هذه العملية.
+                    </p>
+
+                        <div class="flex flex-col gap-3">
+                            <a href="{{ route('login', ['redirect' => url()->current()]) }}" class="w-full bg-primary text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-center">تسجيل الدخول</a>
+                            <a href="{{ route('register.type', ['redirect' => url()->current()]) }}" class="w-full bg-gray-100 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-200 transition-all text-center">إنشاء حساب جديد</a>
+                        </div>
+                </div>
             </div>
         </div>
         <!-- Services & Related Ads Section -->
@@ -1220,6 +1342,34 @@
     }
 
 
+    // Authentication Check
+    function requireAuth(callback) {
+        @auth
+            if (typeof callback === 'function') {
+                callback();
+            } else {
+                // If no callback, we might just want to check (e.g. for cart)
+                window.location.href = '#'; // Or some default action
+            }
+        @else
+            const modal = document.getElementById('authRequiredModal');
+            if(modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                document.body.style.overflow = 'hidden';
+            }
+        @endauth
+    }
+
+    function hideAuthModal() {
+        const modal = document.getElementById('authRequiredModal');
+        if(modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        }
+    }
+
     // Modal Logic
     function showPriceModal() {
         const modal = document.getElementById('priceModal');
@@ -1252,19 +1402,41 @@
 
     // Close on click outside
     window.onclick = function(event) {
-        const priceModal = document.getElementById('priceModal');
-        const joinAuctionModal = document.getElementById('joinAuctionModal');
-        const authRequiredModal = document.getElementById('authRequiredModal');
-        const bidsModal = document.getElementById('bidsModal');
-        const purchaseModal = document.getElementById('purchaseModal');
-        
-        if (event.target == priceModal) hidePriceModal();
-        if (event.target == joinAuctionModal) hideJoinAuctionModal();
-        if (event.target == authRequiredModal) hideAuthModal();
-        if (event.target == bidsModal) hideBidsModal();
-        if (event.target == purchaseModal) hidePurchaseModal();
-        if (event.target == document.getElementById('tenderModal')) hideTenderModal();
-        if (event.target == document.getElementById('autoTenderModal')) hideAutoTenderModal();
+        const modals = ['priceModal', 'joinAuctionModal', 'authRequiredModal', 'bidsModal', 'purchaseModal', 'tenderModal', 'autoTenderModal', 'bidModal', 'autoBidModal', 'offerModal'];
+        modals.forEach(id => {
+            const modal = document.getElementById(id);
+            if (event.target == modal) {
+                // Call the appropriate hide function
+                if (id === 'priceModal') hidePriceModal();
+                if (id === 'joinAuctionModal') hideJoinAuctionModal();
+                if (id === 'authRequiredModal') hideAuthModal();
+                if (id === 'bidsModal') hideBidsModal();
+                if (id === 'purchaseModal') hidePurchaseModal();
+                if (id === 'tenderModal') hideTenderModal();
+                if (id === 'autoTenderModal') hideAutoTenderModal();
+                if (id === 'bidModal') hideBidModal();
+                if (id === 'autoBidModal') hideAutoBidModal();
+                if (id === 'offerModal') hideOfferModal();
+            }
+        });
+    }
+
+    function showAutoTenderModal() {
+        const modal = document.getElementById('autoTenderModal');
+        if(modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function hideAutoTenderModal() {
+        const modal = document.getElementById('autoTenderModal');
+        if(modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        }
     }
 
     function toggleWishlistUI(action) {
@@ -1450,8 +1622,32 @@
         if(qtyDisplay) qtyDisplay.innerText = currentQty;
         if(priceDisplay) priceDisplay.innerText = new Intl.NumberFormat().format(currentQty * basePrice);
     }
-    function showAutoTenderModal() {
-        const modal = document.getElementById('autoTenderModal');
+    // Bid Modal Logic
+    function showBidModal() {
+        const modal = document.getElementById('bidModal');
+        if(modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            
+            // Reset to minimum bid
+            currentBid = {{ $ad->price + ($ad->bid_increment ?? 500) }};
+            updateBidDisplay();
+        }
+    }
+
+    function hideBidModal() {
+        const modal = document.getElementById('bidModal');
+        if(modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    // Auto Bid Modal Logic
+    function showAutoBidModal() {
+        const modal = document.getElementById('autoBidModal');
         if(modal) {
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -1459,8 +1655,8 @@
         }
     }
 
-    function hideAutoTenderModal() {
-        const modal = document.getElementById('autoTenderModal');
+    function hideAutoBidModal() {
+        const modal = document.getElementById('autoBidModal');
         if(modal) {
             modal.classList.add('hidden');
             modal.classList.remove('flex');
@@ -1519,6 +1715,59 @@
         if (wishlistText) {
             wishlistText.innerText = action === 'added' ? 'في المفضلة' : 'أضف للمفضلة';
         }
+    }
+
+    // Add to Cart Logic
+    function addToCart(adId) {
+        const qty = typeof currentQty !== 'undefined' ? currentQty : 1;
+        
+        fetch("{{ route('cart.add') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                ad_id: adId,
+                quantity: qty
+            })
+        })
+        .then(async response => {
+            const data = await response.json();
+            if (response.ok && data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تمت الإضافة',
+                    text: data.message,
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+                
+                // Update cart count if exists
+                const cartCount = document.getElementById('cartCount');
+                if (cartCount) {
+                    cartCount.innerText = data.cart_count;
+                    cartCount.classList.remove('hidden');
+                }
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'عذراً',
+                    text: data.message || (data.errors ? Object.values(data.errors)[0][0] : 'حدث خطأ غير متوقع')
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ',
+                text: 'فشل الاتصال بالخادم، يرجى المحاولة لاحقاً'
+            });
+        });
     }
 </script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />

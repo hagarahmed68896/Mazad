@@ -11,6 +11,9 @@ class AuthController extends Controller
 {
     public function showLoginForm()
     {
+        if (request()->has('redirect')) {
+            session(['intended_url' => request('redirect')]);
+        }
         $settings = Setting::pluck('value', 'key');
         $loginRoute = route('login.post');
         return view('auth.login', compact('settings', 'loginRoute'));
@@ -23,6 +26,9 @@ class AuthController extends Controller
 
     public function showRegisterTypeForm()
     {
+        if (request()->has('redirect')) {
+            session(['intended_url' => request('redirect')]);
+        }
         return view('auth.register-type');
     }
 
@@ -135,8 +141,8 @@ class AuthController extends Controller
             return redirect()->route('login');
         }
         
-        $redirectUrl = route('home');
-        $redirectText = 'الذهاب للرئيسية';
+        $redirectUrl = session()->pull('intended_url', route('home'));
+        $redirectText = $redirectUrl === route('home') ? 'الذهاب للرئيسية' : 'العودة للصفحة السابقة';
         
         return view('auth.verification-success', compact('redirectUrl', 'redirectText'));
     }

@@ -308,20 +308,8 @@ class HomeController extends Controller
             ->map(fn($img) => asset($img))
             ->values();
 
-        // 2. Fallbacks for the 3-grid spots
-        $fallbacks = [
-            asset('images/laptop.png'),
-            asset('images/building.png'),
-            asset('images/hero_car.png')
-        ];
-
-        // 3. Create the final collection (ensure at least 3 images to match the grid)
+        // 3. Final collection (Real images only)
         $allImages = $realImages;
-        if ($allImages->count() < 3) {
-            for ($i = $allImages->count(); $i < 3; $i++) {
-                $allImages->push($fallbacks[$i]);
-            }
-        }
 
         $categories = Category::whereNull('parent_id')->get();
         $settings = Setting::pluck('value', 'key')->toArray();
@@ -418,13 +406,29 @@ class HomeController extends Controller
             'reason' => 'required|string|max:500'
         ]);
 
-        // In a real app, you'd store this in a 'user_reports' table
-        // For now, we'll simulate success
-        
         if ($request->ajax()) {
             return response()->json(['success' => true, 'message' => 'تم إرسال البلاغ بنجاح']);
         }
 
         return back()->with('success', 'تم إرسال البلاغ بنجاح');
+    }
+
+    public function adServices($id)
+    {
+        $ad = Ad::findOrFail($id);
+        $services = \App\Models\Service::where('category_id', $ad->category_id)->get();
+        $categories = Category::whereNull('parent_id')->get();
+        $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
+
+        return view('services.index', compact('ad', 'services', 'categories', 'settings'));
+    }
+
+    public function serviceShow($id)
+    {
+        $service = \App\Models\Service::findOrFail($id);
+        $categories = Category::whereNull('parent_id')->get();
+        $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
+
+        return view('services.show', compact('service', 'categories', 'settings'));
     }
 }

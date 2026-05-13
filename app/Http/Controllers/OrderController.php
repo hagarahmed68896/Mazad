@@ -65,6 +65,7 @@ class OrderController extends Controller
             'ad_id'              => $ad->id,
             'type'               => 'purchase',
             'amount'             => round($total_price),
+            'payment_method'     => $request->payment_method ?? 'bank_transfer',
             'status'             => 'under_review',
         ]);
 

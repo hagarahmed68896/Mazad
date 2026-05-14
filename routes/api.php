@@ -48,6 +48,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
 
+    // Ads creation
+    Route::get('/ads/create/metadata', [\App\Http\Controllers\Api\AdController::class, 'createMetadata']);
+    Route::post('/ads', [\App\Http\Controllers\Api\AdController::class, 'store']);
+
     // Bidding
     Route::post('/ads/{id}/bids', [BidController::class, 'store']);
 

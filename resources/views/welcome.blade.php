@@ -379,7 +379,7 @@
                 overlay.style.display = overlay.style.display === 'block' ? 'none' : 'block';
                 
                 if (drawer.classList.contains('active')) {
-                    ['notificationDropdown', 'cartDropdown', 'profileDropdown'].forEach(id => {
+                    ['notificationDropdown', 'cartDropdown', 'profileDropdown', 'addAdDropdown', 'addAdDropdownGuest'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.display = 'none';
                     });
@@ -392,8 +392,12 @@
             if (!dropdown) return;
             const cartDropdown = document.getElementById('cartDropdown');
             const profileDropdown = document.getElementById('profileDropdown');
+            const addAdDropdown = document.getElementById('addAdDropdown') || document.getElementById('addAdDropdownGuest');
+            
             if (profileDropdown) profileDropdown.style.display = 'none';
             if (cartDropdown) cartDropdown.style.display = 'none';
+            if (addAdDropdown) addAdDropdown.style.display = 'none';
+            
             dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
         };
 
@@ -402,8 +406,12 @@
             if (!dropdown) return;
             const notifDropdown = document.getElementById('notificationDropdown');
             const profileDropdown = document.getElementById('profileDropdown');
+            const addAdDropdown = document.getElementById('addAdDropdown') || document.getElementById('addAdDropdownGuest');
+            
             if (profileDropdown) profileDropdown.style.display = 'none';
             if (notifDropdown) notifDropdown.style.display = 'none';
+            if (addAdDropdown) addAdDropdown.style.display = 'none';
+            
             dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
         };
 
@@ -412,8 +420,12 @@
             if (!dropdown) return;
             const notificationDropdown = document.getElementById('notificationDropdown');
             const cartDropdown = document.getElementById('cartDropdown');
+            const addAdDropdown = document.getElementById('addAdDropdown') || document.getElementById('addAdDropdownGuest');
+            
             if (notificationDropdown) notificationDropdown.style.display = 'none';
             if (cartDropdown) cartDropdown.style.display = 'none';
+            if (addAdDropdown) addAdDropdown.style.display = 'none';
+            
             dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
         };
 

@@ -9,15 +9,15 @@
         </div>
 
         <div class="ad-types" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
-            <!-- Direct Sale Ad -->
-            <div class="ad-type-card" onclick="selectAdType('direct_purchase')" style="display: flex; align-items: center; justify-content: space-between; background: #F8FAFC; border: 2px solid transparent; padding: 1.25rem; border-radius: 20px; cursor: pointer; transition: all 0.3s ease; group">
+            <!-- New Ad -->
+            <div class="ad-type-card" onclick="selectAdType('standard')" style="display: flex; align-items: center; justify-content: space-between; background: #F8FAFC; border: 2px solid transparent; padding: 1.25rem; border-radius: 20px; cursor: pointer; transition: all 0.3s ease;">
                 <div class="card-content" style="display: flex; align-items: center; gap: 1.25rem;">
                     <div class="card-icon" style="width: 56px; height: 56px; background: #F0F9FF; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">
-                        <span>🏷️</span>
+                        <span>📢</span>
                     </div>
                     <div class="card-text" style="text-align: right;">
-                        <h3 style="font-size: 1.15rem; font-weight: 800; color: #1E293B; margin-bottom: 0.25rem;">بيع مباشر</h3>
-                        <p style="font-size: 0.85rem; color: #64748B; line-height: 1.5; margin: 0;">أضف إعلانك بسعر ثابت للمشترين الراغبين في الشراء الفوري.</p>
+                        <h3 style="font-size: 1.15rem; font-weight: 800; color: #1E293B; margin-bottom: 0.25rem;">إعلان جديد</h3>
+                        <p style="font-size: 0.85rem; color: #64748B; line-height: 1.5; margin: 0;">أضف إعلانك كبيع مباشر أو مزاد، وحدد التفاصيل لاحقاً.</p>
                     </div>
                 </div>
                 <div class="arrow-icon" style="color: #CBD5E1; font-size: 1.2rem;">
@@ -25,15 +25,15 @@
                 </div>
             </div>
 
-            <!-- Auction Ad -->
-            <div class="ad-type-card" onclick="selectAdType('auction')" style="display: flex; align-items: center; justify-content: space-between; background: #F8FAFC; border: 2px solid transparent; padding: 1.25rem; border-radius: 20px; cursor: pointer; transition: all 0.3s ease;">
+            <!-- Tender Ad -->
+            <div class="ad-type-card" onclick="selectAdType('tender')" style="display: flex; align-items: center; justify-content: space-between; background: #F8FAFC; border: 2px solid transparent; padding: 1.25rem; border-radius: 20px; cursor: pointer; transition: all 0.3s ease;">
                 <div class="card-content" style="display: flex; align-items: center; gap: 1.25rem;">
-                    <div class="card-icon" style="width: 56px; height: 56px; background: #FFF7ED; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">
-                        <span>🔨</span>
+                    <div class="card-icon" style="width: 56px; height: 56px; background: #F0FDF4; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">
+                        <span>📋</span>
                     </div>
                     <div class="card-text" style="text-align: right;">
-                        <h3 style="font-size: 1.15rem; font-weight: 800; color: #1E293B; margin-bottom: 0.25rem;">مزاد إلكتروني</h3>
-                        <p style="font-size: 0.85rem; color: #64748B; line-height: 1.5; margin: 0;">ابدأ مزاداً تفاعلياً للحصول على أفضل سعر لسلعتك من المزايدين.</p>
+                        <h3 style="font-size: 1.15rem; font-weight: 800; color: #1E293B; margin-bottom: 0.25rem;">إضافة مناقصة</h3>
+                        <p style="font-size: 0.85rem; color: #64748B; line-height: 1.5; margin: 0;">أضف مناقصة جديدة لاستقبال عروض الأسعار من الموردين.</p>
                     </div>
                 </div>
                 <div class="arrow-icon" style="color: #CBD5E1; font-size: 1.2rem;">
@@ -67,7 +67,7 @@
 <script>
     function openAddAdModal() {
         if (!{{ auth()->check() ? 'true' : 'false' }}) {
-            openAccountModal();
+            showAuthModal();
             return;
         }
         document.getElementById('addAdModal').style.display = 'flex';
@@ -79,10 +79,10 @@
 
     function selectAdType(type) {
         // Here you redirect to the specific page based on choice
-        if (type === 'direct_purchase') {
-            window.location.href = "/ads/create?type=direct_purchase";
-        } else if (type === 'auction') {
-            window.location.href = "/ads/create?type=auction";
+        if (type === 'standard') {
+            window.location.href = "/ads/create?type=standard";
+        } else if (type === 'tender') {
+            window.location.href = "/ads/create?type=tender";
         }
         closeAddAdModal();
     }

@@ -307,7 +307,7 @@ class BidController extends Controller
     /**
      * Auto-Tender Engine (Reverse Auction)
      */
-    private function processAutoTender(Ad $ad, int $userId, float $initialAmount, float $newMinLimit): array
+    public function processAutoTender(Ad $ad, int $userId, float $initialAmount, float $newMinLimit): array
     {
         return DB::transaction(function () use ($ad, $userId, $initialAmount, $newMinLimit) {
             $ad = Ad::lockForUpdate()->find($ad->id);

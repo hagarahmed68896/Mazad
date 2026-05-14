@@ -175,6 +175,7 @@ ul {
     color: #403B6D;
     transition: all 0.3s;
     background: transparent;
+    position: relative;
 }
 
 .nav-icon-link:hover {

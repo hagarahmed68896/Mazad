@@ -62,16 +62,16 @@
     <!-- Custom Header -->
     <header class="bg-white py-6 shadow-sm sticky top-0 z-50">
         <div class="container flex justify-between items-center">
-            <a href="{{ route('ads.create', ['type' => $type]) }}" class="px-6 py-2 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-2">
-                <i class="fa-solid fa-chevron-right text-xs"></i>
-                رجوع
-            </a>
             <div class="logo">
                 <a href="/">
                     @include('partials.logo', ['size' => 'text-4xl'])
                 </a>
             </div>
-            <div class="hidden md:block w-24"></div> <!-- Spacer for centering logo -->
+            
+            <a href="{{ route('ads.create', ['type' => $type]) }}" class="px-6 py-2 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-2">
+                رجوع
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+            </a>
         </div>
         
         <!-- Global Progress Bar -->
@@ -128,6 +128,26 @@
                                             </label>
                                         @endforeach
                                     </div>
+                                @elseif($prop->input_type == 'file' || $prop->input_type == 'image')
+                                    <div class="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-primary transition-all cursor-pointer relative bg-gray-50" onclick="document.getElementById('prop_file_{{ $prop->id }}').click()">
+                                        <div class="mb-3 flex justify-center">
+                                            @if(str_contains($prop->label, 'سيار') || str_contains($prop->label, 'مركب') || str_contains($prop->label, 'واجه'))
+                                                <img src="https://cdn-icons-png.flaticon.com/512/3206/3206015.png" alt="car" class="w-16 h-auto opacity-50 grayscale">
+                                            @else
+                                                <i class="fa-solid fa-cloud-arrow-up text-4xl text-gray-300"></i>
+                                            @endif
+                                        </div>
+                                        <p class="text-sm font-bold text-gray-500" id="prop_file_text_{{ $prop->id }}">0 من 1 ملف</p>
+                                        <input type="file" id="prop_file_{{ $prop->id }}" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} class="hidden" accept="image/*" onchange="handlePropFileChange(this, {{ $prop->id }})">
+                                    </div>
+                                    <!-- Preview container -->
+                                    <div id="prop_file_preview_{{ $prop->id }}" class="hidden mt-3 flex items-center justify-between p-3 border-2 border-gray-100 rounded-xl bg-white shadow-sm transition-all">
+                                        <div class="flex items-center gap-2">
+                                            <button type="button" onclick="clearPropFile({{ $prop->id }})" class="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all"><i class="fa-regular fa-trash-can"></i></button>
+                                            <button type="button" onclick="viewPropFile({{ $prop->id }})" class="text-gray-400 hover:text-primary hover:bg-blue-50 p-2 rounded-lg transition-all"><i class="fa-regular fa-eye"></i></button>
+                                        </div>
+                                        <span class="text-sm font-bold text-gray-400 truncate max-w-[200px]" id="prop_file_name_{{ $prop->id }}">صورة.png</span>
+                                    </div>
                                 @endif
                                 @if($prop->help_text)
                                     <p class="mt-2 text-sm text-gray-400 font-bold">{{ $prop->help_text }}</p>
@@ -171,7 +191,7 @@
     <div class="step-container {{ $stepCounter == 1 ? 'active' : '' }}" data-step="{{ $stepCounter }}" data-title="تفاصيل المعاينة">
         <div class="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 space-y-8">
             <div class="flex justify-between items-center">
-                <h2 class="text-2xl font-black text-gray-900">موقع المعاينة</h2>
+                <h2 class="text-2xl font-black text-gray-900">تفاصيل المعاينة</h2>
                 <div class="bg-blue-50 text-primary px-4 py-2 rounded-xl font-bold text-sm">
                     <i class="fa-solid fa-location-dot ml-1"></i> 
                 </div>
@@ -196,8 +216,10 @@
                 <div class="relative">
                     <label class="block text-gray-700 font-black mb-3">اختر التاريخ والوقت</label>
                     <div class="relative">
-                        <i class="fa-solid fa-calendar-days absolute left-5 top-1/2 -translate-y-1/2 text-primary text-xl pointer-events-none"></i>
-                        <input type="datetime-local" name="inspection_date" class="form-input !pl-14">
+                        <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none border-l-2 border-gray-100 pl-3">
+                            <i class="fa-regular fa-calendar text-gray-400 text-xl"></i>
+                        </div>
+                        <input type="text" onfocus="(this.type='datetime-local'); setTimeout(() => { this.showPicker ? this.showPicker() : null }, 50)" onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" name="inspection_date" placeholder="أدخل تاريخ ووقت المعاينة" class="form-input text-gray-500 font-bold w-full !pr-16 text-right [&::-webkit-calendar-picker-indicator]:hidden cursor-pointer">
                     </div>
                 </div>
                 <div>
@@ -217,15 +239,18 @@
             <!-- Ad Type Selection -->
             <div class="space-y-4">
                 <label class="block text-gray-700 font-black">حدد نوع الإعلان</label>
-                <div class="grid grid-cols-2 gap-4">
-                    <label class="flex items-center justify-between p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all type-option" data-target="auction">
-                        <span class="font-bold">مزاد</span>
-                        <input type="radio" name="ad_type" value="auction" {{ $type == 'auction' ? 'checked' : '' }} onchange="togglePriceFields()" class="w-5 h-5 accent-primary">
-                    </label>
-                    <label class="flex items-center justify-between p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all type-option" data-target="direct">
-                        <span class="font-bold">شراء فوري</span>
-                        <input type="radio" name="ad_type" value="direct_purchase" {{ $type == 'direct_purchase' ? 'checked' : '' }} onchange="togglePriceFields()" class="w-5 h-5 accent-primary">
-                    </label>
+                <div class="relative">
+                    <select name="ad_type" onchange="togglePriceFields()" {{ $type == 'tender' ? 'disabled' : '' }} class="form-input w-full appearance-none bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 outline-none focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all cursor-pointer {{ $type == 'tender' ? 'bg-gray-50 opacity-70' : '' }}">
+                        <option value="auction" {{ $type == 'auction' ? 'selected' : '' }}>مزاد</option>
+                        <option value="direct_purchase" {{ in_array($type, ['direct_purchase', 'standard']) ? 'selected' : '' }}>شراء فوري</option>
+                        <option value="tender" {{ $type == 'tender' ? 'selected' : '' }}>مناقصة</option>
+                    </select>
+                    @if($type == 'tender')
+                        <input type="hidden" name="ad_type" value="tender">
+                    @endif
+                    <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-chevron-down text-gray-400"></i>
+                    </div>
                 </div>
             </div>
 
@@ -233,29 +258,36 @@
             <div id="auctionFields" class="{{ $type != 'auction' ? 'hidden' : '' }} space-y-8">
                 <div class="space-y-4">
                     <label class="block text-gray-700 font-black">نوع المزاد</label>
-                    <div class="grid grid-cols-2 gap-4">
-                        <label class="flex items-center justify-between p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
-                            <span class="font-bold">إلكتروني</span>
-                            <input type="radio" name="auction_type" value="electronic" checked class="w-5 h-5 accent-primary">
-                        </label>
-                        <label class="flex items-center justify-between p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
-                            <span class="font-bold">هجين</span>
-                            <input type="radio" name="auction_type" value="hybrid" class="w-5 h-5 accent-primary">
-                        </label>
+                    <div class="relative">
+                        <select name="auction_type" class="form-input w-full appearance-none bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 outline-none focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all cursor-pointer">
+                            <option value="electronic" selected>إلكتروني</option>
+                            <option value="hybrid">هجين</option>
+                        </select>
+                        <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-chevron-down text-gray-400"></i>
+                        </div>
                     </div>
                 </div>
 
-                <label class="flex items-center gap-3 p-4 bg-blue-50 rounded-2xl cursor-pointer">
-                    <input type="checkbox" name="is_enfaz" value="1" class="w-6 h-6 accent-primary">
-                    <span class="font-black text-primary text-lg">عن طريق إنفاذ</span>
-                </label>
+                <div class="space-y-4">
+                    <label class="block text-gray-700 font-black">هل المزاد عن طريق إنفاذ؟</label>
+                    <div class="relative">
+                        <select name="is_enfaz" class="form-input w-full appearance-none bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 outline-none focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all cursor-pointer">
+                            <option value="0" selected>لا</option>
+                            <option value="1">نعم</option>
+                        </select>
+                        <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-chevron-down text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-2">
                         <label class="block text-gray-700 font-black">السعر الابتدائي</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
-                                <span class="text-gray-400 font-bold">﷼</span>
+                                <img src="{{ asset('images/Vector-blue.svg') }}" class="w-4 h-4 opacity-60">
                             </div>
                             <input type="number" name="auction_start_price" placeholder="أدخل السعر الابتدائي" class="form-input !pl-16">
                         </div>
@@ -264,7 +296,7 @@
                         <label class="block text-gray-700 font-black">قيمة العربون</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
-                                <span class="text-gray-400 font-bold">﷼</span>
+                                <img src="{{ asset('images/Vector-blue.svg') }}" class="w-4 h-4 opacity-60">
                             </div>
                             <input type="number" name="auction_deposit" placeholder="أدخل قيمة العربون" class="form-input !pl-16">
                         </div>
@@ -273,7 +305,7 @@
                         <label class="block text-gray-700 font-black">قيمة التزايد</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
-                                <span class="text-gray-400 font-bold">﷼</span>
+                                <img src="{{ asset('images/Vector-blue.svg') }}" class="w-4 h-4 opacity-60">
                             </div>
                             <input type="number" name="bid_increment" placeholder="أدخل قيمة التزايد" class="form-input !pl-16">
                         </div>
@@ -282,7 +314,7 @@
                         <label class="block text-gray-700 font-black">سعر الشراء (اختياري)</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
-                                <span class="text-gray-400 font-bold">﷼</span>
+                                <img src="{{ asset('images/Vector-blue.svg') }}" class="w-4 h-4 opacity-60">
                             </div>
                             <input type="number" name="buy_now_price" placeholder="أدخل سعر الشراء" class="form-input !pl-16">
                         </div>
@@ -291,19 +323,22 @@
             </div>
 
             <!-- DIRECT PURCHASE ONLY FIELDS -->
-            <div id="directFields" class="{{ $type != 'direct_purchase' ? 'hidden' : '' }} space-y-8">
+            <div id="directFields" class="{{ !in_array($type, ['direct_purchase', 'standard']) ? 'hidden' : '' }} space-y-8">
                 <div class="space-y-4">
                     <label class="block text-gray-700 font-black">آلية البيع</label>
-                    <div class="grid grid-cols-2 gap-4">
-                        <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
-                            <input type="checkbox" name="allow_bidding" value="1" class="w-5 h-5 accent-primary">
-                            <span class="font-bold text-gray-700">السماح بالمزايدة</span>
-                        </label>
-                        <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
-                            <input type="checkbox" name="allow_negotiation" value="1" class="w-5 h-5 accent-primary">
-                            <span class="font-bold text-gray-700">السماح بالسوم</span>
-                        </label>
+                    <div class="relative">
+                        <select id="sale_mechanism_select" class="form-input w-full appearance-none bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 outline-none focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all cursor-pointer" onchange="updateSaleMechanism(this.value)">
+                            <option value="fixed" selected>سعر ثابت</option>
+                            <option value="allow_bidding">السماح بالمزايدة</option>
+                            <option value="allow_negotiation">السماح بالسوم</option>
+                            <option value="both">السماح بالمزايدة والسوم</option>
+                        </select>
+                        <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-chevron-down text-gray-400"></i>
+                        </div>
                     </div>
+                    <input type="hidden" name="allow_bidding" id="hidden_allow_bidding" value="0">
+                    <input type="hidden" name="allow_negotiation" id="hidden_allow_negotiation" value="0">
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -311,7 +346,7 @@
                         <label class="block text-gray-700 font-black">سعر البيع</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
-                                <span class="text-gray-400 font-bold">﷼</span>
+                                <img src="{{ asset('images/Vector-blue.svg') }}" class="w-4 h-4 opacity-60">
                             </div>
                             <input type="number" name="sale_price" placeholder="أدخل سعر البيع" class="form-input !pl-16">
                         </div>
@@ -320,7 +355,7 @@
                         <label class="block text-gray-700 font-black">أقل سعر بيع</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
-                                <span class="text-gray-400 font-bold">﷼</span>
+                                <img src="{{ asset('images/Vector-blue.svg') }}" class="w-4 h-4 opacity-60">
                             </div>
                             <input type="number" name="min_sale_price" placeholder="أدخل أقل سعر بيع" class="form-input !pl-16">
                         </div>
@@ -330,7 +365,7 @@
                         <label class="block text-gray-700 font-black">قيمة العربون</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
-                                <span class="text-gray-400 font-bold">﷼</span>
+                                <img src="{{ asset('images/Vector-blue.svg') }}" class="w-4 h-4 opacity-60">
                             </div>
                             <input type="number" name="direct_deposit" placeholder="أدخل قيمة العربون" class="form-input !pl-16">
                         </div>
@@ -346,13 +381,37 @@
                 </div>
             </div>
 
+            <!-- TENDER ONLY FIELDS -->
+            <div id="tenderFields" class="{{ $type != 'tender' ? 'hidden' : '' }} space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="block text-gray-700 font-black">الميزانية التقديرية (أعلى سعر)</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
+                                <img src="{{ asset('images/Vector-blue.svg') }}" class="w-4 h-4 opacity-60">
+                            </div>
+                            <input type="number" name="tender_price" placeholder="أدخل الميزانية التقديرية" class="form-input !pl-16">
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-gray-700 font-black">قيمة التناقص</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
+                                <img src="{{ asset('images/Vector-blue.svg') }}" class="w-4 h-4 opacity-60">
+                            </div>
+                            <input type="number" name="tender_bid_increment" placeholder="أدخل قيمة التناقص" class="form-input !pl-16">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- SHARED FIELDS -->
             <div class="space-y-6 pt-6 border-t border-gray-50">
                 <div class="space-y-2">
                     <label class="block text-gray-700 font-black">سعر الشحن</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
-                            <span class="text-gray-400 font-bold">﷼</span>
+                            <img src="{{ asset('images/Vector-blue.svg') }}" class="w-4 h-4 opacity-60">
                         </div>
                         <input type="number" name="shipping_price" placeholder="أدخل سعر الشحن" class="form-input !pl-16">
                     </div>
@@ -360,28 +419,37 @@
 
                 <div class="space-y-4">
                     <label class="block text-gray-700 font-black">مناطق الشحن</label>
-                    <div class="grid grid-cols-2 gap-4">
-                        <label class="flex items-center justify-between p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
-                            <span class="font-bold">شحن داخل المدينة</span>
-                            <input type="radio" name="shipping_type" value="inner" class="w-5 h-5 accent-primary">
-                        </label>
-                        <label class="flex items-center justify-between p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
-                            <span class="font-bold">شحن دولي</span>
-                            <input type="radio" name="shipping_type" value="international" class="w-5 h-5 accent-primary">
-                        </label>
+                    <div class="relative">
+                        <select name="shipping_type" class="form-input w-full appearance-none bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 outline-none focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all cursor-pointer">
+                            <option value="inner" selected>شحن داخل المدينة</option>
+                            <option value="international">شحن دولي</option>
+                        </select>
+                        <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-chevron-down text-gray-400"></i>
+                        </div>
                     </div>
                 </div>
 
-                <!-- City Multi-select -->
-                <div class="space-y-4">
+                <!-- Custom City Multi-select Dropdown -->
+                <div class="space-y-4 relative" id="citiesDropdownContainer">
                     <label class="block text-gray-700 font-black">المدن</label>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-4 border-2 border-gray-50 rounded-2xl">
-                        @foreach($cities as $city)
-                        <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl cursor-pointer transition-all">
-                            <input type="checkbox" name="cities[]" value="{{ $city->id }}" class="w-5 h-5 accent-primary rounded">
-                            <span class="font-bold text-gray-600">{{ $city->name }}</span>
-                        </label>
-                        @endforeach
+                    <div class="relative">
+                        <div onclick="document.getElementById('citiesList').classList.toggle('hidden')" class="form-input w-full bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 cursor-pointer flex justify-between items-center hover:border-primary transition-all">
+                            <span id="citiesSelectedText" class="truncate max-w-[80%]">كل المدن</span>
+                            <i class="fa-solid fa-chevron-down text-gray-400"></i>
+                        </div>
+                        <div id="citiesList" class="hidden absolute top-full mt-2 w-full bg-white border-2 border-gray-50 rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto p-2">
+                            <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl cursor-pointer transition-all border-b border-gray-50 mb-1">
+                                <input type="checkbox" id="selectAllCities" value="all" checked class="w-5 h-5 accent-primary rounded" onchange="toggleAllCities(this)">
+                                <span class="font-bold text-primary">كل المدن</span>
+                            </label>
+                            @foreach($cities as $city)
+                            <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl cursor-pointer transition-all">
+                                <input type="checkbox" name="cities[]" value="{{ $city->id }}" class="w-5 h-5 accent-primary rounded city-checkbox" onchange="updateCitiesText()">
+                                <span class="font-bold text-gray-600">{{ $city->name }}</span>
+                            </label>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
             </div>
@@ -392,42 +460,99 @@
             <!-- Step: Ad Information -->
             <div class="step-container" data-step="{{ $stepCounter }}" data-title="معلومات الإعلان">
                 <div class="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 space-y-6">
-                    <h2 class="text-2xl font-black text-gray-900 mb-6">معلومات الإعلان</h2>
-                    <div>
-                        <label class="block text-gray-700 font-black mb-3">عنوان الإعلان</label>
-                        <input type="text" name="title" required placeholder="مثال: تويوتا كامري 2023 فل كامل" class="form-input">
+                    <h2 class="text-2xl font-black text-gray-900 mb-6 text-center">معلومات الإعلان</h2>
+                    
+                    <div class="space-y-3">
+                        <label class="block text-gray-700 font-black">اسم الإعلان</label>
+                        <input type="text" name="title" required placeholder="أدخل اسم الإعلان" class="form-input">
                     </div>
-                    <div>
-                        <label class="block text-gray-700 font-black mb-3">وصف الإعلان</label>
-                        <textarea name="description" rows="5" required placeholder="اشرح حالة المنتج، المميزات، والعيوب إن وجدت..." class="form-input"></textarea>
-                    </div>
-                </div>
-            </div>
-            @php $stepCounter++; @endphp
 
-            <!-- Step: Images -->
-            <div class="step-container" data-step="{{ $stepCounter }}" data-title="صور الإعلان">
-                <div class="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 space-y-6">
-                    <h2 class="text-2xl font-black text-gray-900 mb-6">صور الإعلان</h2>
-                    <div class="border-4 border-dashed border-gray-100 rounded-[32px] p-12 text-center hover:border-primary transition-all cursor-pointer group" onclick="document.getElementById('imageInput').click()">
-                        <i class="fa-solid fa-cloud-arrow-up text-5xl text-gray-200 group-hover:text-primary transition-all mb-4"></i>
-                        <p class="text-gray-400 font-bold">اسحب الصور هنا أو اضغط للاختيار</p>
-                        <input type="file" id="imageInput" name="images[]" multiple class="hidden" accept="image/*">
+                    <div class="space-y-3">
+                        <label class="block text-gray-700 font-black">وصف الإعلان</label>
+                        <textarea name="description" rows="4" required placeholder="أدخل وصف الإعلان" class="form-input"></textarea>
                     </div>
-                    <div id="imagePreview" class="grid grid-cols-4 gap-4 mt-6"></div>
+
+                    <div class="space-y-3">
+                        <label class="block text-gray-700 font-black">الصور</label>
+                        <button type="button" onclick="document.getElementById('imageInput').click()" class="w-full bg-primary text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
+                            <i class="fa-solid fa-cloud-arrow-up text-xl"></i> أضف من هنا
+                        </button>
+                        <input type="file" id="imageInput" name="images[]" multiple class="hidden" accept="image/*">
+                        <div id="imagePreview" class="grid grid-cols-4 gap-4 mt-4"></div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="block text-gray-700 font-black">رابط الفيديو يوتيوب</label>
+                        <input type="url" name="youtube_link" placeholder="أدخل رابط الفيديو يوتيوب" class="form-input text-left" dir="ltr">
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="block text-gray-700 font-black">تاريخ و وقت البدء</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none border-l-2 border-gray-100 pl-3">
+                                <i class="fa-regular fa-calendar text-gray-400 text-xl"></i>
+                            </div>
+                            <input type="text" onfocus="(this.type='datetime-local'); setTimeout(() => { this.showPicker ? this.showPicker() : null }, 50)" onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" name="start_date" placeholder="أدخل تاريخ ووقت البدء" class="form-input text-gray-500 font-bold w-full !pr-16 text-right [&::-webkit-calendar-picker-indicator]:hidden cursor-pointer">
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="block text-gray-700 font-black">تاريخ و وقت الانتهاء</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none border-l-2 border-gray-100 pl-3">
+                                <i class="fa-regular fa-calendar text-gray-400 text-xl"></i>
+                            </div>
+                            <input type="text" onfocus="(this.type='datetime-local'); setTimeout(() => { this.showPicker ? this.showPicker() : null }, 50)" onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" name="end_date" placeholder="أدخل تاريخ ووقت الانتهاء" class="form-input text-gray-500 font-bold w-full !pr-16 text-right [&::-webkit-calendar-picker-indicator]:hidden cursor-pointer">
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="block text-gray-700 font-black">مدة الترسية</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
+                                <span class="text-gray-400 font-bold">أيام</span>
+                            </div>
+                            <input type="number" name="award_duration" placeholder="أدخل مدة الترسية" class="form-input !pl-16">
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-5 rounded-2xl flex items-center justify-between border border-gray-100">
+                        <div class="flex items-center gap-3">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="is_featured" value="1" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                            </label>
+                            <div>
+                                <span class="font-black text-gray-800 text-lg">تميز الإعلان</span>
+                                <p class="text-xs text-gray-500 font-bold mt-1 flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-info"></i> سيكون الإعلان في المقدمة لمدة 3 أيام بمعدل 10 ريال.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 font-black text-gray-800 text-lg">
+                            <span>10</span>
+                            <img src="{{ asset('images/Vector-blue.svg') }}" class="w-4 h-4">
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
             <!-- Navigation Buttons -->
-            <div class="flex justify-between items-center pt-8">
-                <button type="button" id="prevBtn" class="hidden px-10 py-5 rounded-2xl font-black text-gray-500 hover:bg-gray-100 transition-all">السابق</button>
+            <div class="flex items-center justify-between pt-8 border-t border-gray-100 mt-8">
+                <button type="button" id="prevBtn" class="hidden px-8 py-4 rounded-xl font-black text-gray-500 bg-white border-2 border-gray-200 hover:bg-gray-50 transition-all">السابق</button>
                 <div class="flex-grow"></div>
-                <button type="button" id="nextBtn" class="bg-primary text-white px-12 py-5 rounded-2xl text-xl font-black shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all transform active:scale-[0.95]">
+                <button type="button" id="nextBtn" class="bg-primary text-white px-10 py-4 rounded-xl text-lg font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
                     التالي
                 </button>
-                <button type="submit" id="submitBtn" class="hidden bg-green-600 text-white px-12 py-5 rounded-2xl text-xl font-black shadow-xl shadow-green-200 hover:bg-green-700 transition-all transform active:scale-[0.95]">
-                    نشر الإعلان
-                </button>
+                <div id="submitBtns" class="hidden flex gap-3">
+                    <button type="button" class="px-6 py-4 rounded-xl text-lg font-black text-gray-600 bg-white border-2 border-gray-200 hover:bg-gray-50 transition-all">
+                        استمر كمسودة
+                    </button>
+                    <button type="submit" id="submitBtn" class="bg-primary text-white px-8 py-4 rounded-xl text-lg font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+                        نشر الإعلان
+                    </button>
+                </div>
             </div>
         </form>
     </main>
@@ -448,7 +573,7 @@
 
 <script>
     let currentStep = 1;
-    const totalSteps = {{ count($category->pages) + 2 }};
+    const totalSteps = {{ count($category->pages) + 3 }};
 
     const nextBtn = document.getElementById('nextBtn');
     const prevBtn = document.getElementById('prevBtn');
@@ -458,18 +583,65 @@
     const stepTitle = document.getElementById('stepTitle');
     
     window.togglePriceFields = function() {
-        const adType = document.querySelector('input[name="ad_type"]:checked').value;
+        const adTypeSelect = document.querySelector('select[name="ad_type"]');
+        if (!adTypeSelect) return;
+        const adType = adTypeSelect.value;
         const auctionFields = document.getElementById('auctionFields');
         const directFields = document.getElementById('directFields');
+        const tenderFields = document.getElementById('tenderFields');
         
         if (adType === 'auction') {
             auctionFields.classList.remove('hidden');
             directFields.classList.add('hidden');
+            tenderFields.classList.add('hidden');
+        } else if (adType === 'tender') {
+            auctionFields.classList.add('hidden');
+            directFields.classList.add('hidden');
+            tenderFields.classList.remove('hidden');
         } else {
             auctionFields.classList.add('hidden');
             directFields.classList.remove('hidden');
+            tenderFields.classList.add('hidden');
         }
     };
+
+    window.updateSaleMechanism = function(value) {
+        document.getElementById('hidden_allow_bidding').value = (value === 'allow_bidding' || value === 'both') ? '1' : '0';
+        document.getElementById('hidden_allow_negotiation').value = (value === 'allow_negotiation' || value === 'both') ? '1' : '0';
+    };
+
+    window.toggleAllCities = function(selectAllCheckbox) {
+        const checkboxes = document.querySelectorAll('.city-checkbox');
+        checkboxes.forEach(cb => cb.checked = false);
+        updateCitiesText();
+    };
+
+    window.updateCitiesText = function() {
+        const checkboxes = document.querySelectorAll('.city-checkbox:checked');
+        const selectAll = document.getElementById('selectAllCities');
+        const textSpan = document.getElementById('citiesSelectedText');
+        
+        if (checkboxes.length === 0) {
+            selectAll.checked = true;
+            textSpan.innerText = 'كل المدن';
+        } else {
+            selectAll.checked = false;
+            if (checkboxes.length === 1) {
+                textSpan.innerText = checkboxes[0].nextElementSibling.innerText;
+            } else {
+                textSpan.innerText = checkboxes.length + ' مدن محددة';
+            }
+        }
+    };
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const container = document.getElementById('citiesDropdownContainer');
+        const list = document.getElementById('citiesList');
+        if (container && list && !container.contains(e.target)) {
+            list.classList.add('hidden');
+        }
+    });
 
     // Map Initialization
     let map, marker;
@@ -536,12 +708,21 @@
         // Buttons visibility
         prevBtn.classList.toggle('hidden', currentStep === 1);
         
+        const submitBtnsContainer = document.getElementById('submitBtns');
         if (currentStep === totalSteps) {
             nextBtn.classList.add('hidden');
-            submitBtn.classList.remove('hidden');
+            if (submitBtnsContainer) {
+                submitBtnsContainer.classList.remove('hidden');
+            } else {
+                submitBtn.classList.remove('hidden');
+            }
         } else {
             nextBtn.classList.remove('hidden');
-            submitBtn.classList.add('hidden');
+            if (submitBtnsContainer) {
+                submitBtnsContainer.classList.add('hidden');
+            } else {
+                submitBtn.classList.add('hidden');
+            }
         }
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -595,6 +776,57 @@
                 preview.appendChild(div);
             }
             reader.readAsDataURL(files[i]);
+        }
+    };
+
+    // Property File Upload Handlers
+    window.handlePropFileChange = function(input, id) {
+        const preview = document.getElementById('prop_file_preview_' + id);
+        const nameText = document.getElementById('prop_file_name_' + id);
+        const countText = document.getElementById('prop_file_text_' + id);
+        
+        if (input.files && input.files[0]) {
+            preview.classList.remove('hidden');
+            nameText.innerText = input.files[0].name;
+            countText.innerText = '1 من 1 ملف';
+            
+            // Remove required attribute if valid file is chosen so HTML5 validation passes smoothly
+            input.removeAttribute('required');
+        } else {
+            preview.classList.add('hidden');
+            countText.innerText = '0 من 1 ملف';
+            // re-add required if it was originally required
+            // We can check if the label has a red asterisk as a simple heuristic
+            const label = input.closest('.property-field').querySelector('label');
+            if(label && label.innerHTML.includes('text-red-500')) {
+                input.setAttribute('required', 'required');
+            }
+        }
+    };
+
+    window.clearPropFile = function(id) {
+        const input = document.getElementById('prop_file_' + id);
+        input.value = ''; // clear file
+        handlePropFileChange(input, id);
+    };
+
+    window.viewPropFile = function(id) {
+        const input = document.getElementById('prop_file_' + id);
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                Swal.fire({
+                    imageUrl: e.target.result,
+                    imageAlt: 'معاينة الصورة',
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    customClass: {
+                        popup: 'rounded-[32px]',
+                        image: 'rounded-xl max-w-full h-auto'
+                    }
+                });
+            };
+            reader.readAsDataURL(input.files[0]);
         }
     };
 </script>

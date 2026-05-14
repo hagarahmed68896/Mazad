@@ -1104,10 +1104,60 @@
             });
         }
 
+        window.toggleSidebar = function() {
+            const drawer = document.getElementById('sidebarDrawer');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (drawer && overlay) {
+                drawer.classList.toggle('active');
+                overlay.style.display = overlay.style.display === 'block' ? 'none' : 'block';
+                
+                if (drawer.classList.contains('active')) {
+                    ['notificationDropdown', 'cartDropdown', 'profileDropdown', 'addAdDropdown', 'addAdDropdownGuest'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.style.display = 'none';
+                    });
+                }
+            }
+        };
+
         window.toggleNavbarSearch = function() {
             // Already on search page, maybe just focus input
             const mainSearch = document.querySelector('.main-search-input');
             if (mainSearch) mainSearch.focus();
+        };
+
+        window.toggleNotifications = function() {
+            const dropdown = document.getElementById('notificationDropdown');
+            if (!dropdown) return;
+            const cartDropdown = document.getElementById('cartDropdown');
+            const profileDropdown = document.getElementById('profileDropdown');
+            const addAdDropdown = document.getElementById('addAdDropdown') || document.getElementById('addAdDropdownGuest');
+            
+            if (profileDropdown) {
+                profileDropdown.style.display = 'none';
+                profileDropdown.classList.remove('active');
+            }
+            if (cartDropdown) cartDropdown.style.display = 'none';
+            if (addAdDropdown) addAdDropdown.style.display = 'none';
+            
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        };
+
+        window.toggleCart = function() {
+            const dropdown = document.getElementById('cartDropdown');
+            if (!dropdown) return;
+            const notifDropdown = document.getElementById('notificationDropdown');
+            const profileDropdown = document.getElementById('profileDropdown');
+            const addAdDropdown = document.getElementById('addAdDropdown') || document.getElementById('addAdDropdownGuest');
+            
+            if (profileDropdown) {
+                profileDropdown.style.display = 'none';
+                profileDropdown.classList.remove('active');
+            }
+            if (notifDropdown) notifDropdown.style.display = 'none';
+            if (addAdDropdown) addAdDropdown.style.display = 'none';
+            
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
         };
 
         // Countdown timers
@@ -1245,15 +1295,21 @@
             const dropdown = document.getElementById('profileDropdown');
             if(!dropdown) return;
             
-            ['notificationDropdown', 'cartDropdown', 'addAdDropdown', 'addAdDropdownGuest'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.style.display = 'none';
-                    el.classList.remove('active');
-                }
-            });
+            const notifDropdown = document.getElementById('notificationDropdown');
+            const cartDropdown = document.getElementById('cartDropdown');
+            const addAdDropdown = document.getElementById('addAdDropdown') || document.getElementById('addAdDropdownGuest');
             
-            dropdown.classList.toggle('active');
+            if (notifDropdown) notifDropdown.style.display = 'none';
+            if (cartDropdown) cartDropdown.style.display = 'none';
+            if (addAdDropdown) addAdDropdown.style.display = 'none';
+            
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+                dropdown.classList.remove('active');
+            } else {
+                dropdown.style.display = 'block';
+                dropdown.classList.add('active');
+            }
         };
 
         window.toggleAddAdDropdown = function() {

@@ -11,6 +11,8 @@ Route::middleware('auth')->group(function() {
     Route::get('/ads/create', [\App\Http\Controllers\AdController::class, 'create'])->name('ads.create');
     Route::get('/ads/create/details', [\App\Http\Controllers\AdController::class, 'createDetails'])->name('ads.create.details');
     Route::post('/ads', [\App\Http\Controllers\AdController::class, 'store'])->name('ads.store');
+    Route::get('/ads/{ad}/payment', [\App\Http\Controllers\AdController::class, 'showPayment'])->name('ads.payment');
+    Route::post('/ads/{ad}/payment/process', [\App\Http\Controllers\AdController::class, 'processPayment'])->name('ads.payment.process');
 });
 
 // Public Ad View — increments views_count

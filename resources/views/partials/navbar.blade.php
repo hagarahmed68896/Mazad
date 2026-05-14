@@ -64,35 +64,100 @@
                 <div class="auth-actions" style="display: flex; align-items: center; gap: 1.25rem;">
                     <!-- Icons section -->
                     <div class="nav-icons" style="display: flex; align-items: center; gap: 0.2rem;">
+                        <a href="{{ route('cart.index') }}" class="nav-icon-link">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                            @php $cartCount = Auth::user()->cartItems->count(); @endphp
+                            @if($cartCount > 0)
+                                <span class="nav-badge">{{ $cartCount }}</span>
+                            @endif
+                        </a>
                         <a href="{{ route('chats.index') }}" class="nav-icon-link">
                             <i class="fa-regular fa-comment-dots"></i>
                         </a>
-                        <a href="javascript:void(0)" onclick="toggleNotifications()" class="nav-icon-link" id="notificationBtn">
-                            <i class="fa-regular fa-bell"></i>
-                            @php $unreadCount = Auth::user()->unreadNotifications->count(); @endphp
-                            @if($unreadCount > 0)
-                                <span class="nav-badge">{{ $unreadCount }}</span>
-                            @endif
-                        </a>
+                        <div class="notification-wrapper" style="position: relative;">
+                            <a href="javascript:void(0)" onclick="toggleNotifications()" class="nav-icon-link" id="notificationBtn">
+                                <i class="fa-regular fa-bell"></i>
+                                @php $unreadCount = Auth::user()->unreadNotifications->count(); @endphp
+                                @if($unreadCount > 0)
+                                    <span class="nav-badge">{{ $unreadCount }}</span>
+                                @endif
+                            </a>
+                            <!-- Notification Dropdown -->
+                            <div class="notification-dropdown" id="notificationDropdown">
+                                <div class="notif-header">
+                                    <h3>التنبيهات</h3>
+                                </div>
+                                <div class="notif-body">
+                                    @forelse(Auth::user()->notifications as $notification)
+                                        <a href="#" class="notification-item {{ !$notification->read_at ? 'unread' : '' }}">
+                                            <div class="notif-avatar">
+                                                <i class="fa-regular fa-bell"></i>
+                                            </div>
+                                            <div class="notif-content">
+                                                <h4>{{ $notification->data['title'] ?? 'تنبيه جديد' }}</h4>
+                                                <p>{{ $notification->data['message'] ?? 'لديك إشعار جديد' }}</p>
+                                                <span class="notif-time">{{ $notification->created_at->diffForHumans() }}</span>
+                                            </div>
+                                        </a>
+                                    @empty
+                                        <div class="empty-notifications">
+                                            <i class="fa-regular fa-bell" style="font-size: 3rem; color: #E2E8F0;"></i>
+                                            <p>لا توجد تنبيهات حالياً</p>
+                                        </div>
+                                    @endforelse
+                                </div>
+                                <div class="notif-footer">
+                                    <a href="{{ route('notifications.index') }}">عرض كل التنبيهات</a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Profile -->
-                    <div class="profile-wrapper">
+                    <div class="profile-wrapper" style="position: relative;">
                         <div class="user-profile" id="userProfileBtn" onclick="toggleProfileDropdown()">
                             <div class="user-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</div>
                             <span class="user-greeting hidden sm:block">مرحباً، {{ explode(' ', Auth::user()->name)[0] }}</span>
+                        </div>
+                        <!-- Profile Dropdown -->
+                        <div class="profile-dropdown" id="profileDropdown">
+                            <div class="profile-header">
+                                <div class="profile-avatar-lg">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</div>
+                                <div class="profile-info">
+                                    <h3>{{ Auth::user()->name }}</h3>
+                                    <p>{{ Auth::user()->email }}</p>
+                                </div>
+                            </div>
+                            <div class="profile-menu">
+                                <a href="{{ route('users.profile', Auth::id()) }}" class="profile-menu-item">
+                                    <i class="fa-regular fa-user"></i>
+                                    <span>ملفي الشخصي</span>
+                                </a>
+                                <a href="{{ route('chats.index') }}" class="profile-menu-item">
+                                    <i class="fa-regular fa-comment-dots"></i>
+                                    <span>الرسائل</span>
+                                </a>
+                                <div class="profile-divider"></div>
+                                <form action="{{ route('logout') }}" method="POST" id="logout-form">
+                                    @csrf
+                                    <button type="submit" class="profile-menu-item logout" style="width: 100%; text-align: right; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 1rem;">
+                                        <i class="fa-solid fa-right-from-bracket"></i>
+                                        <span>تسجيل الخروج</span>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Add Ad -->
                     <div class="add-ad-wrapper">
-                        <a href="{{ route('ads.create') }}" class="btn btn-primary add-ad-btn">أضف إعلانك</a>
+                        <a href="javascript:void(0)" onclick="openAddAdModal()" class="btn btn-primary add-ad-btn">أضف إعلانك</a>
                     </div>
                 </div>
             @else
                 <div class="guest-actions" style="display: flex; align-items: center; gap: 1rem;">
-                    <a href="{{ route('login') }}" class="btn btn-outline">تسجيل الدخول</a>
-                    <a href="javascript:void(0)" onclick="showLoginRequiredAlert()" class="btn btn-primary add-ad-btn">أضف إعلانك</a>
+                    <a href="javascript:void(0)" onclick="openAccountModal()" class="btn btn-outline">تسجيل الدخول</a>
+                    <a href="javascript:void(0)" onclick="openAddAdModal()" class="btn btn-primary add-ad-btn">أضف إعلانك</a>
                 </div>
             @endauth
         </div>

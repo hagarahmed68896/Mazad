@@ -983,8 +983,8 @@
             
             detailBox.innerHTML = `
                 <div class="map-p-card" style="background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.2); direction: rtl; text-align: right; font-family: 'Cairo', sans-serif;">
-                    <div style="position: relative; height: 180px;">
-                        <img src="${ad.image ? '{{ asset('') }}' + ad.image : '{{ asset('images/laptop.png') }}'}" style="width: 100%; height: 100%; object-fit: cover;">
+                    <div style="position: relative; height: 180px; background: #F8FAFC; display: flex; align-items: center; justify-content: center;">
+                        ${ad.image ? `<img src="{{ asset('') }}${ad.image}" style="width: 100%; height: 100%; object-fit: cover;">` : `<i class="fa-solid fa-image text-4xl text-gray-200"></i>`}
                         <div style="position: absolute; top: 15px; right: 15px; display: flex; flex-direction: column; gap: 6px;">
                             ${ad.is_featured ? '<span style="background: #EF4444; color: white; padding: 4px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);">مميز</span>' : ''}
                             <span style="background: #D4B05B; color: white; padding: 4px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; box-shadow: 0 4px 10px rgba(212, 176, 91, 0.3);">إلكتروني</span>

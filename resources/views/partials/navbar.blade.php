@@ -73,6 +73,10 @@
                         </a>
                         <a href="{{ route('chats.index') }}" class="nav-icon-link">
                             <i class="fa-regular fa-comment-dots"></i>
+                            @php $unreadMessages = Auth::user()->unreadMessagesCount(); @endphp
+                            @if($unreadMessages > 0)
+                                <span class="nav-badge">{{ $unreadMessages }}</span>
+                            @endif
                         </a>
                         <div class="notification-wrapper" style="position: relative;">
                             <a href="javascript:void(0)" onclick="toggleNotifications()" class="nav-icon-link" id="notificationBtn">
@@ -131,11 +135,14 @@
                             <div class="profile-menu">
                                 <a href="{{ route('users.profile', Auth::id()) }}" class="profile-menu-item">
                                     <i class="fa-regular fa-user"></i>
-                                    <span>ملفي الشخصي</span>
+                                    <span class="mx-4">ملفي الشخصي</span>
                                 </a>
                                 <a href="{{ route('chats.index') }}" class="profile-menu-item">
                                     <i class="fa-regular fa-comment-dots"></i>
-                                    <span>الرسائل</span>
+                                    <span class="mx-4">الرسائل</span>
+                                    @if($unreadMessages > 0)
+                                        <span class="badge" style="background: #EF4444; color: white; border-radius: 50%; padding: 0.1rem 0.4rem; font-size: 0.7rem; margin-right: auto;">{{ $unreadMessages }}</span>
+                                    @endif
                                 </a>
                                 <div class="profile-divider"></div>
                                 <form action="{{ route('logout') }}" method="POST" id="logout-form">

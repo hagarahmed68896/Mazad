@@ -102,7 +102,7 @@
 
                     <!-- Actions -->
                     <div class="flex items-center justify-between pt-2">
-                        <a href="{{ route('admin.forgot-password') }}" class="text-sm font-semibold text-[#1A73E8] hover:text-blue-700 underline underline-offset-4 decoration-blue-200 transition-colors">نسيت كلمة المرور؟</a>
+                        <a href="{{ route('forgot-password') }}" class="text-sm font-semibold text-[#1A73E8] hover:text-blue-700 underline underline-offset-4 decoration-blue-200 transition-colors">نسيت كلمة المرور؟</a>
                         
                         <label class="flex items-center gap-2 cursor-pointer group">
                             <div class="relative w-5 h-5 rounded overflow-hidden">

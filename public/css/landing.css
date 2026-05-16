@@ -20,11 +20,211 @@
 }
 
 body {
-    font-family: 'Inter', 'Outfit', sans-serif;
+    font-family: 'Cairo', 'Outfit', sans-serif;
     background-color: var(--bg-color);
     color: var(--text-main);
     line-height: 1.5;
     direction: rtl;
+}
+
+/* Modern Navbar Fixes */
+.add-ad-btn {
+    white-space: nowrap;
+    padding: 0.75rem 1.5rem !important;
+    min-width: max-content;
+}
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    white-space: nowrap;
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.user-profile:hover {
+    background: #F8FAFC;
+    border-radius: 12px;
+}
+
+/* Notification & Profile Dropdown Styling */
+.notification-dropdown,
+.profile-dropdown {
+    position: absolute;
+    top: calc(100% + 1rem);
+    left: 0;
+    right: auto;
+    width: 320px;
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 1000;
+    border: 1px solid #F1F5F9;
+    animation: slideDown 0.3s ease;
+}
+
+.profile-dropdown {
+    width: 280px;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.notification-dropdown.active,
+.profile-dropdown.active {
+    display: flex;
+}
+
+/* Nav Badge Standardized */
+.nav-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: #EF4444;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 800;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+/* Notification Item Styling */
+.notification-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #F1F5F9;
+    transition: all 0.2s;
+    text-align: right;
+    text-decoration: none;
+}
+.notification-item.unread { background: #F0F7FF; }
+.notification-item:hover { background: #F8FAFC; }
+
+.notif-avatar {
+    width: 45px;
+    height: 45px;
+    background: #1A73E8;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    flex-shrink: 0;
+    font-size: 1.2rem;
+}
+
+.notif-content { flex: 1; }
+.notif-content h4 {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #1E293B;
+    margin-bottom: 0.25rem;
+}
+.notif-content p {
+    font-size: 0.85rem;
+    color: #64748B;
+    line-height: 1.4;
+}
+.notif-time {
+    font-size: 0.75rem;
+    color: #94A3B8;
+    font-weight: 600;
+}
+
+.notif-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #F1F5F9;
+    background: #F8FAFC;
+    text-align: right;
+}
+.notif-header h3 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+.notif-footer {
+    padding: 1rem;
+    text-align: center;
+    border-top: 1px solid #F1F5F9;
+}
+.notif-footer a {
+    color: #1A73E8;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+/* Profile Dropdown Details */
+.profile-header {
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    text-align: right;
+    border-bottom: 1px solid #F1F5F9;
+}
+
+.profile-info h3 {
+    font-size: 1rem;
+    font-weight: 800;
+    margin-bottom: 0.2rem;
+}
+.profile-info p {
+    font-size: 0.8rem;
+    color: #64748B;
+}
+
+.profile-avatar-lg {
+    width: 48px;
+    height: 48px;
+    background: #1A73E8;
+    color: white;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.profile-menu { padding: 0.5rem; }
+.profile-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    color: #475569;
+    font-weight: 600;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+.profile-menu-item:hover {
+    background: #F1F5F9;
+    color: #1A73E8;
+}
+.profile-menu-item.logout { color: #EF4444; }
+.profile-menu-item.logout:hover { background: #FEF2F2; }
+
+/* Search Container Styles */
+.search-container.active #navbarSearchInput {
+    width: 200px !important;
+    opacity: 1 !important;
+    padding: 0.5rem 1rem !important;
+    margin-left: 0.5rem;
 }
 
 input,

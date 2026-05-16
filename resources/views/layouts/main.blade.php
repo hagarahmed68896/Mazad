@@ -35,8 +35,8 @@
     <!-- Styles -->
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
     <style>
-        body { font-family: 'IBM Plex Sans Arabic', 'Outfit', sans-serif; }
-        h1, h2, h3, h4, h5, h6 { font-family: 'IBM Plex Sans Arabic', sans-serif; font-weight: 700; }
+        body { font-family: 'Cairo', 'Outfit', sans-serif; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Cairo', sans-serif; font-weight: 700; }
         
         /* Force landing.css container behavior even with Tailwind */
         .container {
@@ -51,332 +51,7 @@
                 padding-right: 24px !important;
             }
         }
-        
-        /* Modern Navbar Fixes */
-        .add-ad-btn {
-            white-space: nowrap;
-            padding: 0.75rem 1.5rem !important;
-            min-width: max-content;
-        }
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            white-space: nowrap;
-        }
-
-        /* Notification Dropdown Styling */
-        .notification-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            width: 320px;
-            background: #F7F7F7;
-            border-radius: 24px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            margin-top: 1rem;
-            display: none;
-            flex-direction: column;
-            overflow: hidden;
-            z-index: 1000;
-            padding: 1.5rem;
-            transform: translateX(-20%);
-        }
-        .notification-dropdown.active {
-            display: flex;
-        }
-        .profile-dropdown.active {
-            display: block !important;
-        }
-        .empty-notifications p {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: #1C1C1C;
-            margin-top: 1rem;
-        }
-
-        /* Notification Badge */
-        .nav-badge {
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            background: #EF4444;
-            color: white;
-            font-size: 0.65rem;
-            font-weight: 800;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid white;
-        }
-
-        /* Notification Item Styling */
-        .notification-item {
-            display: flex;
-            gap: 1rem;
-            padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid #F1F5F9;
-            transition: all 0.2s;
-            text-align: right;
-            text-decoration: none;
-        }
-        .notification-item.unread {
-            background: #EBF4FF;
-        }
-        .notification-item:hover {
-            background: #F8FAFC;
-        }
-        .notif-avatar {
-            width: 45px;
-            height: 45px;
-            background: #1A73E8;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            flex-shrink: 0;
-            font-size: 1.2rem;
-        }
-        .notif-content {
-            flex: 1;
-        }
-        .notif-content h4 {
-            font-size: 0.95rem;
-            font-weight: 800;
-            color: #1E293B;
-            margin-bottom: 0.25rem;
-            margin-top: 0;
-        }
-        .notif-content p {
-            font-size: 0.85rem;
-            color: #64748B;
-            line-height: 1.4;
-            margin-bottom: 0.4rem;
-        }
-        .notif-time {
-            font-size: 0.75rem;
-            color: #94A3B8;
-            font-weight: 600;
-        }
-        .notif-footer {
-            padding: 1.25rem;
-            text-align: center;
-            border-top: 1px solid #F1F5F9;
-        }
-        .notif-footer a {
-            color: #94A3B8;
-            font-weight: 700;
-            font-size: 0.95rem;
-            transition: color 0.2s;
-            text-decoration: none;
-        }
-        .notif-footer a:hover {
-            color: #1A73E8;
-        }
-        .notif-header h3 {
-            font-size: 1.25rem;
-            font-weight: 800;
-            color: #1C1C1C;
-            margin-bottom: 2rem;
-            text-align: right;
-            margin-top: 0;
-        }
-        .empty-notifications {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem 0;
-        }
-        .bell-icon-container {
-            position: relative;
-            margin-bottom: 2rem;
-        }
-        .bell-bg {
-            width: 140px;
-            height: 140px;
-            background: #EDEDED;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 4rem;
-            color: #D1D5DB;
-            position: relative;
-        }
-        .bell-badge {
-            position: absolute;
-            top: 25px;
-            right: 25px;
-            width: 35px;
-            height: 35px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            font-weight: 800;
-            color: #64748B;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        }
-        .bell-rays {
-            position: absolute;
-            bottom: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 15px;
-        }
-        .bell-rays span {
-            width: 4px;
-            height: 15px;
-            background: #D1D5DB;
-            border-radius: 2px;
-            display: block;
-        }
-        .bell-rays span:nth-child(1) { transform: rotate(45deg); }
-        .bell-rays span:nth-child(3) { transform: rotate(-45deg); }
-        
-        /* Search Bar Responsive Fix */
-        .search-container.active #navbarSearchInput {
-            width: 200px !important;
-            opacity: 1 !important;
-            padding: 0.4rem 1rem !important;
-            margin-left: 0.5rem;
-        }
-
-        @media (max-width: 1024px) {
-            .navbar.search-mode .nav-right-visual,
-            .navbar.search-mode .auth-actions,
-            .navbar.search-mode .guest-actions {
-                opacity: 0.1; /* Fade out other elements instead of hiding to keep layout stable, or hide them if preferred */
-                pointer-events: none;
-            }
-
-            .search-container.active {
-                position: absolute !important;
-                top: 100% !important;
-                left: 0 !important;
-                right: 0 !important;
-                width: 100vw !important;
-                background: white !important;
-                padding: 1rem 2rem !important;
-                border-top: 1px solid #F1F5F9 !important;
-                box-shadow: 0 15px 25px -5px rgba(0,0,0,0.1) !important;
-                z-index: 9999 !important;
-                display: flex !important;
-                margin: 0 !important;
-            }
-            .search-container.active #navSearchForm {
-                flex: 1;
-            }
-            .search-container.active #navbarSearchInput {
-                width: 100% !important;
-                height: 50px !important;
-                background: #F8FAFC !important;
-                border: 1px solid #E2E8F0 !important;
-                border-radius: 16px !important;
-                padding: 0 1.5rem !important;
-                font-size: 1.1rem !important;
-                opacity: 1 !important;
-                display: block !important;
-            }
-            .search-container.active #searchBtn {
-                display: none !important;
-            }
-            .search-container.active .close-search {
-                display: flex !important;
-                margin-right: 1rem;
-                background: #FEE2E2;
-                color: #EF4444;
-                width: 45px;
-                height: 45px;
-                border-radius: 14px;
-                align-items: center;
-                justify-content: center;
-            }
-        }
-        
-        /* Responsive Fixes for Navbar */
-        @media (max-width: 1024px) {
-            .navbar .container {
-                display: flex !important;
-                justify-content: space-between !important;
-                align-items: center !important;
-                gap: 0.5rem;
-            }
-            .nav-right-visual {
-                order: 1;
-                flex: 0 0 auto;
-            }
-            .nav-left-visual {
-                order: 2;
-                flex: 1;
-                justify-content: flex-end !important;
-            }
-            .nav-center-visual {
-                display: none;
-            }
-            .location-picker {
-                display: none !important; 
-            }
-            .user-greeting {
-                display: none;
-            }
-        }
-
-        /* Mobile Navbar with Sub-row for Location */
-        @media (max-width: 640px) {
-            .navbar .container {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: space-between;
-                gap: 0.75rem;
-                padding-bottom: 0.75rem;
-            }
-            .nav-right-visual {
-                order: 1;
-                flex: 1;
-            }
-            .nav-left-visual {
-                order: 2;
-                flex: 1;
-                justify-content: flex-end !important;
-            }
-            .mobile-location-row {
-                display: block !important;
-                width: 100%;
-                order: 3;
-                margin-top: 0.5rem;
-            }
-            .mobile-location-row .location-picker {
-                display: flex !important;
-                width: 100%;
-                justify-content: space-between;
-                background: #F1F5F9;
-                padding: 0.75rem 1rem;
-            }
-            .nav-icons {
-                gap: 0.25rem !important;
-            }
-            .nav-icon-link svg {
-                width: 20px;
-                height: 20px;
-            }
-            .user-avatar {
-                width: 32px;
-                height: 32px;
-                font-size: 0.9rem;
-            }
-            .add-ad-btn {
-                display: none;
-            }
+    </style>
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -759,6 +434,50 @@
             });
         </script>
     @endif
+    <script>
+        function updateCountdowns() {
+            const containers = document.querySelectorAll('[data-end]');
+            containers.forEach(container => {
+                const endDateStr = container.getAttribute('data-end');
+                if (!endDateStr) return;
+                
+                const endDate = new Date(endDateStr).getTime();
+                const now = new Date().getTime();
+                const diff = endDate - now;
+                
+                const timerEl = container.querySelector('.countdown-timer');
+                if (!timerEl) return;
+                
+                if (diff <= 0) {
+                    timerEl.innerHTML = '<span class="text-red-500 font-bold">منتهي</span>';
+                    return;
+                }
+                
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                if (container.classList.contains('sidebar-countdown')) {
+                    // Update specific spans for sidebar
+                    const dEl = timerEl.querySelector('.days');
+                    const hEl = timerEl.querySelector('.hours');
+                    const mEl = timerEl.querySelector('.minutes');
+                    const sEl = timerEl.querySelector('.seconds');
+                    
+                    if(dEl) dEl.innerText = days.toString().padStart(2, '0');
+                    if(hEl) hEl.innerText = hours.toString().padStart(2, '0');
+                    if(mEl) mEl.innerText = minutes.toString().padStart(2, '0');
+                    if(sEl) sEl.innerText = seconds.toString().padStart(2, '0');
+                } else {
+                    // Standard text format for cards
+                    timerEl.innerText = `${days}ي ${hours}س ${minutes}د ${seconds}ث`;
+                }
+            });
+        }
+        setInterval(updateCountdowns, 1000);
+        updateCountdowns();
+    </script>
     @stack('scripts')
 </body>
 </html>

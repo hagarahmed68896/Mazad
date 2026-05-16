@@ -1,10 +1,16 @@
 <div class="p-ad-card">
     <div class="p-card-image">
         @php
-            $image = $ad->image ? asset($ad->image) : asset('images/laptop.png');
+            $image = $ad->image ? asset($ad->image) : null;
         @endphp
-        <a href="{{ route('ads.show', $ad->id) }}">
-            <img src="{{ $image }}" alt="{{ $ad->title }}">
+        <a href="{{ route('ads.show', $ad->id) }}" class="h-full w-full block bg-gray-50">
+            @if($image)
+                <img src="{{ $image }}" alt="{{ $ad->title }}">
+            @else
+                <div class="flex items-center justify-center h-full w-full text-gray-300">
+                    <i class="fa-solid fa-image text-4xl"></i>
+                </div>
+            @endif
         </a>
         
         <div class="p-wishlist cursor-pointer" onclick="event.preventDefault(); event.stopPropagation(); requireAuth(() => toggleGlobalWishlist(null, {{ $ad->id }}))">
@@ -98,16 +104,21 @@
         </div>
 
         <div class="p-card-footer">
-            @if($ad->type == 'direct_purchase')
-                <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">شراء</a>
-                <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-outline">قدم عرضك</a>
-            @elseif($ad->type == 'hybrid_auction')
-                <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">المشاركة في المزاد</a>
-            @elseif($ad->type == 'tender')
-                <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">ناقص الآن</a>
+            @if(Auth::check() && Auth::id() == $ad->user_id)
+                <a href="{{ route('ads.edit', $ad->id) }}" class="btn btn-p-outline" style="flex: 1; border-color: #1A73E8; color: #1A73E8;">تعديل الإعلان</a>
             @else
-                <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">زايد</a>
+                @if($ad->type == 'direct_purchase')
+                    <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">شراء</a>
+                    <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-outline">قدم عرضك</a>
+                @elseif($ad->type == 'hybrid_auction')
+                    <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">المشاركة في المزاد</a>
+                @elseif($ad->type == 'tender')
+                    <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">ناقص الآن</a>
+                @else
+                    <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">زايد</a>
+                @endif
             @endif
         </div>
     </div>
 </div>
+

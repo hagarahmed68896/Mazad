@@ -35,6 +35,7 @@
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
     <style>
         body { font-family: 'Cairo', 'Outfit', sans-serif; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Cairo', sans-serif; font-weight: 700; }
         .container {
             max-width: 100% !important;
             padding-left: 64px !important;

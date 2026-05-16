@@ -106,4 +106,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Cart::class);
     }
+
+    public function unreadMessagesCount()
+    {
+        return Message::whereHas('conversation', function($q) {
+            $q->where('user_one_id', $this->id)->orWhere('user_two_id', $this->id);
+        })
+        ->where('sender_id', '!=', $this->id)
+        ->where('is_read', false)
+        ->count();
+    }
 }

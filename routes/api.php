@@ -51,6 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Ads creation
     Route::get('/ads/create/metadata', [\App\Http\Controllers\Api\AdController::class, 'createMetadata']);
     Route::post('/ads', [\App\Http\Controllers\Api\AdController::class, 'store']);
+    Route::post('/ads/{id}/update', [\App\Http\Controllers\Api\AdController::class, 'update']);
 
     // Bidding
     Route::post('/ads/{id}/bids', [BidController::class, 'store']);

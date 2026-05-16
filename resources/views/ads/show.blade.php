@@ -28,6 +28,11 @@
                 <button onclick="shareAd()" class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-2xl border border-gray-100 hover:shadow-md transition-all text-sm font-bold text-gray-700">
                     <i class="fa-solid fa-share-nodes text-primary"></i> مشاركة
                 </button>
+                @if(Auth::check() && Auth::id() == $ad->user_id)
+                <a href="{{ route('ads.edit', $ad->id) }}" class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-2xl border border-primary hover:shadow-md transition-all text-sm font-bold text-primary">
+                    <i class="fa-solid fa-pen-to-square"></i> تعديل الإعلان
+                </a>
+                @endif
             </div>
         </div>
 
@@ -44,59 +49,56 @@
             </div>
         </div>
 
+        @php 
+            $additionalImages = $ad->images;
+            $allImages = collect([$ad->image])
+                ->merge($additionalImages->pluck('image'))
+                ->filter()
+                ->unique()
+                ->map(fn($img) => asset($img))
+                ->values();
+        @endphp
+
         <!-- Gallery Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-10">
+        <div class="grid grid-cols-1 {{ $allImages->count() > 1 ? 'lg:grid-cols-3' : '' }} gap-5 mb-10">
             <!-- Main Image -->
-            <a href="{{ route('ads.gallery', ['id' => $ad->id, 'index' => 0]) }}" class="lg:col-span-2 aspect-[16/10] lg:aspect-auto lg:h-[450px] rounded-[32px] overflow-hidden border border-gray-100 shadow-sm cursor-pointer group relative">
-                <img id="mainAdImage" src="{{ $ad->image ? asset($ad->image) : asset('images/laptop.png') }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+            <a href="{{ route('ads.gallery', ['id' => $ad->id, 'index' => 0]) }}" class="{{ $allImages->count() > 1 ? 'lg:col-span-2' : '' }} aspect-[16/10] lg:aspect-auto lg:h-[450px] rounded-[32px] overflow-hidden border border-gray-100 shadow-sm cursor-pointer group relative">
+                @if($ad->image)
+                    <img id="mainAdImage" src="{{ asset($ad->image) }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                @else
+                    <div class="w-full h-full bg-gray-50 flex items-center justify-center text-gray-300">
+                        <i class="fa-solid fa-image text-6xl"></i>
+                    </div>
+                @endif
                 <div class="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <i class="fa-solid fa-expand text-white text-3xl drop-shadow-lg"></i>
                 </div>
             </a>
+            @if($allImages->count() > 1)
             <!-- Secondary Images -->
             <div class="hidden lg:flex flex-col gap-5 h-[450px]">
-                @php 
-                    $additionalImages = $ad->images;
-                    
-                    // 1. Get real images (Main + Additional)
-                    $realImages = collect([$ad->image])
-                        ->merge($additionalImages->pluck('image'))
-                        ->filter()
-                        ->unique()
-                        ->map(fn($img) => asset($img))
-                        ->values();
-
-                    // 2. Fallbacks for the 3-grid spots
-                    $fallbacks = [
-                        asset('images/laptop.png'),
-                        asset('images/building.png'),
-                        asset('images/hero_car.png')
-                    ];
-
-                    // 3. Create the final collection (ensure at least 3 images to match the grid)
-                    $allImages = $realImages;
-                    if ($allImages->count() < 3) {
-                        for ($i = $allImages->count(); $i < 3; $i++) {
-                            $allImages->push($fallbacks[$i]);
-                        }
-                    }
-                @endphp
-                <a href="{{ route('ads.gallery', ['id' => $ad->id, 'index' => 1]) }}" class="h-1/2 w-full rounded-[32px] overflow-hidden border border-gray-100 shadow-sm cursor-pointer group relative">
-                    <img src="{{ $allImages[1] }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                    <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i>
-                    </div>
-                </a>
-                <a href="{{ route('ads.gallery', ['id' => $ad->id, 'index' => 2]) }}" class="h-1/2 w-full rounded-[32px] overflow-hidden border border-gray-100 shadow-sm relative group cursor-pointer">
-                    <img src="{{ $allImages[2] }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                    <div class="absolute inset-0 bg-black/30 backdrop-blur-[1px] flex items-center justify-center transition-all group-hover:bg-black/50">
-                        <div class="bg-white/95 backdrop-blur px-5 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-2xl transform transition-all group-hover:scale-110">
-                            <i class="fa-solid fa-images text-gray-900 text-lg"></i>
-                            <span class="text-gray-900 font-black text-base">{{ count($allImages) }} صور</span>
+                @if($allImages->count() > 1)
+                    <a href="{{ route('ads.gallery', ['id' => $ad->id, 'index' => 1]) }}" class="{{ $allImages->count() > 2 ? 'h-1/2' : 'h-full' }} w-full rounded-[32px] overflow-hidden border border-gray-100 shadow-sm cursor-pointer group relative">
+                        <img src="{{ $allImages[1] }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                        <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i>
                         </div>
-                    </div>
-                </a>
+                    </a>
+                @endif
+
+                @if($allImages->count() > 2)
+                    <a href="{{ route('ads.gallery', ['id' => $ad->id, 'index' => 2]) }}" class="h-1/2 w-full rounded-[32px] overflow-hidden border border-gray-100 shadow-sm relative group cursor-pointer">
+                        <img src="{{ $allImages[2] }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                        <div class="absolute inset-0 bg-black/30 backdrop-blur-[1px] flex items-center justify-center transition-all group-hover:bg-black/50">
+                            <div class="bg-white/95 backdrop-blur px-5 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-2xl transform transition-all group-hover:scale-110">
+                                <i class="fa-solid fa-images text-gray-900 text-lg"></i>
+                                <span class="text-gray-900 font-black text-base">{{ count($allImages) }} صور</span>
+                            </div>
+                        </div>
+                    </a>
+                @endif
             </div>
+            @endif
         </div>
 
         <!-- Sub Title & Category Row -->
@@ -597,7 +599,7 @@
                             @endif
                         </div>
 
-                        @if($ad->type == 'direct_purchase')
+                        @if($ad->type == 'direct_purchase' && Auth::id() != $ad->user_id)
                         <!-- Quantity Selector -->
                         <div class="mb-6 space-y-3">
                             <div class="flex justify-between items-center px-1">
@@ -622,7 +624,7 @@
                             $is_closed = $ad->status == 'finished' || (isset($b_status) && ($b_status == 'sold' || $b_status == 'finished'));
                         @endphp
 
-                        @if(!$is_closed)
+                        @if(!$is_closed && Auth::id() != $ad->user_id)
                         <div class="space-y-3">
                             @if($ad->type == 'electronic_auction' || $ad->type == 'hybrid_auction')
                                 @php
@@ -676,12 +678,19 @@
                                 </div>
                             @endif
                         </div>
+                        @elseif(Auth::id() == $ad->user_id)
+                            <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 text-center">
+                                <p class="text-primary font-black mb-4">أنت صاحب هذا الإعلان</p>
+                                <a href="{{ route('ads.edit', $ad->id) }}" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-3">
+                                    <i class="fa-solid fa-pen-to-square"></i> تعديل الإعلان
+                                </a>
+                            </div>
                         @endif
                     </div> <!-- End Card -->
                 </div> <!-- End Sticky -->
             </div> <!-- End Left: Sidebar -->
         </div> <!-- End Main Flex -->
-    </div> <!-- End Main Content Container -->
+    @php /* Moved container close to after related ads */ @endphp
 
         <!-- 1. Price Breakdown Modal (Info only - Image 1) -->
         <div id="priceModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
@@ -1220,64 +1229,40 @@
                 </div>
             </div>
         </div>
-        <!-- Services & Related Ads Section -->
-        <div class="container px-4 md:px-16 mx-auto mb-20">
-            @php
-                $suggestedServices = \App\Models\Service::where('category_id', $ad->category_id)->limit(4)->get();
-            @endphp
 
-            @if($suggestedServices->isNotEmpty())
-            <!-- Suggested Services Section -->
-            <div class="mt-20">
-                <div class="flex items-center justify-between mb-8">
-                    <h2 class="text-3xl font-black text-gray-900">خدمات مقترحة لهذا المنتج</h2>
-                    <a href="{{ route('ads.services', $ad->id) }}" class="bg-[#D4B55E] text-white px-6 py-2 rounded-xl font-bold hover:bg-[#C0A04D] transition-all">عرض الكل</a>
-                </div>
-                
-                <div class="flex gap-6 overflow-x-auto no-scrollbar pb-6">
-                    @foreach($suggestedServices as $service)
-                    <div class="min-w-[450px] bg-gradient-to-l from-blue-600 to-blue-500 rounded-[32px] overflow-hidden flex items-center p-6 gap-6 shadow-xl shadow-blue-900/10 relative group">
-                        <div class="w-40 h-40 rounded-2xl overflow-hidden flex-shrink-0 border-4 border-white/10">
-                            <img src="{{ $service->image ? asset($service->image) : 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400&q=80' }}" class="w-full h-full object-cover">
-                        </div>
-                        <div class="flex-1 text-white">
-                            <h3 class="text-2xl font-black mb-2">{{ $service->title }}</h3>
-                            <p class="text-blue-50/80 text-sm font-medium line-clamp-2 leading-relaxed mb-6">{{ $service->description }}</p>
-                            <button class="bg-white text-blue-600 px-6 py-2 rounded-xl font-black text-sm hover:bg-blue-50 transition-all">اطلب الخدمة</button>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-            @endif
 
             <!-- You May Also Like Section -->
-            <div class="mt-32 relative group">
+            <div class="mt-32 mb-20">
                 <div class="flex items-center justify-between mb-12">
-                    <h2 class="text-3xl md:text-5xl font-black text-gray-900">قد يعجبك أيضًا</h2>
-                    <a href="{{ route('search', ['category' => $ad->category_id]) }}" class="bg-[#D4B55E] text-white px-8 py-3 rounded-2xl font-black hover:bg-[#C0A04D] transition-all flex items-center gap-3">
+                    <div class="flex items-center gap-4">
+                        <span class="w-2 h-10 bg-primary rounded-full"></span>
+                        <h2 class="text-3xl md:text-4xl font-black text-gray-900">قد يعجبك أيضًا</h2>
+                    </div>
+                    <a href="{{ route('search', ['category' => $ad->category_id]) }}" class="text-primary font-black flex items-center gap-2 hover:gap-4 transition-all">
                         عرض الكل <i class="fa-solid fa-arrow-left"></i>
                     </a>
                 </div>
 
-                <!-- Navigation Arrows -->
-                <button onclick="scrollRelated('right')" class="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white/90 backdrop-blur shadow-xl rounded-full flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all -mr-7 opacity-0 group-hover:opacity-100 hidden md:flex border border-gray-100">
-                    <i class="fa-solid fa-chevron-right text-xl"></i>
-                </button>
-                <button onclick="scrollRelated('left')" class="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white/90 backdrop-blur shadow-xl rounded-full flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all -ml-7 opacity-0 group-hover:opacity-100 hidden md:flex border border-gray-100">
-                    <i class="fa-solid fa-chevron-left text-xl"></i>
-                </button>
-
-                <!-- Cards Container -->
-                <div id="relatedAdsContainer" class="flex gap-8 overflow-x-auto no-scrollbar scroll-smooth pb-10 -mx-4 px-4">
-                    @foreach($relatedAds as $rad)
-                        <div class="min-w-full md:min-w-[calc(50%-16px)] lg:min-w-[calc(33.333%-22px)] flex-shrink-0">
-                            @include('partials.ad-card', ['ad' => $rad])
-                        </div>
-                    @endforeach
+                <!-- Swiped Container -->
+                <div class="relative group">
+                    <div id="relatedAdsSlider" class="flex gap-6 overflow-x-auto no-scrollbar scroll-smooth pb-8">
+                        @foreach($relatedAds as $rad)
+                            <div class="min-w-[280px] md:min-w-[320px] lg:min-w-[350px] flex-shrink-0">
+                                @include('partials.ad-card', ['ad' => $rad])
+                            </div>
+                        @endforeach
+                    </div>
+                    
+                    <!-- Navigation (Optional but nice) -->
+                    <button onclick="document.getElementById('relatedAdsSlider').scrollLeft += 400" class="absolute -right-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white shadow-xl rounded-full hidden lg:flex items-center justify-center text-gray-400 hover:text-primary hover:scale-110 transition-all z-10 border border-gray-100">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                    <button onclick="document.getElementById('relatedAdsSlider').scrollLeft -= 400" class="absolute -left-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white shadow-xl rounded-full hidden lg:flex items-center justify-center text-gray-400 hover:text-primary hover:scale-110 transition-all z-10 border border-gray-100">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
                 </div>
             </div>
-        </div>
+        </div> <!-- End Main Content Container -->
     </div> <!-- End Page -->
 
 <style>

@@ -159,9 +159,13 @@
     <div class="profile-banner bg-gray-900">
         @php
             $latestAd = $user->ads()->latest()->first();
-            $coverImage = $user->cover ? asset($user->cover) : ($latestAd ? asset($latestAd->image) : asset('images/laptop.png'));
+            $coverImage = $user->cover ? asset($user->cover) : ($latestAd ? asset($latestAd->image) : null);
         @endphp
-        <img src="{{ $coverImage }}" alt="cover">
+        @if($coverImage)
+            <img src="{{ $coverImage }}" alt="cover">
+        @else
+            <div class="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900"></div>
+        @endif
         
         <!-- Overlay -->
         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
@@ -724,8 +728,8 @@
         
         detailBox.innerHTML = `
             <div class="bg-white rounded-3xl overflow-hidden shadow-2xl border border-gray-100" dir="rtl">
-                <div class="relative h-48">
-                    <img src="${ad.image ? '{{ asset('') }}' + ad.image : '{{ asset('images/laptop.png') }}'}" class="w-full h-full object-cover">
+                <div class="relative h-48 bg-gray-50 flex items-center justify-center">
+                    ${ad.image ? `<img src="{{ asset('') }}${ad.image}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-image text-4xl text-gray-200"></i>`}
                     <div class="absolute top-4 right-4 flex flex-col gap-2">
                         ${ad.is_featured ? '<span class="bg-red-500 text-white px-3 py-1 rounded-lg text-[10px] font-black shadow-lg">مميز</span>' : ''}
                         <span class="bg-primary text-white px-3 py-1 rounded-lg text-[10px] font-black shadow-lg">${ad.type === 'direct_purchase' ? 'شراء فوري' : 'مزاد'}</span>

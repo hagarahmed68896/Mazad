@@ -43,6 +43,10 @@
             <a href="{{ route('chats.index') }}" class="sidebar-link">
                 <i class="fa-regular fa-comment-dots"></i>
                 <span>الدردشات</span>
+                @php $unreadMessages = Auth::user()->unreadMessagesCount(); @endphp
+                @if($unreadMessages > 0)
+                    <span class="badge" style="background: #EF4444; color: white; border-radius: 50%; padding: 0.1rem 0.4rem; font-size: 0.7rem; margin-right: auto;">{{ $unreadMessages }}</span>
+                @endif
             </a>
             <a href="#" class="sidebar-link">
                 <i class="fa-regular fa-bell"></i>

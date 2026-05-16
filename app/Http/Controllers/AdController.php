@@ -96,6 +96,7 @@ class AdController extends Controller
                 'lat'            => $request->lat,
                 'lng'            => $request->lng,
                 'inspection_info'=> $request->inspection_info,
+                'inspection_date'=> $request->inspection_date,
                 'deposit_amount' => $depositAmount,
                 'price'          => $price,
                 'bid_increment'  => $bidIncrement,
@@ -104,6 +105,17 @@ class AdController extends Controller
                 'image'          => $mainImage,
                 'is_featured'    => $request->has('is_featured') ? 1 : 0,
                 'is_enfaz'       => $request->is_enfaz ?? 0,
+                'auction_type'   => $request->auction_type,
+                'shipping_price' => $request->shipping_price ?? 0,
+                'shipping_type'  => $request->shipping_type,
+                'youtube_link'   => $request->youtube_link,
+                'start_date'     => $request->start_date,
+                'award_duration' => $request->award_duration,
+                'quantity'       => $request->quantity ?? 1,
+                'min_sale_price' => $request->min_sale_price ?? 0,
+                'allow_bidding'  => $request->allow_bidding ?? 0,
+                'allow_negotiation' => $request->allow_negotiation ?? 0,
+                'buy_now_price'  => $request->buy_now_price ?? 0,
             ]);
 
             // Save additional images
@@ -187,5 +199,140 @@ class AdController extends Controller
 
         return redirect()->route('ads.show', $ad->id)
             ->with('success', 'تم الدفع بنجاح! إعلانك مميز الآن وسيظهر في المقدمة.');
+    }
+
+    public function edit(Ad $ad)
+    {
+        if ($ad->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $category = Category::with(['pages' => function($q) {
+            $q->with('properties');
+        }, 'properties' => function($q) {
+            $q->whereNull('category_page_id'); 
+        }])->findOrFail($ad->category_id);
+
+        $cities = \App\Models\City::orderBy('name')->get();
+        $type = $ad->type;
+        $adProperties = $ad->adProperties->pluck('value', 'property_id');
+
+        return view('ads.edit', compact('ad', 'category', 'cities', 'type', 'adProperties'));
+    }
+
+    public function update(Request $request, Ad $ad)
+    {
+        if ($ad->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'title'       => 'required|string|max:255',
+            'description' => 'required|string',
+            'images.*'    => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
+        ]);
+
+        $adType = $ad->type;
+        
+        $price = $ad->price;
+        $depositAmount = $ad->deposit_amount;
+        $bidIncrement = $ad->bid_increment;
+
+        if ($adType === 'auction') {
+            $price = $request->auction_start_price ?? $price;
+            $depositAmount = $request->auction_deposit ?? $depositAmount;
+            $bidIncrement = $request->bid_increment ?? $bidIncrement;
+        } elseif ($adType === 'tender') {
+            $price = $request->tender_price ?? $price;
+            $bidIncrement = $request->tender_bid_increment ?? $bidIncrement;
+        } else {
+            $price = $request->sale_price ?? $price;
+            $depositAmount = $request->direct_deposit ?? $depositAmount;
+        }
+
+        DB::beginTransaction();
+        try {
+            // Update main image if new one is uploaded
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $index => $file) {
+                    $path = $file->store('ads', 'public');
+                    if ($index === 0) {
+                        $ad->image = 'storage/' . $path;
+                    }
+                    AdImage::create([
+                        'ad_id' => $ad->id,
+                        'image' => 'storage/' . $path,
+                    ]);
+                }
+            }
+
+            $ad->update([
+                'title'          => $request->title,
+                'description'    => $request->description,
+                'address'        => $request->address,
+                'lat'            => $request->lat,
+                'lng'            => $request->lng,
+                'inspection_info'=> $request->inspection_info,
+                'inspection_date'=> $request->inspection_date,
+                'deposit_amount' => $depositAmount,
+                'price'          => $price,
+                'bid_increment'  => $bidIncrement,
+                'end_date'       => $request->end_date ?? $ad->end_date,
+                'is_featured'    => $request->has('is_featured') ? 1 : 0,
+                'auction_type'   => $request->auction_type,
+                'shipping_price' => $request->shipping_price ?? 0,
+                'shipping_type'  => $request->shipping_type,
+                'youtube_link'   => $request->youtube_link,
+                'start_date'     => $request->start_date,
+                'award_duration' => $request->award_duration,
+                'quantity'       => $request->quantity ?? 1,
+                'min_sale_price' => $request->min_sale_price ?? 0,
+                'allow_bidding'  => $request->allow_bidding ?? 0,
+                'allow_negotiation' => $request->allow_negotiation ?? 0,
+                'buy_now_price'  => $request->buy_now_price ?? 0,
+            ]);
+
+            // Update dynamic properties
+            if ($request->has('properties') && is_array($request->properties)) {
+                foreach ($request->properties as $propertyId => $value) {
+                    if ($request->hasFile("properties.{$propertyId}")) {
+                        $file = $request->file("properties.{$propertyId}");
+                        $path = $file->store('ads/properties', 'public');
+                        $value = 'storage/' . $path;
+                    }
+                    
+                    if ($value !== null && $value !== '') {
+                        AdProperty::updateOrCreate(
+                            ['ad_id' => $ad->id, 'property_id' => $propertyId],
+                            ['value' => $value]
+                        );
+                    }
+                }
+            }
+
+            DB::commit();
+
+            // Redirect to payment ONLY if is_featured was just turned on (from 0 to 1)
+            if ($ad->wasChanged('is_featured') && $ad->is_featured) {
+                return redirect()->route('ads.payment', $ad->id)
+                    ->with('info', 'أكمل عملية الدفع لتفعيل التمييز.');
+            }
+
+            return redirect()->route('ads.show', $ad->id)->with('success', 'تم تحديث الإعلان بنجاح!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'حدث خطأ أثناء تحديث الإعلان: ' . $e->getMessage());
+        }
+    }
+
+    public function destroy(Ad $ad)
+    {
+        if ($ad->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $ad->delete();
+        return redirect()->route('users.profile', Auth::id())->with('success', 'تم حذف الإعلان بنجاح!');
     }
 }

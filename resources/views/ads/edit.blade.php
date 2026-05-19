@@ -98,6 +98,26 @@
             <input type="hidden" name="type" value="{{ $ad->type }}">
             <input type="hidden" name="category_id" value="{{ $category->id }}">
 
+            @if ($errors->any())
+                <div class="bg-red-50 border-r-4 border-red-500 p-5 rounded-2xl mb-6 shadow-sm">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0 mt-0.5">
+                            <i class="fa-solid fa-circle-exclamation text-red-500 text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-black text-red-800">
+                                عذراً! يرجى تصحيح الأخطاء التالية قبل الاستمرار:
+                            </p>
+                            <ul class="mt-2 list-disc list-inside text-xs font-bold text-red-700 space-y-1" style="list-style-type: disc; padding-right: 1.25rem;">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- Step 1+: Dynamic Category Pages -->
             @foreach($category->pages as $index => $page)
                 <div class="step-container {{ $stepCounter == 1 ? 'active' : '' }}" data-step="{{ $stepCounter }}" data-title="{{ $page->name }}">
@@ -180,24 +200,96 @@
             <!-- Date/Time Selection Area -->
             <div class="space-y-6 pt-4 border-t border-gray-50">
                 <h3 class="text-xl font-black text-gray-900">متى تكون متاحاً للمعاينة؟</h3>
-                <div class="relative">
+                
+                <!-- Time Selection Type -->
+                <div class="space-y-4">
+                    <label class="block text-gray-700 font-black mb-1">طريقة تحديد وقت المعاينة</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div onclick="setInspectionTimeType('single')" id="btn_time_type_single" class="flex items-center justify-center gap-3 p-4 border-2 border-primary bg-blue-50/50 rounded-2xl cursor-pointer hover:border-primary transition-all text-primary font-bold text-center">
+                            <input type="radio" id="radio_single" name="inspection_time_type" value="single" checked class="hidden">
+                            <span class="text-base font-black">📅 موعد محدد (يوم وساعة)</span>
+                        </div>
+                        <div onclick="setInspectionTimeType('range')" id="btn_time_type_range" class="flex items-center justify-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all text-gray-500 font-bold text-center">
+                            <input type="radio" id="radio_range" name="inspection_time_type" value="range" class="hidden">
+                            <span class="text-base font-black">⏳ فترة زمنية (من - إلى)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SINGLE TIME CONTAINER -->
+                <div id="singleTimeContainer" class="relative">
                     <label class="block text-gray-700 font-black mb-3">اختر التاريخ والوقت</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none border-l-2 border-gray-100 pl-3">
                             <i class="fa-regular fa-calendar text-gray-400 text-xl"></i>
                         </div>
-                        <input type="text" 
+                        <input type="text" id="inspection_date_single" 
                                onfocus="(this.type='datetime-local'); setTimeout(() => { this.showPicker ? this.showPicker() : null }, 50)" 
                                onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" 
-                               name="inspection_date" 
                                value="{{ $ad->inspection_date ? \Carbon\Carbon::parse($ad->inspection_date)->format('Y-m-d\TH:i') : '' }}"
                                placeholder="أدخل تاريخ ووقت المعاينة" 
                                class="form-input text-gray-500 font-bold w-full !pr-16 text-right [&::-webkit-calendar-picker-indicator]:hidden cursor-pointer">
                     </div>
                 </div>
+
+                <!-- RANGE TIME CONTAINER -->
+                <div id="rangeTimeContainer" class="hidden space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="space-y-2">
+                            <label class="block text-gray-700 font-black">يوم المعاينة</label>
+                            <input type="date" id="inspection_range_date" class="form-input text-gray-500 font-bold">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-gray-700 font-black">من الساعة</label>
+                            <select id="inspection_range_from" class="form-input font-bold text-gray-700">
+                                <option value="09:00" selected>9:00 صباحاً</option>
+                                <option value="10:00">10:00 صباحاً</option>
+                                <option value="11:00">11:00 صباحاً</option>
+                                <option value="12:00">12:00 مساءً</option>
+                                <option value="13:00">1:00 مساءً</option>
+                                <option value="14:00">2:00 مساءً</option>
+                                <option value="15:00">3:00 مساءً</option>
+                                <option value="16:00">4:00 مساءً</option>
+                                <option value="17:00">5:00 مساءً</option>
+                                <option value="18:00">6:00 مساءً</option>
+                                <option value="19:00">7:00 مساءً</option>
+                                <option value="20:00">8:00 مساءً</option>
+                                <option value="21:00">9:00 مساءً</option>
+                                <option value="22:00">10:00 مساءً</option>
+                                <option value="23:00">11:00 مساءً</option>
+                                <option value="00:00">12:00 صباحاً</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-gray-700 font-black">إلى الساعة</label>
+                            <select id="inspection_range_to" class="form-input font-bold text-gray-700">
+                                <option value="09:00">9:00 صباحاً</option>
+                                <option value="10:00">10:00 صباحاً</option>
+                                <option value="11:00">11:00 صباحاً</option>
+                                <option value="12:00">12:00 مساءً</option>
+                                <option value="13:00">1:00 مساءً</option>
+                                <option value="14:00">2:00 مساءً</option>
+                                <option value="15:00">3:00 مساءً</option>
+                                <option value="16:00">4:00 مساءً</option>
+                                <option value="17:00">5:00 مساءً</option>
+                                <option value="18:00">6:00 مساءً</option>
+                                <option value="19:00">7:00 مساءً</option>
+                                <option value="20:00">8:00 مساءً</option>
+                                <option value="21:00" selected>9:00 مساءً</option>
+                                <option value="22:00">10:00 مساءً</option>
+                                <option value="23:00">11:00 مساءً</option>
+                                <option value="00:00">12:00 صباحاً</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden input submitted to the database -->
+                <input type="hidden" name="inspection_date" id="inspection_date_hidden">
+
                 <div>
                     <label class="block text-gray-700 font-black mb-3">تفاصيل إضافية عن الموعد</label>
-                    <textarea name="inspection_info" rows="3" placeholder="مثال: متاح من الساعة 4 عصراً حتى 9 مساءً، يرجى الاتصال قبل الحضور" class="form-input">{{ $ad->inspection_info }}</textarea>
+                    <textarea name="inspection_info" id="inspection_info_textarea" rows="3" placeholder="مثال: متاح من الساعة 4 عصراً حتى 9 مساءً، يرجى الاتصال قبل الحضور" class="form-input">{{ $ad->inspection_info }}</textarea>
                 </div>
             </div>
         </div>
@@ -454,19 +546,44 @@
 
                     <div class="space-y-3">
                         <label class="block text-gray-700 font-black">الصور الحالية</label>
-                        <div class="grid grid-cols-4 gap-4">
+                        <div id="currentImagesGrid" class="grid grid-cols-4 gap-4">
+                            {{-- Main Image --}}
                             @if($ad->image)
-                                <div class="relative aspect-square rounded-2xl overflow-hidden border-2 border-primary">
-                                    <img src="{{ asset($ad->image) }}" class="w-full h-full object-cover">
-                                    <div class="absolute top-1 right-1 bg-primary text-white text-[10px] px-2 py-0.5 rounded-full">الرئيسية</div>
+                                <div class="relative aspect-square rounded-2xl overflow-hidden border-2 border-primary group" id="main-img-wrapper">
+                                    <img src="{{ \Illuminate\Support\Str::startsWith($ad->image, 'http') ? $ad->image : '/' . ltrim($ad->image, '/') }}" class="w-full h-full object-cover" id="main-img-el">
+                                    <div class="absolute top-1 right-1 bg-primary text-white text-[10px] px-2 py-0.5 rounded-full z-10 font-bold">الرئيسية</div>
+                                    <button type="button"
+                                        onclick="deleteMainImage({{ $ad->id }})"
+                                        class="absolute top-1 left-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center z-10 opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                                        title="حذف الصورة الرئيسية">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
                                 </div>
                             @endif
+
+                            {{-- Gallery Images --}}
                             @foreach($ad->images as $img)
-                                <div class="relative aspect-square rounded-2xl overflow-hidden border border-gray-100">
-                                    <img src="{{ asset($img->image) }}" class="w-full h-full object-cover">
+                                @php $imgSrc = \Illuminate\Support\Str::startsWith($img->image, 'http') ? $img->image : '/' . ltrim($img->image, '/'); @endphp
+                                <div class="relative aspect-square rounded-2xl overflow-hidden border border-gray-200 group gallery-img-item" id="gallery-img-{{ $img->id }}">
+                                    <img src="{{ $imgSrc }}" class="w-full h-full object-cover">
+                                    {{-- Delete button --}}
+                                    <button type="button"
+                                        onclick="deleteGalleryImage({{ $img->id }}, this)"
+                                        class="absolute top-1 left-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center z-10 opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                                        title="حذف الصورة">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                    {{-- Set as main button --}}
+                                    <button type="button"
+                                        onclick="setMainImage({{ $ad->id }}, {{ $img->id }}, '{{ $imgSrc }}', this)"
+                                        class="absolute bottom-1 right-1 bg-white/90 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold z-10 opacity-0 group-hover:opacity-100 transition-opacity shadow border border-primary/20"
+                                        title="تعيين كصورة رئيسية">
+                                        <i class="fa-solid fa-star text-[9px]"></i> رئيسية
+                                    </button>
                                 </div>
                             @endforeach
                         </div>
+                        <p class="text-xs text-gray-400 font-bold mt-1"><i class="fa-solid fa-circle-info ml-1"></i>مرر على الصورة لتظهر أزرار الحذف والتعيين كرئيسية</p>
                     </div>
 
                     <div class="space-y-3 pt-4">
@@ -535,9 +652,13 @@
                             <div>
                                 <span class="font-black text-gray-800 text-lg">تميز الإعلان</span>
                                 <p class="text-xs text-gray-500 font-bold mt-1 flex items-center gap-1">
-                                    <i class="fa-solid fa-circle-info"></i> سيكون الإعلان في المقدمة لمدة 3 أيام بمعدل 10 ريال.
+                                    <i class="fa-solid fa-circle-info"></i> يكون الإعلان في مقدمة الإعلانات ويحمل علامة ذهبية
                                 </p>
                             </div>
+                        </div>
+                        <div class="flex items-center gap-1 font-black text-gray-800 text-lg">
+                            <span>{{ \App\Models\Setting::where('key', 'promotion_price')->first()->value ?? 80 }}</span>
+                            <img src="{{ asset('images/Vector-blue.svg') }}" class="w-4 h-4">
                         </div>
                     </div>
                 </div>
@@ -583,6 +704,112 @@
     const progressBar = document.getElementById('progressBar');
     const stepIndicator = document.getElementById('stepIndicator');
     const stepTitle = document.getElementById('stepTitle');
+
+    window.setInspectionTimeType = function(type) {
+        const btnSingle = document.getElementById('btn_time_type_single');
+        const btnRange = document.getElementById('btn_time_type_range');
+        const singleContainer = document.getElementById('singleTimeContainer');
+        const rangeContainer = document.getElementById('rangeTimeContainer');
+        const radioSingle = document.getElementById('radio_single');
+        const radioRange = document.getElementById('radio_range');
+
+        if (type === 'single') {
+            btnSingle.className = "flex items-center justify-center gap-3 p-4 border-2 border-primary bg-blue-50/50 rounded-2xl cursor-pointer hover:border-primary transition-all text-primary font-bold text-center";
+            btnRange.className = "flex items-center justify-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all text-gray-500 font-bold text-center";
+            singleContainer.classList.remove('hidden');
+            rangeContainer.classList.add('hidden');
+            radioSingle.checked = true;
+        } else {
+            btnRange.className = "flex items-center justify-center gap-3 p-4 border-2 border-primary bg-blue-50/50 rounded-2xl cursor-pointer hover:border-primary transition-all text-primary font-bold text-center";
+            btnSingle.className = "flex items-center justify-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all text-gray-500 font-bold text-center";
+            singleContainer.classList.add('hidden');
+            rangeContainer.classList.remove('hidden');
+            radioRange.checked = true;
+        }
+    };
+
+    window.syncInspectionData = function() {
+        const isRange = document.getElementById('radio_range').checked;
+        const hiddenInput = document.getElementById('inspection_date_hidden');
+        const infoTextarea = document.getElementById('inspection_info_textarea');
+        
+        if (isRange) {
+            const rangeDate = document.getElementById('inspection_range_date').value;
+            const rangeFrom = document.getElementById('inspection_range_from').value;
+            const rangeTo = document.getElementById('inspection_range_to').value;
+            
+            const fromText = document.getElementById('inspection_range_from').options[document.getElementById('inspection_range_from').selectedIndex].text;
+            const toText = document.getElementById('inspection_range_to').options[document.getElementById('inspection_range_to').selectedIndex].text;
+            
+            if (rangeDate && rangeFrom) {
+                hiddenInput.value = rangeDate + ' ' + rangeFrom + ':00';
+            } else {
+                hiddenInput.value = '';
+            }
+            
+            // Format inspection info
+            let currentInfo = infoTextarea.value;
+            currentInfo = currentInfo.replace(/\[فترة المعاينة:.*?\]/g, '').trim();
+            infoTextarea.value = `[فترة المعاينة: من ${fromText} إلى ${toText}]` + (currentInfo ? '\n' + currentInfo : '');
+        } else {
+            const singleVal = document.getElementById('inspection_date_single').value;
+            if (singleVal) {
+                hiddenInput.value = singleVal.replace('T', ' ');
+            } else {
+                hiddenInput.value = '';
+            }
+            infoTextarea.value = infoTextarea.value.replace(/\[فترة المعاينة:.*?\]/g, '').trim();
+        }
+    };
+
+    // Parser for edit view on page load
+    window.addEventListener('DOMContentLoaded', () => {
+        const infoTextarea = document.getElementById('inspection_info_textarea');
+        if (infoTextarea) {
+            const match = infoTextarea.value.match(/\[فترة المعاينة:\s*من\s*(.*?)\s*إلى\s*(.*?)\]/);
+            if (match) {
+                const fromText = match[1].trim();
+                const toText = match[2].trim();
+                
+                // Toggle to range
+                setInspectionTimeType('range');
+                
+                // Clean the info textarea
+                infoTextarea.value = infoTextarea.value.replace(/\[فترة المعاينة:.*?\]/g, '').trim();
+                
+                // Populate selects
+                const fromSelect = document.getElementById('inspection_range_from');
+                const toSelect = document.getElementById('inspection_range_to');
+                
+                for (let option of fromSelect.options) {
+                    if (option.text.trim() === fromText) {
+                        option.selected = true;
+                        break;
+                    }
+                }
+                for (let option of toSelect.options) {
+                    if (option.text.trim() === toText) {
+                        option.selected = true;
+                        break;
+                    }
+                }
+                
+                // Parse date from hidden/existing value
+                const existingDateVal = `{!! $ad->inspection_date ? \Carbon\Carbon::parse($ad->inspection_date)->format('Y-m-d H:i:s') : '' !!}`;
+                if (existingDateVal) {
+                    const datePart = existingDateVal.split(' ')[0]; // YYYY-MM-DD
+                    document.getElementById('inspection_range_date').value = datePart;
+                }
+            } else {
+                // Single mode: existing datetime is in datetime-local format
+                const existingDateVal = `{!! $ad->inspection_date ? \Carbon\Carbon::parse($ad->inspection_date)->format('Y-m-d H:i:s') : '' !!}`;
+                if (existingDateVal) {
+                    // Pre-fill hidden input too
+                    document.getElementById('inspection_date_hidden').value = existingDateVal;
+                }
+            }
+        }
+    });
 
     // Map Initialization
     let map, marker;
@@ -663,24 +890,92 @@
         }
     });
 
-    nextBtn.onclick = () => { currentStep++; updateUI(); };
+    nextBtn.onclick = () => {
+        const currentStepContainer = document.querySelector(`.step-container[data-step="${currentStep}"]`);
+        
+        // Sync before validation if we are on inspection step
+        if (currentStepContainer && currentStepContainer.dataset.title === 'تفاصيل المعاينة') {
+            syncInspectionData();
+        }
+
+        const inputs = currentStepContainer.querySelectorAll('input[required], textarea[required], select[required]');
+        let valid = true;
+        inputs.forEach(input => {
+            if (!input.value) {
+                input.style.borderColor = '#EF4444';
+                valid = false;
+            } else {
+                input.style.borderColor = '#F1F5F9';
+            }
+        });
+
+        if (valid) {
+            currentStep++;
+            updateUI();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'عذراً',
+                text: 'يرجى ملء جميع الحقول المطلوبة للمتابعة',
+                confirmButtonText: 'حسناً',
+                confirmButtonColor: '#1A73E8',
+                customClass: { popup: 'rounded-[32px]' }
+            });
+        }
+    };
     prevBtn.onclick = () => { currentStep--; updateUI(); };
 
-    document.getElementById('imageInput').onchange = function(e) {
+    let selectedFiles = [];
+
+    function renderPreviews() {
         const preview = document.getElementById('imagePreview');
         preview.innerHTML = '';
-        const files = e.target.files;
-        for (let i = 0; i < files.length; i++) {
+        
+        selectedFiles.forEach((file, index) => {
             const reader = new FileReader();
             reader.onload = function(event) {
                 const div = document.createElement('div');
-                div.className = 'relative aspect-square rounded-2xl overflow-hidden border border-gray-100 shadow-sm';
-                div.innerHTML = `<img src="${event.target.result}" class="w-full h-full object-cover">`;
+                div.className = 'relative aspect-square rounded-2xl overflow-hidden border border-gray-100 shadow-sm group';
+                div.innerHTML = `
+                    <img src="${event.target.result}" class="w-full h-full object-cover">
+                    <button type="button" onclick="removeSelectedFile(${index})" class="absolute top-1 left-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center z-10 opacity-0 group-hover:opacity-100 transition-all shadow hover:bg-red-600" title="حذف الصورة">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                `;
                 preview.appendChild(div);
             }
-            reader.readAsDataURL(files[i]);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    window.removeSelectedFile = function(index) {
+        selectedFiles.splice(index, 1);
+        renderPreviews();
+    };
+
+    document.getElementById('imageInput').onchange = function(e) {
+        if (e.target.files) {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    selectedFiles.push(file);
+                }
+            });
+            renderPreviews();
+            e.target.value = '';
         }
     };
+
+    document.getElementById('adForm').addEventListener('submit', function(e) {
+        syncInspectionData();
+        if (selectedFiles.length > 0) {
+            const dataTransfer = new DataTransfer();
+            selectedFiles.forEach(file => {
+                dataTransfer.items.add(file);
+            });
+            document.getElementById('imageInput').files = dataTransfer.files;
+        }
+    });
 
     window.handlePropFileChange = function(input, id) {
         const countText = document.getElementById('prop_file_text_' + id);
@@ -690,5 +985,117 @@
     };
     
     updateUI();
+</script>
+
+<script>
+    const adEditCsrfToken = '{{ csrf_token() }}';
+
+    // ─── Delete a gallery image ────────────────────────────────────────────────
+    window.deleteGalleryImage = function(imageId, btn) {
+        Swal.fire({
+            title: 'حذف الصورة؟',
+            text: 'لن تتمكن من التراجع عن هذا الإجراء!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#EF4444',
+            cancelButtonColor: '#64748B',
+            confirmButtonText: 'نعم، احذفها!',
+            cancelButtonText: 'إلغاء',
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+
+            fetch(`/ads/images/${imageId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': adEditCsrfToken,
+                    'Accept': 'application/json',
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('gallery-img-' + imageId)?.remove();
+                    Swal.fire({ title: 'تم الحذف!', icon: 'success', timer: 1200, showConfirmButton: false });
+                }
+            })
+            .catch(() => Swal.fire({ icon: 'error', title: 'حدث خطأ أثناء الحذف' }));
+        });
+    };
+
+    // ─── Delete the main image ─────────────────────────────────────────────────
+    window.deleteMainImage = function(adId) {
+        Swal.fire({
+            title: 'حذف الصورة الرئيسية؟',
+            text: 'سيتم ترقية أول صورة من المعرض كصورة رئيسية إن وُجدت.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#EF4444',
+            cancelButtonColor: '#64748B',
+            confirmButtonText: 'نعم، احذفها!',
+            cancelButtonText: 'إلغاء',
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+
+            fetch(`/ads/${adId}/delete-main-image`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': adEditCsrfToken,
+                    'Accept': 'application/json',
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const wrapper = document.getElementById('main-img-wrapper');
+                    if (data.new_main) {
+                        document.getElementById('main-img-el').src = data.new_main;
+                    } else {
+                        wrapper?.remove();
+                    }
+                    Swal.fire({ title: 'تم الحذف!', icon: 'success', timer: 1200, showConfirmButton: false });
+                }
+            })
+            .catch(() => Swal.fire({ icon: 'error', title: 'حدث خطأ أثناء الحذف' }));
+        });
+    };
+
+    // ─── Set a gallery image as the main image ─────────────────────────────────
+    window.setMainImage = function(adId, imageId, imgSrc, btn) {
+        Swal.fire({
+            title: 'تعيين كصورة رئيسية؟',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#1A73E8',
+            cancelButtonColor: '#64748B',
+            confirmButtonText: 'نعم، عيّنها!',
+            cancelButtonText: 'إلغاء',
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+
+            fetch(`/ads/${adId}/set-main-image`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': adEditCsrfToken,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ image_id: imageId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Update main image src
+                    const mainEl = document.getElementById('main-img-el');
+                    if (mainEl) mainEl.src = data.new_main;
+
+                    // Remove the promoted gallery card
+                    document.getElementById('gallery-img-' + imageId)?.remove();
+
+                    Swal.fire({ title: 'تم التعيين!', icon: 'success', timer: 1200, showConfirmButton: false });
+                }
+            })
+            .catch(() => Swal.fire({ icon: 'error', title: 'حدث خطأ أثناء التعيين' }));
+        });
+    };
 </script>
 @endsection

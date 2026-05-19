@@ -29,7 +29,7 @@
                 <span>ملفي الشخصي</span>
             </a>
             <a href="#" class="sidebar-link">
-                <i class="fa-regular fa-heart"></i>
+                <i class="fa-solid fa-shapes"></i>
                 <span>اهتماماتي</span>
             </a>
             @auth
@@ -59,6 +59,10 @@
         <!-- Ads Section -->
         <div class="sidebar-section">
             <h4 class="section-title">الاعلانات</h4>
+            <a href="{{ route('ads.my') }}" class="sidebar-link">
+                <i class="fa-regular fa-rectangle-list"></i>
+                <span>إعلاناتي</span>
+            </a>
             <a href="#" class="sidebar-link">
                 <i class="fa-regular fa-heart"></i>
                 <span>مفضلتي</span>
@@ -68,19 +72,19 @@
                 <span>تقييماتي</span>
             </a>
             <a href="#" class="sidebar-link">
-                <i class="fa-solid fa-sack-dollar"></i>
+                <i class="fa-regular fa-calendar-check"></i>
                 <span>مبيعاتي</span>
             </a>
             <a href="#" class="sidebar-link">
-                <i class="fa-solid fa-chart-line"></i>
+                <i class="fa-solid fa-chart-column"></i>
                 <span>تقاريري</span>
             </a>
             <a href="#" class="sidebar-link">
-                <i class="fa-solid fa-basket-shopping"></i>
+                <i class="fa-solid fa-cart-shopping"></i>
                 <span>مشترياتي</span>
             </a>
             <a href="#" class="sidebar-link">
-                <i class="fa-regular fa-clock"></i>
+                <i class="fa-regular fa-bookmark"></i>
                 <span>منتجات للاطلاع لاحقاً</span>
             </a>
             <a href="#" class="sidebar-link">
@@ -108,7 +112,7 @@
             </a>
             <a href="#" class="sidebar-link">
                 <i class="fa-solid fa-headset"></i>
-                <span>الدعم و للمساعدة</span>
+                <span>الدعم و المساعدة</span>
             </a>
             <a href="#" class="sidebar-link">
                 <i class="fa-regular fa-message"></i>
@@ -125,6 +129,9 @@
                     <i class="fa-solid fa-right-from-bracket"></i>
                     <span>تسجيل الخروج</span>
                 </a>
+                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                    @csrf
+                </form>
             @else
                 <a href="#" onclick="openAccountModal(); return false;" class="sidebar-link">
                     <i class="fa-solid fa-right-to-bracket"></i>

@@ -13,22 +13,48 @@ class HomeController extends Controller
 {
     public function index(Request $request)
     {
+        // 1. Manually resolve the Bearer Token from headers if Sanctum guard didn't boot it automatically
         $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            $token = $request->bearerToken();
+            if ($token) {
+                $model = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+                if ($model && $model->tokenable) {
+                    $user = $model->tokenable;
+                    Auth::setUser($user);
+                }
+            }
+        }
+
+        // 2. Fetch Banners (Available for both Auth & Guest)
         $banners = Banner::where('status', true)->get();
-        $categories = Category::whereNull('parent_id')->get();
-        
         $data = [
             'banners' => $banners,
-            'categories' => $categories,
         ];
 
         if ($user) {
-            // --- AUTH USER CONTENT ---
+            // --- AUTH USER CONTENT ONLY ---
             $interestIds = $user->interests()->pluck('categories.id')->toArray();
             $interestIdsStr = !empty($interestIds) ? implode(',', $interestIds) : null;
 
-            // Summary & Chart Data
-            $filter = $request->get('filter', 'weekly'); // weekly, monthly, yearly
+            // Helper for prioritized query
+            $getPrioritized = function($query, $limit = 10) use ($user, $interestIdsStr) {
+                $blockedUserIds = \App\Models\BlockedUser::where('user_id', $user->id)->pluck('blocked_user_id')
+                    ->merge(\App\Models\BlockedUser::where('blocked_user_id', $user->id)->pluck('user_id'))
+                    ->toArray();
+                $query->whereNotIn('user_id', $blockedUserIds);
+
+                if ($interestIdsStr) {
+                    return $query->orderByRaw("CASE WHEN category_id IN ($interestIdsStr) THEN 0 ELSE 1 END")
+                                 ->orderBy('created_at', 'desc')
+                                 ->limit($limit)
+                                 ->get();
+                }
+                return $query->orderBy('created_at', 'desc')->limit($limit)->get();
+            };
+
+            // 1. Reports / Summary (تقاريري)
+            $filter = $request->get('filter', 'weekly');
             $chartData = [];
             $totalRevenue = 0;
             $trend = "+0.00%"; // Placeholder for now
@@ -57,7 +83,7 @@ class HomeController extends Controller
                 }
             }
 
-            $data['user_summary'] = [
+            $userSummary = [
                 'total_revenue' => (float)$user->sales()->where('status', 'delivered')->sum('final_price'),
                 'active_ads_count' => $user->ads()->where('status', 'active')->count(),
                 'unread_notifications' => $user->unreadNotifications()->count(),
@@ -69,60 +95,61 @@ class HomeController extends Controller
                 ]
             ];
 
-            // Recommended (Based on interests)
+            // 2. Recommended Ads (الموصى بها)
+            $recommendedAds = [];
             if ($interestIdsStr) {
-                $data['recommended_ads'] = Ad::with(['category', 'user', 'city'])
+                $recommendedAds = Ad::with(['category', 'user', 'city'])
                     ->where('status', 'active')
                     ->whereIn('category_id', $interestIds)
                     ->orderBy('created_at', 'desc')
                     ->limit(10)
                     ->get();
-            } else {
-                $data['recommended_ads'] = [];
             }
 
-            // My Auctions or Current Auctions Prioritized
-            $data['active_auctions'] = Ad::with(['category', 'user', 'city'])
-                ->where('status', 'active')
-                ->whereIn('type', ['electronic_auction', 'hybrid_auction'])
-                ->when($interestIdsStr, function($q) use ($interestIdsStr) {
-                    $q->orderByRaw("CASE WHEN category_id IN ($interestIdsStr) THEN 0 ELSE 1 END");
-                })
-                ->orderBy('created_at', 'desc')
-                ->limit(10)
-                ->get();
+            // 3. Current Auctions (المزادات الحالية)
+            $currentAuctions = $getPrioritized(
+                Ad::with(['category', 'user', 'city'])
+                    ->where('status', 'active')
+                    ->whereIn('type', ['electronic_auction', 'hybrid_auction'])
+                    ->where('end_date', '>', now()),
+                10
+            );
 
-            // Recently Viewed (Fallback to general recent for now)
-            $data['recently_viewed'] = Ad::with(['category', 'user', 'city'])
-                ->where('status', 'active')
-                ->orderBy('views_count', 'desc')
-                ->limit(10)
-                ->get();
+            // 4. Recently Viewed / Most Viewed (الأكثر مشاهدة مؤخراً)
+            $recentlyViewed = $getPrioritized(
+                Ad::with(['category', 'user', 'city'])
+                    ->where('status', 'active')
+                    ->orderBy('views_count', 'desc'),
+                10
+            );
 
-            // Instant Buy (Prioritized)
-            $data['instant_buy_ads'] = Ad::with(['category', 'user', 'city'])
-                ->where('status', 'active')
-                ->whereNotIn('type', ['electronic_auction', 'hybrid_auction'])
-                ->when($interestIdsStr, function($q) use ($interestIdsStr) {
-                    $q->orderByRaw("CASE WHEN category_id IN ($interestIdsStr) THEN 0 ELSE 1 END");
-                })
-                ->orderBy('created_at', 'desc')
-                ->limit(10)
-                ->get();
+            // 5. Instant Buy (عروض الشراء الفوري)
+            $instantBuy = $getPrioritized(
+                Ad::with(['category', 'user', 'city'])
+                    ->where('status', 'active')
+                    ->whereNotIn('type', ['electronic_auction', 'hybrid_auction']),
+                10
+            );
+
+            $data['my_reports'] = $userSummary;
+            $data['recommended_ads'] = $recommendedAds;
+            $data['current_auctions'] = $currentAuctions;
+            $data['recently_viewed'] = $recentlyViewed;
+            $data['instant_buy'] = $instantBuy;
 
         } else {
-            // --- GUEST CONTENT ---
+            // --- GUEST CONTENT ONLY ---
             
-            // Featured Ads
-            $data['featured_ads'] = Ad::with(['category', 'user', 'city'])
+            // 1. Featured Ads (أبرز الإعلانات)
+            $featuredAds = Ad::with(['category', 'user', 'city'])
                 ->where('status', 'active')
                 ->where('is_featured', true)
                 ->orderBy('created_at', 'desc')
                 ->limit(10)
                 ->get();
 
-            // Ending Soon
-            $data['ending_soon'] = Ad::with(['category', 'user', 'city'])
+            // 2. Ending Soon (الإعلانات قرب الانتهاء)
+            $endingSoon = Ad::with(['category', 'user', 'city'])
                 ->where('status', 'active')
                 ->whereNotNull('end_date')
                 ->where('end_date', '>', now())
@@ -130,12 +157,16 @@ class HomeController extends Controller
                 ->limit(10)
                 ->get();
 
-            // Trending / Interactive
-            $data['trending_ads'] = Ad::with(['category', 'user', 'city'])
+            // 3. Trending / Interactive (الإعلانات الأكثر تفاعل)
+            $trendingAds = Ad::with(['category', 'user', 'city'])
                 ->where('status', 'active')
                 ->orderBy('views_count', 'desc')
                 ->limit(10)
                 ->get();
+
+            $data['featured_ads'] = $featuredAds;
+            $data['ending_soon'] = $endingSoon;
+            $data['trending_ads'] = $trendingAds;
         }
 
         return response()->json([

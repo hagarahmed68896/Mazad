@@ -217,4 +217,39 @@ class ChatController extends Controller
 
         return response()->json(['success' => true, 'is_blocked' => $isBlocked]);
     }
+
+    public function startConversation(Request $request)
+    {
+        $request->validate([
+            'ad_id' => 'required|exists:ads,id',
+        ]);
+
+        $ad = \App\Models\Ad::findOrFail($request->ad_id);
+        $user = auth()->user();
+
+        if ($ad->user_id == $user->id) {
+            return back()->with('error', 'لا يمكنك بدء دردشة مع نفسك.');
+        }
+
+        // Check if conversation already exists between these two users for this ad
+        $conversation = Conversation::where('ad_id', $ad->id)
+            ->where(function($q) use ($user, $ad) {
+                $q->where(function($sq) use ($user, $ad) {
+                    $sq->where('user_one_id', $user->id)->where('user_two_id', $ad->user_id);
+                })->orWhere(function($sq) use ($user, $ad) {
+                    $sq->where('user_one_id', $ad->user_id)->where('user_two_id', $user->id);
+                });
+            })->first();
+
+        if (!$conversation) {
+            $conversation = Conversation::create([
+                'user_one_id' => $user->id,
+                'user_two_id' => $ad->user_id,
+                'ad_id' => $ad->id,
+                'last_message_at' => now(),
+            ]);
+        }
+
+        return redirect()->route('chats.index', ['id' => $conversation->id]);
+    }
 }

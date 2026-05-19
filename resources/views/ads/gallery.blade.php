@@ -132,7 +132,7 @@
 
             <!-- Main Image Viewport -->
             <div class="gallery-main-image-container relative">
-                <img id="galleryMainImage" src="{{ $allImages[$startIndex] ?? $allImages[0] }}" class="w-full h-full object-cover transition-all duration-700 ease-out">
+                <img id="galleryMainImage" src="{{ $allImages[$startIndex] ?? $allImages[0] }}" class="w-full h-full object-contain transition-all duration-700 ease-out">
                 
                 <!-- Bottom Gradient Shadow -->
                 <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>

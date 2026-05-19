@@ -8,6 +8,9 @@ Route::get('/search', [\App\Http\Controllers\HomeController::class, 'search'])->
 
 // Ad Creation
 Route::middleware('auth')->group(function() {
+    Route::get('/my-ads', [\App\Http\Controllers\AdController::class, 'myAds'])->name('ads.my');
+    Route::get('/my-ads/promote', [\App\Http\Controllers\AdController::class, 'promotePage'])->name('ads.promote-page');
+    Route::post('/my-ads/promote/process', [\App\Http\Controllers\AdController::class, 'processBulkPromotion'])->name('ads.promote-bulk');
     Route::get('/ads/create', [\App\Http\Controllers\AdController::class, 'create'])->name('ads.create');
     Route::get('/ads/create/details', [\App\Http\Controllers\AdController::class, 'createDetails'])->name('ads.create.details');
     Route::post('/ads', [\App\Http\Controllers\AdController::class, 'store'])->name('ads.store');
@@ -16,6 +19,12 @@ Route::middleware('auth')->group(function() {
     Route::delete('/ads/{ad}', [\App\Http\Controllers\AdController::class, 'destroy'])->name('ads.destroy');
     Route::get('/ads/{ad}/payment', [\App\Http\Controllers\AdController::class, 'showPayment'])->name('ads.payment');
     Route::post('/ads/{ad}/payment/process', [\App\Http\Controllers\AdController::class, 'processPayment'])->name('ads.payment.process');
+
+    // AJAX Ad Image Management Routes
+    Route::post('/ads/{ad}/set-main-image', [\App\Http\Controllers\AdController::class, 'setMainImage'])->name('ads.set-main');
+    Route::delete('/ads/images/{adImage}', [\App\Http\Controllers\AdController::class, 'deleteImage'])->name('ads.images.delete');
+    Route::delete('/ads/{ad}/delete-main-image', [\App\Http\Controllers\AdController::class, 'deleteMainImage'])->name('ads.delete-main');
+    Route::post('/ads/{ad}/repost', [\App\Http\Controllers\AdController::class, 'repost'])->name('ads.repost');
 });
 
 // Public Ad View — increments views_count
@@ -40,9 +49,14 @@ Route::middleware('auth')->group(function() {
     Route::post('/skip-interests', [AuthController::class, 'skipInterests'])->name('skip-interests.web');
     Route::post('/wishlist/toggle/{adId}', [\App\Http\Controllers\WishlistController::class, 'toggle'])->name('wishlist.toggle');
     Route::post('/ads/{id}/question', [\App\Http\Controllers\AdQuestionController::class, 'store'])->name('ads.question.store');
+    Route::post('/questions/{id}/reply', [\App\Http\Controllers\AdQuestionController::class, 'reply'])->name('questions.reply');
+    Route::post('/questions/{id}/toggle-visibility', [\App\Http\Controllers\AdQuestionController::class, 'toggleVisibility'])->name('questions.toggle-visibility');
     Route::post('/users/{id}/report', [\App\Http\Controllers\HomeController::class, 'reportUser'])->name('users.report');
     Route::post('/reviews', [\App\Http\Controllers\ReviewController::class, 'store'])->name('reviews.store');
+    Route::post('/reviews/{id}/reply', [\App\Http\Controllers\ReviewController::class, 'reply'])->name('reviews.reply');
+    Route::post('/reviews/{id}/toggle-visibility', [\App\Http\Controllers\ReviewController::class, 'toggleVisibility'])->name('reviews.toggle-visibility');
     Route::get('/chats', [\App\Http\Controllers\ChatController::class, 'index'])->name('chats.index');
+    Route::post('/chats/start', [\App\Http\Controllers\ChatController::class, 'startConversation'])->name('chats.start');
     Route::post('/chats/{id}/message', [\App\Http\Controllers\ChatController::class, 'sendMessage'])->name('chats.send');
     Route::delete('/chats/{id}', [\App\Http\Controllers\ChatController::class, 'destroy'])->name('chats.destroy');
     Route::post('/chats/{id}/toggle-pin', [\App\Http\Controllers\ChatController::class, 'togglePin'])->name('chats.pin');

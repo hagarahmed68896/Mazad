@@ -21,10 +21,12 @@
                 $is_favorited = Auth::check() && Auth::user()->favorites()->where('ad_id', $ad->id)->exists();
             @endphp
             <div class="flex gap-2">
+                @if(!Auth::check() || Auth::id() != $ad->user_id)
                 <button onclick="requireAuth(() => toggleGlobalWishlist(event, {{ $ad->id }}))" id="wishlistBtn" class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-2xl border border-gray-100 hover:shadow-md transition-all text-sm font-bold text-gray-700">
                     <i class="{{ $is_favorited ? 'fa-solid' : 'fa-regular' }} fa-heart wishlist-icon-{{ $ad->id }}" style="{{ $is_favorited ? 'color: #EF4444 !important;' : 'color: #1A73E8;' }}"></i> 
                     <span id="wishlistText">{{ $is_favorited ? 'في المفضلة' : 'أضف للمفضلة' }}</span>
                 </button>
+                @endif
                 <button onclick="shareAd()" class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-2xl border border-gray-100 hover:shadow-md transition-all text-sm font-bold text-gray-700">
                     <i class="fa-solid fa-share-nodes text-primary"></i> مشاركة
                 </button>
@@ -41,10 +43,17 @@
             <div class="flex flex-wrap items-center gap-3 mb-2">
                 <h1 class="text-3xl md:text-5xl font-black text-gray-900 leading-tight">{{ $ad->title }}</h1>
                 <div class="flex gap-2">
-                    <span class="bg-[#F59E0B20] text-[#F59E0B] px-4 py-1 rounded-full text-xs font-bold border border-[#F59E0B30]">إلكتروني</span>
+                    <span class="bg-[#F59E0B20] text-[#F59E0B] px-4 py-1 rounded-full text-xs font-bold border border-[#F59E0B30]">
+                        @if($ad->type == 'electronic_auction') إلكتروني 
+                        @elseif($ad->type == 'hybrid_auction') هجين
+                        @elseif($ad->type == 'direct_purchase') شراء فوري
+                        @else مناقصة @endif
+                    </span>
+                    @if($ad->is_featured)
                     <span class="bg-[#EF4444] text-white px-4 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg shadow-red-200">
                         <i class="fa-solid fa-fire"></i> مميز
                     </span>
+                    @endif
                 </div>
             </div>
         </div>
@@ -55,16 +64,16 @@
                 ->merge($additionalImages->pluck('image'))
                 ->filter()
                 ->unique()
-                ->map(fn($img) => asset($img))
+                ->map(fn($img) => Str::startsWith($img, 'http') ? $img : '/' . ltrim($img, '/'))
                 ->values();
         @endphp
 
         <!-- Gallery Grid -->
         <div class="grid grid-cols-1 {{ $allImages->count() > 1 ? 'lg:grid-cols-3' : '' }} gap-5 mb-10">
             <!-- Main Image -->
-            <a href="{{ route('ads.gallery', ['id' => $ad->id, 'index' => 0]) }}" class="{{ $allImages->count() > 1 ? 'lg:col-span-2' : '' }} aspect-[16/10] lg:aspect-auto lg:h-[450px] rounded-[32px] overflow-hidden border border-gray-100 shadow-sm cursor-pointer group relative">
+            <a href="{{ route('ads.gallery', ['id' => $ad->id, 'index' => 0]) }}" class="{{ $allImages->count() > 1 ? 'lg:col-span-2' : '' }} aspect-[16/10] lg:aspect-auto lg:h-[450px] rounded-[32px] overflow-hidden border border-gray-100 shadow-sm cursor-pointer group relative bg-slate-50">
                 @if($ad->image)
-                    <img id="mainAdImage" src="{{ asset($ad->image) }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                    <img id="mainAdImage" src="{{ Str::startsWith($ad->image, 'http') ? $ad->image : '/' . ltrim($ad->image, '/') }}" class="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105">
                 @else
                     <div class="w-full h-full bg-gray-50 flex items-center justify-center text-gray-300">
                         <i class="fa-solid fa-image text-6xl"></i>
@@ -78,8 +87,8 @@
             <!-- Secondary Images -->
             <div class="hidden lg:flex flex-col gap-5 h-[450px]">
                 @if($allImages->count() > 1)
-                    <a href="{{ route('ads.gallery', ['id' => $ad->id, 'index' => 1]) }}" class="{{ $allImages->count() > 2 ? 'h-1/2' : 'h-full' }} w-full rounded-[32px] overflow-hidden border border-gray-100 shadow-sm cursor-pointer group relative">
-                        <img src="{{ $allImages[1] }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                    <a href="{{ route('ads.gallery', ['id' => $ad->id, 'index' => 1]) }}" class="{{ $allImages->count() > 2 ? 'h-1/2' : 'h-full' }} w-full rounded-[32px] overflow-hidden border border-gray-100 shadow-sm cursor-pointer group relative bg-slate-50">
+                        <img src="{{ $allImages[1] }}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110">
                         <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i>
                         </div>
@@ -87,8 +96,8 @@
                 @endif
 
                 @if($allImages->count() > 2)
-                    <a href="{{ route('ads.gallery', ['id' => $ad->id, 'index' => 2]) }}" class="h-1/2 w-full rounded-[32px] overflow-hidden border border-gray-100 shadow-sm relative group cursor-pointer">
-                        <img src="{{ $allImages[2] }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                    <a href="{{ route('ads.gallery', ['id' => $ad->id, 'index' => 2]) }}" class="h-1/2 w-full rounded-[32px] overflow-hidden border border-gray-100 shadow-sm relative group cursor-pointer bg-slate-50">
+                        <img src="{{ $allImages[2] }}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110">
                         <div class="absolute inset-0 bg-black/30 backdrop-blur-[1px] flex items-center justify-center transition-all group-hover:bg-black/50">
                             <div class="bg-white/95 backdrop-blur px-5 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-2xl transform transition-all group-hover:scale-110">
                                 <i class="fa-solid fa-images text-gray-900 text-lg"></i>
@@ -186,7 +195,30 @@
                                 </div>
                                 <div>
                                     <div class="text-sm text-gray-500 font-bold mb-1">وقت المعاينة</div>
-                                    <div class="font-black text-xl text-gray-900">{{ $ad->inspection_info ?? 'يتم التنسيق مع المعلن' }}</div>
+                                    @if($ad->inspection_end_date && $ad->inspection_date)
+                                        <div class="font-black text-lg text-gray-900">
+                                            {{ \Carbon\Carbon::parse($ad->inspection_date)->translatedFormat('l j M') }}
+                                            <span class="text-primary mx-1">→</span>
+                                            {{ \Carbon\Carbon::parse($ad->inspection_end_date)->translatedFormat('l j M') }}
+                                        </div>
+                                        @if($ad->inspection_info)
+                                        <div class="text-sm text-gray-500 font-bold mt-1">{{ $ad->inspection_info }}</div>
+                                        @else
+                                        <div class="text-sm text-gray-500 font-bold mt-1">
+                                            من {{ \Carbon\Carbon::parse($ad->inspection_date)->translatedFormat('g:i A') }}
+                                            حتى {{ \Carbon\Carbon::parse($ad->inspection_end_date)->translatedFormat('g:i A') }}
+                                            يومياً
+                                        </div>
+                                        @endif
+                                    @elseif($ad->inspection_info)
+                                        <div class="font-black text-xl text-gray-900">{{ $ad->inspection_info }}</div>
+                                    @elseif($ad->inspection_date)
+                                        <div class="font-black text-xl text-gray-900">
+                                            {{ \Carbon\Carbon::parse($ad->inspection_date)->translatedFormat('l j M Y - g:i A') }}
+                                        </div>
+                                    @else
+                                        <div class="font-black text-xl text-gray-900">يتم التنسيق مع المعلن</div>
+                                    @endif
                                 </div>
                             </div>
                             <div id="adMap" class="h-[450px] bg-gray-100 rounded-[40px] overflow-hidden relative border-[12px] border-white shadow-2xl z-0">
@@ -241,7 +273,11 @@
                     <!-- Seller Info Panel -->
                     @php
                         $seller = $ad->user;
-                        $reviews = $seller->reviewsReceived()->latest()->get();
+                        if (Auth::check() && Auth::id() == $ad->user_id) {
+                            $reviews = $seller->reviewsReceived()->latest()->get();
+                        } else {
+                            $reviews = $seller->reviewsReceived()->where('is_visible', true)->latest()->get();
+                        }
                         $totalReviews = $reviews->count();
                         $avgRating = $totalReviews > 0 ? round($reviews->avg('rating'), 1) : 0;
                         
@@ -276,16 +312,22 @@
                             
                             <div class="mb-8 text-gray-500 font-medium leading-relaxed">
                                 <p class="line-clamp-3">
-                                    {{ $seller->name }} عضو نشط في منصة مزاد منذ {{ $seller->created_at->diffForHumans() }}. 
-                                    قام بإضافة {{ $seller->ads_count ?? $seller->ads->count() }} إعلان حتى الآن، 
+                                    {{ $seller->name }} عضو نشط في منصة مزاد {{ $seller->created_at->diffForHumans() }}. 
+                                    قام بإضافة {{ $seller->ads()->count() }} إعلان حتى الآن، 
                                     ويتمتع بسمعة طيبة بناءً على تقييمات العملاء السابقة.
                                 </p>
                                 <button class="text-primary font-black text-sm mt-2">المزيد</button>
                             </div>
 
-                            <button class="w-full bg-primary text-white font-black py-5 rounded-[20px] hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 text-lg mb-8">
+                            @if(!Auth::check() || Auth::id() != $ad->user_id)
+                            <form id="startChatForm" action="{{ route('chats.start') }}" method="POST" class="hidden">
+                                @csrf
+                                <input type="hidden" name="ad_id" value="{{ $ad->id }}">
+                            </form>
+                            <button type="button" onclick="requireAuth(() => document.getElementById('startChatForm').submit())" class="w-full bg-primary text-white font-black py-5 rounded-[20px] hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-3 text-lg mb-8">
                                 <i class="fa-solid fa-comment-dots"></i> الدردشة
                             </button>
+                            @endif
 
                             <div>
                                 <h5 class="text-gray-900 font-black mb-4 flex items-center gap-2">
@@ -346,7 +388,16 @@
                                                 {{ mb_substr($review->reviewer->name, 0, 1) }}
                                             </div>
                                             <div>
-                                                <h5 class="text-gray-900 font-black">{{ $review->reviewer->name }}</h5>
+                                                <div class="flex items-center gap-2">
+                                                    <h5 class="text-gray-900 font-black">{{ $review->reviewer->name }}</h5>
+                                                    @if(Auth::check() && Auth::id() == $ad->user_id)
+                                                        @if(!$review->is_visible)
+                                                            <span id="review-status-badge-{{ $review->id }}" class="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold ring-1 ring-amber-100 mr-2">مخفي</span>
+                                                        @else
+                                                            <span id="review-status-badge-{{ $review->id }}" class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold ring-1 ring-emerald-100 mr-2">منشور</span>
+                                                        @endif
+                                                    @endif
+                                                </div>
                                                 <div class="flex text-yellow-400 text-[10px] mt-1">
                                                     @for($i=1; $i<=5; $i++)
                                                         <i class="fa-{{ $i <= $review->rating ? 'solid' : 'regular' }} fa-star"></i>
@@ -357,6 +408,53 @@
                                         <span class="text-gray-400 text-xs font-bold">{{ $review->created_at->diffForHumans() }}</span>
                                     </div>
                                     <p class="text-gray-500 text-sm font-medium">{{ $review->comment }}</p>
+
+                                    <!-- Owner Reply Display -->
+                                    @if($review->reply)
+                                    <div class="mt-4 mr-6 p-4 bg-primary/5 rounded-[20px] border border-primary/10 relative">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <span class="font-black text-xs text-primary flex items-center gap-2">
+                                                <i class="fa-solid fa-reply-all"></i> ردك (المعلن):
+                                            </span>
+                                            @if(Auth::check() && Auth::id() == $ad->user_id)
+                                                <button onclick="showReplyForm({{ $review->id }})" class="text-[10px] text-gray-400 hover:text-primary transition-all font-bold">تعديل الرد</button>
+                                            @endif
+                                        </div>
+                                        <p class="text-gray-700 text-xs font-bold leading-relaxed">{{ $review->reply }}</p>
+                                    </div>
+                                    @endif
+
+                                    <!-- Owner Actions Panel (Publish/Hide and Reply) -->
+                                    @if(Auth::check() && Auth::id() == $ad->user_id)
+                                        <div class="mt-4 flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
+                                            <!-- Visibility Toggle Button -->
+                                            <button onclick="toggleReviewVisibility({{ $review->id }}, this)" class="text-xs font-black px-4 py-2.5 rounded-xl border {{ $review->is_visible ? 'border-amber-200 text-amber-600 hover:bg-amber-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50' }} transition-all flex items-center gap-1.5">
+                                                <i class="fa-solid {{ $review->is_visible ? 'fa-eye-slash' : 'fa-eye' }}"></i>
+                                                <span>{{ $review->is_visible ? 'إخفاء التقييم' : 'نشر التقييم' }}</span>
+                                            </button>
+
+                                            <!-- Reply Button -->
+                                            @if(!$review->reply)
+                                                <button onclick="showReplyForm({{ $review->id }})" class="text-xs font-black px-4 py-2.5 rounded-xl border border-primary text-primary hover:bg-primary/5 transition-all flex items-center gap-1.5">
+                                                    <i class="fa-solid fa-reply"></i>
+                                                    <span>الرد على التقييم</span>
+                                                </button>
+                                            @endif
+                                        </div>
+
+                                        <!-- Reply Form (Hidden by default, used for both Add and Edit) -->
+                                        <div id="reply-form-{{ $review->id }}" class="hidden mt-4 bg-white p-5 rounded-[20px] border border-gray-100 shadow-sm animate-in fade-in slide-in-from-top-3 duration-200">
+                                            <form action="{{ route('reviews.reply', $review->id) }}" method="POST">
+                                                @csrf
+                                                <h6 class="font-black text-gray-900 mb-2 text-sm">{{ $review->reply ? 'تعديل الرد على التقييم:' : 'اكتب ردك على التقييم:' }}</h6>
+                                                <textarea name="reply" rows="3" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium" placeholder="اكتب ردك هنا..." required>{{ $review->reply }}</textarea>
+                                                <div class="flex justify-end gap-2 mt-3">
+                                                    <button type="button" onclick="hideReplyForm({{ $review->id }})" class="px-4 py-2 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">إلغاء</button>
+                                                    <button type="submit" class="bg-primary text-white px-5 py-2 text-xs font-black rounded-lg shadow hover:bg-blue-700 transition-all">إرسال الرد</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    @endif
                                 </div>
                                 @empty
                                 <div class="text-center py-10 text-gray-400 font-bold">لا توجد تقييمات لهذا المعلن حتى الآن</div>
@@ -382,6 +480,7 @@
                             <span class="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl text-sm font-bold">{{ $ad->questions->count() }} سؤال</span>
                         </div>
 
+                        @if(!Auth::check() || Auth::id() != $ad->user_id)
                         <!-- Ask Question Form -->
                         <div class="bg-primary/5 rounded-[32px] p-8 border border-primary/10 mb-10">
                             <h4 class="text-lg font-black text-gray-900 mb-4">لديك استفسار؟ اسأل المعلن مباشرة</h4>
@@ -397,10 +496,18 @@
                                 </div>
                             </form>
                         </div>
+                        @endif
 
                         <!-- Questions List -->
                         <div class="space-y-6">
-                            @forelse($ad->questions()->latest()->get() as $q)
+                            @php
+                                if (Auth::check() && Auth::id() == $ad->user_id) {
+                                    $adQuestions = $ad->questions()->latest()->get();
+                                } else {
+                                    $adQuestions = $ad->questions()->where('is_visible', true)->latest()->get();
+                                }
+                            @endphp
+                            @forelse($adQuestions as $q)
                             <!-- Question Item -->
                             <div class="space-y-4">
                                 <div class="flex gap-4">
@@ -409,7 +516,16 @@
                                     </div>
                                     <div class="flex-1 bg-gray-50 rounded-[24px] p-6 border border-gray-100 relative">
                                         <div class="flex justify-between items-center mb-2">
-                                            <span class="font-black text-gray-900">{{ $q->user->name }}</span>
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-black text-gray-900">{{ $q->user->name }}</span>
+                                                @if(Auth::check() && Auth::id() == $ad->user_id)
+                                                    @if(!$q->is_visible)
+                                                        <span id="question-status-badge-{{ $q->id }}" class="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold ring-1 ring-amber-100 mr-2">مخفي</span>
+                                                    @else
+                                                        <span id="question-status-badge-{{ $q->id }}" class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold ring-1 ring-emerald-100 mr-2">منشور</span>
+                                                    @endif
+                                                @endif
+                                            </div>
                                             <span class="text-xs text-gray-400 font-bold">{{ $q->created_at->diffForHumans() }}</span>
                                         </div>
                                         <p class="text-gray-600 font-medium leading-relaxed">{{ $q->question }}</p>
@@ -424,9 +540,12 @@
                                     <div class="flex-1 bg-primary/5 rounded-[24px] p-6 border border-primary/10 relative">
                                         <div class="flex justify-between items-center mb-2">
                                             <span class="font-black text-primary flex items-center gap-2">
-                                                <i class="fa-solid fa-reply-all"></i> رد المعلن
+                                                <i class="fa-solid fa-reply-all"></i> رد المعلن:
                                             </span>
                                             <span class="text-xs text-primary/60 font-bold">{{ $q->answered_at ? $q->answered_at->diffForHumans() : '' }}</span>
+                                            @if(Auth::check() && Auth::id() == $ad->user_id)
+                                                <button onclick="showQuestionReplyForm({{ $q->id }})" class="text-[10px] text-gray-400 hover:text-primary transition-all font-bold">تعديل الرد</button>
+                                            @endif
                                         </div>
                                         <p class="text-gray-700 font-bold leading-relaxed">{{ $q->answer }}</p>
                                     </div>
@@ -435,11 +554,44 @@
                                     </div>
                                 </div>
                                 @else
-                                <div class="pr-16">
-                                    <div class="p-3 bg-amber-50 rounded-xl border border-amber-100 text-[11px] text-amber-600 font-bold inline-flex items-center gap-2">
-                                        <i class="fa-solid fa-clock-rotate-left"></i> في انتظار رد المعلن
+                                    @if(Auth::check() && Auth::id() == $ad->user_id)
+                                    <!-- No reply yet, but owner can reply -->
+                                    <div class="pr-16 mt-2">
+                                        <button onclick="showQuestionReplyForm({{ $q->id }})" class="text-xs font-black px-4 py-2.5 rounded-xl border border-primary text-primary hover:bg-primary/5 transition-all flex items-center gap-1.5">
+                                            <i class="fa-solid fa-reply"></i>
+                                            <span>الرد على السؤال</span>
+                                        </button>
                                     </div>
-                                </div>
+                                    @else
+                                    <div class="pr-16">
+                                        <div class="p-3 bg-amber-50 rounded-xl border border-amber-100 text-[11px] text-amber-600 font-bold inline-flex items-center gap-2">
+                                            <i class="fa-solid fa-clock-rotate-left"></i> في انتظار رد المعلن
+                                        </div>
+                                    </div>
+                                    @endif
+                                @endif
+
+                                @if(Auth::check() && Auth::id() == $ad->user_id)
+                                    <div class="mt-2 flex flex-wrap items-center gap-3 pr-16">
+                                        <!-- Visibility Toggle Button for Question -->
+                                        <button onclick="toggleQuestionVisibility({{ $q->id }}, this)" class="text-xs font-black px-4 py-2 rounded-xl border {{ $q->is_visible ? 'border-amber-200 text-amber-600 hover:bg-amber-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50' }} transition-all flex items-center gap-1.5">
+                                            <i class="fa-solid {{ $q->is_visible ? 'fa-eye-slash' : 'fa-eye' }}"></i>
+                                            <span>{{ $q->is_visible ? 'إخفاء السؤال' : 'نشر السؤال' }}</span>
+                                        </button>
+                                    </div>
+
+                                    <!-- Question Reply Form (Hidden by default) -->
+                                    <div id="question-reply-form-{{ $q->id }}" class="hidden mt-3 pr-16 bg-white p-5 rounded-[20px] border border-gray-100 shadow-sm animate-in fade-in slide-in-from-top-3 duration-200">
+                                        <form action="{{ route('questions.reply', $q->id) }}" method="POST">
+                                            @csrf
+                                            <h6 class="font-black text-gray-900 mb-2 text-sm">{{ $q->answer ? 'تعديل الرد على السؤال:' : 'اكتب ردك على السؤال:' }}</h6>
+                                            <textarea name="answer" rows="3" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium" placeholder="اكتب ردك هنا..." required>{{ $q->answer }}</textarea>
+                                            <div class="flex justify-end gap-2 mt-3">
+                                                <button type="button" onclick="hideQuestionReplyForm({{ $q->id }})" class="px-4 py-2 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">إلغاء</button>
+                                                <button type="submit" class="bg-primary text-white px-5 py-2 text-xs font-black rounded-lg shadow hover:bg-blue-700 transition-all">إرسال الرد</button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 @endif
                             </div>
                             
@@ -1754,6 +1906,174 @@
             });
         });
     }
+
+    window.showReplyForm = function(reviewId) {
+        document.getElementById('reply-form-' + reviewId).classList.remove('hidden');
+    };
+
+    window.hideReplyForm = function(reviewId) {
+        document.getElementById('reply-form-' + reviewId).classList.add('hidden');
+    };
+
+    window.toggleReviewVisibility = function(reviewId, btn) {
+        Swal.fire({
+            title: 'هل أنت متأكد؟',
+            text: 'هل ترغب في تغيير حالة ظهور هذا التقييم؟',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، قم بالتغيير',
+            cancelButtonText: 'إلغاء',
+            confirmButtonColor: '#1A73E8',
+            cancelButtonColor: '#d33',
+            customClass: { popup: 'rounded-[32px]' }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/reviews/${reviewId}/toggle-visibility`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم بنجاح',
+                            text: data.message,
+                            timer: 2000,
+                            showConfirmButton: false,
+                            customClass: { popup: 'rounded-[32px]' }
+                        });
+                        
+                        // Update button state and classes dynamically
+                        const span = btn.querySelector('span');
+                        const icon = btn.querySelector('i');
+                        const statusBadge = document.getElementById('review-status-badge-' + reviewId);
+                        
+                        if (data.is_visible) {
+                            btn.className = "text-xs font-black px-4 py-2.5 rounded-xl border border-amber-200 text-amber-600 hover:bg-amber-50 transition-all flex items-center gap-1.5";
+                            span.innerText = "إخفاء التقييم";
+                            icon.className = "fa-solid fa-eye-slash";
+                            if (statusBadge) {
+                                statusBadge.className = "px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold ring-1 ring-emerald-100 mr-2";
+                                statusBadge.innerText = "منشور";
+                            }
+                        } else {
+                            btn.className = "text-xs font-black px-4 py-2.5 rounded-xl border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-all flex items-center gap-1.5";
+                            span.innerText = "نشر التقييم";
+                            icon.className = "fa-solid fa-eye";
+                            if (statusBadge) {
+                                statusBadge.className = "px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold ring-1 ring-amber-100 mr-2";
+                                statusBadge.innerText = "مخفي";
+                            }
+                        }
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: data.message || 'حدث خطأ ما',
+                            customClass: { popup: 'rounded-[32px]' }
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'فشل الاتصال بالخادم، يرجى المحاولة لاحقاً',
+                        customClass: { popup: 'rounded-[32px]' }
+                    });
+                });
+            }
+        });
+    };
+
+    window.showQuestionReplyForm = function(qId) {
+        document.getElementById('question-reply-form-' + qId).classList.remove('hidden');
+    };
+
+    window.hideQuestionReplyForm = function(qId) {
+        document.getElementById('question-reply-form-' + qId).classList.add('hidden');
+    };
+
+    window.toggleQuestionVisibility = function(qId, btn) {
+        Swal.fire({
+            title: 'هل أنت متأكد؟',
+            text: 'هل ترغب في تغيير حالة ظهور هذا السؤال؟',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، قم بالتغيير',
+            cancelButtonText: 'إلغاء',
+            confirmButtonColor: '#1A73E8',
+            cancelButtonColor: '#d33',
+            customClass: { popup: 'rounded-[32px]' }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/questions/${qId}/toggle-visibility`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم بنجاح',
+                            text: data.message,
+                            timer: 2000,
+                            showConfirmButton: false,
+                            customClass: { popup: 'rounded-[32px]' }
+                        });
+                        
+                        // Update button state and classes dynamically
+                        const span = btn.querySelector('span');
+                        const icon = btn.querySelector('i');
+                        const statusBadge = document.getElementById('question-status-badge-' + qId);
+                        
+                        if (data.is_visible) {
+                            btn.className = "text-xs font-black px-4 py-2 rounded-xl border border-amber-200 text-amber-600 hover:bg-amber-50 transition-all flex items-center gap-1.5";
+                            span.innerText = "إخفاء السؤال";
+                            icon.className = "fa-solid fa-eye-slash";
+                            if (statusBadge) {
+                                statusBadge.className = "px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold ring-1 ring-emerald-100 mr-2";
+                                statusBadge.innerText = "منشور";
+                            }
+                        } else {
+                            btn.className = "text-xs font-black px-4 py-2 rounded-xl border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-all flex items-center gap-1.5";
+                            span.innerText = "نشر السؤال";
+                            icon.className = "fa-solid fa-eye";
+                            if (statusBadge) {
+                                statusBadge.className = "px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold ring-1 ring-amber-100 mr-2";
+                                statusBadge.innerText = "مخفي";
+                            }
+                        }
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: data.message || 'حدث خطأ ما',
+                            customClass: { popup: 'rounded-[32px]' }
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'فشل الاتصال بالخادم، يرجى المحاولة لاحقاً',
+                        customClass: { popup: 'rounded-[32px]' }
+                    });
+                });
+            }
+        });
+    };
 </script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

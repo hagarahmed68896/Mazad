@@ -210,7 +210,7 @@
                         @if($activeConversation->ad)
                             <!-- Ad Context Card -->
                             <div class="bg-white rounded-3xl p-3 border border-gray-100 shadow-sm flex items-center gap-4 max-w-md mx-auto mb-4">
-                                <img src="{{ $activeConversation->ad->image ? asset($activeConversation->ad->image) : 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=200' }}" 
+                                <img src="{{ $activeConversation->ad->image ? (Str::startsWith($activeConversation->ad->image, 'http') ? $activeConversation->ad->image : '/' . ltrim($activeConversation->ad->image, '/')) : 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=200' }}" 
                                      class="w-16 h-16 rounded-2xl object-cover">
                                 <div class="flex-1 min-w-0">
                                     <h4 class="text-sm font-black text-gray-900 truncate">{{ $activeConversation->ad->title }}</h4>

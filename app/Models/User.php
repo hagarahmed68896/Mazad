@@ -16,7 +16,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'password', 'phone', 'address', 'account_type',
         'company_name', 'commercial_register', 'ads_count', 'sales',
-        'purchases', 'status', 'city_id', 'avatar', 'latitude', 'longitude',
+        'purchases', 'status', 'city_id', 'avatar', 'latitude', 'longitude', 'known_devices',
     ];
 
     protected $hidden = [
@@ -29,6 +29,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'known_devices' => 'array',
         ];
     }
 

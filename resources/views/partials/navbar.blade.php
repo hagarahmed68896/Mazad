@@ -98,8 +98,8 @@
                                                 <i class="fa-regular fa-bell"></i>
                                             </div>
                                             <div class="notif-content">
-                                                <h4>{{ $notification->data['title'] ?? 'تنبيه جديد' }}</h4>
-                                                <p>{{ $notification->data['message'] ?? 'لديك إشعار جديد' }}</p>
+                                                <h4>{{ $notification->title ?? 'تنبيه جديد' }}</h4>
+                                                <p>{{ $notification->content ?? 'لديك إشعار جديد' }}</p>
                                                 <span class="notif-time">{{ $notification->created_at->diffForHumans() }}</span>
                                             </div>
                                         </a>
@@ -119,40 +119,9 @@
 
                     <!-- Profile -->
                     <div class="profile-wrapper" style="position: relative;">
-                        <div class="user-profile" id="userProfileBtn" onclick="toggleProfileDropdown()">
+                        <div class="user-profile" id="userProfileBtn" onclick="toggleSidebar()">
                             <div class="user-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</div>
                             <span class="user-greeting hidden sm:block">مرحباً، {{ explode(' ', Auth::user()->name)[0] }}</span>
-                        </div>
-                        <!-- Profile Dropdown -->
-                        <div class="profile-dropdown" id="profileDropdown">
-                            <div class="profile-header">
-                                <div class="profile-avatar-lg">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</div>
-                                <div class="profile-info">
-                                    <h3>{{ Auth::user()->name }}</h3>
-                                    <p>{{ Auth::user()->email }}</p>
-                                </div>
-                            </div>
-                            <div class="profile-menu">
-                                <a href="{{ route('users.profile', Auth::id()) }}" class="profile-menu-item">
-                                    <i class="fa-regular fa-user"></i>
-                                    <span class="mx-4">ملفي الشخصي</span>
-                                </a>
-                                <a href="{{ route('chats.index') }}" class="profile-menu-item">
-                                    <i class="fa-regular fa-comment-dots"></i>
-                                    <span class="mx-4">الرسائل</span>
-                                    @if($unreadMessages > 0)
-                                        <span class="badge" style="background: #EF4444; color: white; border-radius: 50%; padding: 0.1rem 0.4rem; font-size: 0.7rem; margin-right: auto;">{{ $unreadMessages }}</span>
-                                    @endif
-                                </a>
-                                <div class="profile-divider"></div>
-                                <form action="{{ route('logout') }}" method="POST" id="logout-form">
-                                    @csrf
-                                    <button type="submit" class="profile-menu-item logout" style="width: 100%; text-align: right; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 1rem;">
-                                        <i class="fa-solid fa-right-from-bracket"></i>
-                                        <span>تسجيل الخروج</span>
-                                    </button>
-                                </form>
-                            </div>
                         </div>
                     </div>
 

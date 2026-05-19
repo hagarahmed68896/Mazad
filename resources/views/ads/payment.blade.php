@@ -119,10 +119,10 @@
                 <!-- Payment Method Tabs -->
                 <div class="flex gap-4 mb-8">
                     <div class="pay-tab active" onclick="selectTab(this, 'mada')">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Mada_Logo.svg/1200px-Mada_Logo.svg.png" alt="Mada">
+                        <img src="{{ asset('images/images 2.svg') }}" alt="Mada">
                     </div>
                     <div class="pay-tab" onclick="selectTab(this, 'visa')">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" alt="Visa">
+                        <img src="{{ asset('images/image 10.svg') }}" alt="Visa">
                     </div>
                 </div>
 

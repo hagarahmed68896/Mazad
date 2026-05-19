@@ -159,7 +159,9 @@
     <div class="profile-banner bg-gray-900">
         @php
             $latestAd = $user->ads()->latest()->first();
-            $coverImage = $user->cover ? asset($user->cover) : ($latestAd ? asset($latestAd->image) : null);
+            $user_cover = $user->cover ? (Str::startsWith($user->cover, 'http') ? $user->cover : '/' . ltrim($user->cover, '/')) : null;
+            $ad_img = $latestAd && $latestAd->image ? (Str::startsWith($latestAd->image, 'http') ? $latestAd->image : '/' . ltrim($latestAd->image, '/')) : null;
+            $coverImage = $user_cover ?? $ad_img;
         @endphp
         @if($coverImage)
             <img src="{{ $coverImage }}" alt="cover">
@@ -193,7 +195,7 @@
                 <!-- Avatar -->
                 <div class="relative">
                     <div class="w-40 h-40 md:w-48 md:h-48 rounded-[48px] overflow-hidden border-8 border-white shadow-2xl">
-                        <img src="{{ $user->avatar ? asset($user->avatar) : 'https://ui-avatars.com/api/?name='.urlencode($user->name).'&background=1A73E8&color=fff&size=256' }}" 
+                        <img src="{{ $user->avatar ? (Str::startsWith($user->avatar, 'http') ? $user->avatar : '/' . ltrim($user->avatar, '/')) : 'https://ui-avatars.com/api/?name='.urlencode($user->name).'&background=1A73E8&color=fff&size=256' }}" 
                              class="w-full h-full object-cover">
                     </div>
                 </div>

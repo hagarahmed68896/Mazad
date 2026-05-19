@@ -28,6 +28,7 @@ Route::get('/categories', [HomeController::class, 'categories']);
 Route::get('/categories/{id}/properties', [SearchController::class, 'properties']);
 Route::get('/cities', [LocationController::class, 'allCities']);
 Route::get('/search', [SearchController::class, 'index']);
+Route::get('/search/filters', [SearchController::class, 'filters']);
 Route::get('/regions', [LocationController::class, 'regions']);
 Route::get('/regions/{regionId}/cities', [LocationController::class, 'cities']);
 Route::get('/ads/{id}', [\App\Http\Controllers\Api\AdController::class, 'show']);
@@ -50,8 +51,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Ads creation
     Route::get('/ads/create/metadata', [\App\Http\Controllers\Api\AdController::class, 'createMetadata']);
+    Route::get('/my-ads', [\App\Http\Controllers\Api\AdController::class, 'myAds']);
     Route::post('/ads', [\App\Http\Controllers\Api\AdController::class, 'store']);
     Route::post('/ads/{id}/update', [\App\Http\Controllers\Api\AdController::class, 'update']);
+    Route::delete('/ads/{id}', [\App\Http\Controllers\Api\AdController::class, 'destroy']);
+    Route::post('/ads/{id}/repost', [\App\Http\Controllers\Api\AdController::class, 'repost']);
 
     // Bidding
     Route::post('/ads/{id}/bids', [BidController::class, 'store']);
@@ -75,4 +79,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/chats/{id}/send', [\App\Http\Controllers\Api\ChatController::class, 'sendMessage']);
     Route::delete('/chats/{id}', [\App\Http\Controllers\Api\ChatController::class, 'destroy']);
     Route::post('/users/{userId}/block', [\App\Http\Controllers\Api\ChatController::class, 'toggleBlock']);
+
+    // Payment Route
+    Route::post('/ads/{id}/payment', [\App\Http\Controllers\Api\AdController::class, 'processPayment']);
+
+    // Question Routes
+    Route::post('/ads/{id}/questions', [\App\Http\Controllers\Api\AdQuestionController::class, 'store']);
+    Route::post('/questions/{id}/reply', [\App\Http\Controllers\Api\AdQuestionController::class, 'reply']);
+    Route::post('/questions/{id}/toggle-visibility', [\App\Http\Controllers\Api\AdQuestionController::class, 'toggleVisibility']);
+
+    // Review Routes
+    Route::post('/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'store']);
+    Route::post('/reviews/{id}/reply', [\App\Http\Controllers\Api\ReviewController::class, 'reply']);
+    Route::post('/reviews/{id}/toggle-visibility', [\App\Http\Controllers\Api\ReviewController::class, 'toggleVisibility']);
 });

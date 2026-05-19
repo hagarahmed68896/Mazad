@@ -43,7 +43,7 @@
                 <div class="grid grid-cols-12 gap-4 h-[400px] md:h-[500px]">
                     <!-- Main Large Image -->
                     <a href="{{ route('services.gallery', ['id' => $service->id, 'index' => 0]) }}" class="col-span-12 md:col-span-8 h-full rounded-[40px] overflow-hidden shadow-sm group relative">
-                        <img src="{{ $service->image ? asset($service->image) : 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=1000' }}" 
+                        <img src="{{ $service->image ? (Str::startsWith($service->image, 'http') ? $service->image : '/' . ltrim($service->image, '/')) : 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=1000' }}" 
                              class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
                         <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <i class="fa-solid fa-expand text-white text-3xl drop-shadow-lg"></i>
@@ -188,7 +188,7 @@
                         <h3 class="text-lg font-black text-gray-900 mb-6">معلومات المعلن</h3>
                         <div class="flex items-center gap-4 mb-6">
                             <div class="relative">
-                                <img src="{{ $service->user->avatar ? asset($service->user->avatar) : 'https://ui-avatars.com/api/?name='.urlencode($service->user->name) }}" 
+                                <img src="{{ $service->user->avatar ? (Str::startsWith($service->user->avatar, 'http') ? $service->user->avatar : '/' . ltrim($service->user->avatar, '/')) : 'https://ui-avatars.com/api/?name='.urlencode($service->user->name) }}" 
                                      class="w-16 h-16 rounded-[24px] object-cover border-2 border-white shadow-sm">
                                 <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-4 border-white rounded-full"></div>
                             </div>

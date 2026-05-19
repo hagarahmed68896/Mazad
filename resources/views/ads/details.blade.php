@@ -96,6 +96,27 @@
             @endphp
             <input type="hidden" name="type" value="{{ $type }}">
             <input type="hidden" name="category_id" value="{{ $category->id }}">
+            <input type="hidden" name="status" id="formStatusInput" value="">
+
+            @if ($errors->any())
+                <div class="bg-red-50 border-r-4 border-red-500 p-5 rounded-2xl mb-6 shadow-sm">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0 mt-0.5">
+                            <i class="fa-solid fa-circle-exclamation text-red-500 text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-black text-red-800">
+                                عذراً! يرجى تصحيح الأخطاء التالية قبل الاستمرار:
+                            </p>
+                            <ul class="mt-2 list-disc list-inside text-xs font-bold text-red-700 space-y-1" style="list-style-type: disc; padding-right: 1.25rem;">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             <!-- Step 1+: Dynamic Category Pages -->
             @foreach($category->pages as $index => $page)
@@ -213,18 +234,100 @@
             <!-- Date/Time Selection Area -->
             <div class="space-y-6 pt-4 border-t border-gray-50">
                 <h3 class="text-xl font-black text-gray-900">متى تكون متاحاً للمعاينة؟</h3>
-                <div class="relative">
+                
+                <!-- Time Selection Type -->
+                <div class="space-y-4">
+                    <label class="block text-gray-700 font-black mb-1">طريقة تحديد وقت المعاينة</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div onclick="setInspectionTimeType('single')" id="btn_time_type_single" class="flex items-center justify-center gap-3 p-4 border-2 border-primary bg-blue-50/50 rounded-2xl cursor-pointer hover:border-primary transition-all text-primary font-bold text-center">
+                            <input type="radio" id="radio_single" name="inspection_time_type" value="single" checked class="hidden">
+                            <span class="text-base font-black">📅 موعد محدد (يوم وساعة)</span>
+                        </div>
+                        <div onclick="setInspectionTimeType('range')" id="btn_time_type_range" class="flex items-center justify-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all text-gray-500 font-bold text-center">
+                            <input type="radio" id="radio_range" name="inspection_time_type" value="range" class="hidden">
+                            <span class="text-base font-black">⏳ فترة زمنية (من - إلى)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SINGLE TIME CONTAINER -->
+                <div id="singleTimeContainer" class="relative">
                     <label class="block text-gray-700 font-black mb-3">اختر التاريخ والوقت</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none border-l-2 border-gray-100 pl-3">
                             <i class="fa-regular fa-calendar text-gray-400 text-xl"></i>
                         </div>
-                        <input type="text" onfocus="(this.type='datetime-local'); setTimeout(() => { this.showPicker ? this.showPicker() : null }, 50)" onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" name="inspection_date" placeholder="أدخل تاريخ ووقت المعاينة" class="form-input text-gray-500 font-bold w-full !pr-16 text-right [&::-webkit-calendar-picker-indicator]:hidden cursor-pointer">
+                        <input type="text" id="inspection_date_single" onfocus="(this.type='datetime-local'); setTimeout(() => { this.showPicker ? this.showPicker() : null }, 50)" onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" placeholder="أدخل تاريخ ووقت المعاينة" class="form-input text-gray-500 font-bold w-full !pr-16 text-right [&::-webkit-calendar-picker-indicator]:hidden cursor-pointer">
                     </div>
                 </div>
+
+                <!-- RANGE TIME CONTAINER -->
+                <div id="rangeTimeContainer" class="hidden space-y-4">
+                    <!-- Date Range Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <label class="block text-gray-700 font-black">📅 من تاريخ</label>
+                            <input type="date" id="inspection_range_start" class="form-input text-gray-500 font-bold">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-gray-700 font-black">📅 إلى تاريخ</label>
+                            <input type="date" id="inspection_range_end" class="form-input text-gray-500 font-bold">
+                        </div>
+                    </div>
+                    <!-- Daily Time Slots Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 bg-blue-50/40 rounded-2xl border border-blue-100">
+                        <p class="col-span-full text-sm font-bold text-gray-500 mb-1">⏰ ساعات المعاينة اليومية</p>
+                        <div class="space-y-2">
+                            <label class="block text-gray-700 font-black">من الساعة</label>
+                            <select id="inspection_range_from" class="form-input font-bold text-gray-700">
+                                <option value="08:00">8:00 صباحاً</option>
+                                <option value="09:00" selected>9:00 صباحاً</option>
+                                <option value="10:00">10:00 صباحاً</option>
+                                <option value="11:00">11:00 صباحاً</option>
+                                <option value="12:00">12:00 ظهراً</option>
+                                <option value="13:00">1:00 مساءً</option>
+                                <option value="14:00">2:00 مساءً</option>
+                                <option value="15:00">3:00 مساءً</option>
+                                <option value="16:00">4:00 مساءً</option>
+                                <option value="17:00">5:00 مساءً</option>
+                                <option value="18:00">6:00 مساءً</option>
+                                <option value="19:00">7:00 مساءً</option>
+                                <option value="20:00">8:00 مساءً</option>
+                                <option value="21:00">9:00 مساءً</option>
+                                <option value="22:00">10:00 مساءً</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-gray-700 font-black">إلى الساعة</label>
+                            <select id="inspection_range_to" class="form-input font-bold text-gray-700">
+                                <option value="09:00">9:00 صباحاً</option>
+                                <option value="10:00">10:00 صباحاً</option>
+                                <option value="11:00">11:00 صباحاً</option>
+                                <option value="12:00">12:00 ظهراً</option>
+                                <option value="13:00">1:00 مساءً</option>
+                                <option value="14:00">2:00 مساءً</option>
+                                <option value="15:00">3:00 مساءً</option>
+                                <option value="16:00">4:00 مساءً</option>
+                                <option value="17:00">5:00 مساءً</option>
+                                <option value="18:00">6:00 مساءً</option>
+                                <option value="19:00">7:00 مساءً</option>
+                                <option value="20:00">8:00 مساءً</option>
+                                <option value="21:00" selected>9:00 مساءً</option>
+                                <option value="22:00">10:00 مساءً</option>
+                                <option value="23:00">11:00 مساءً</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <!-- Hidden input for end date -->
+                <input type="hidden" name="inspection_end_date" id="inspection_end_date_hidden">
+
+                <!-- Hidden input submitted to the database -->
+                <input type="hidden" name="inspection_date" id="inspection_date_hidden">
+
                 <div>
                     <label class="block text-gray-700 font-black mb-3">تفاصيل إضافية عن الموعد</label>
-                    <textarea name="inspection_info" rows="3" placeholder="مثال: متاح من الساعة 4 عصراً حتى 9 مساءً، يرجى الاتصال قبل الحضور" class="form-input"></textarea>
+                    <textarea name="inspection_info" id="inspection_info_textarea" rows="3" placeholder="مثال: متاح من الساعة 4 عصراً حتى 9 مساءً، يرجى الاتصال قبل الحضور" class="form-input"></textarea>
                 </div>
             </div>
         </div>
@@ -241,9 +344,12 @@
                 <label class="block text-gray-700 font-black">حدد نوع الإعلان</label>
                 <div class="relative">
                     <select name="ad_type" onchange="togglePriceFields()" {{ $type == 'tender' ? 'disabled' : '' }} class="form-input w-full appearance-none bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 outline-none focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all cursor-pointer {{ $type == 'tender' ? 'bg-gray-50 opacity-70' : '' }}">
-                        <option value="auction" {{ $type == 'auction' ? 'selected' : '' }}>مزاد</option>
-                        <option value="direct_purchase" {{ in_array($type, ['direct_purchase', 'standard']) ? 'selected' : '' }}>شراء فوري</option>
-                        <option value="tender" {{ $type == 'tender' ? 'selected' : '' }}>مناقصة</option>
+                        @if($type == 'tender')
+                            <option value="tender" selected>مناقصة</option>
+                        @else
+                            <option value="auction" {{ $type == 'auction' ? 'selected' : '' }}>مزاد</option>
+                            <option value="direct_purchase" {{ in_array($type, ['direct_purchase', 'standard']) ? 'selected' : '' }}>شراء فوري</option>
+                        @endif
                     </select>
                     @if($type == 'tender')
                         <input type="hidden" name="ad_type" value="tender">
@@ -469,7 +575,7 @@
 
                     <div class="space-y-3">
                         <label class="block text-gray-700 font-black">وصف الإعلان</label>
-                        <textarea name="description" rows="4" required placeholder="أدخل وصف الإعلان" class="form-input"></textarea>
+                        <textarea name="description" rows="4" placeholder="أدخل وصف الإعلان (اختياري)" class="form-input"></textarea>
                     </div>
 
                     <div class="space-y-3">
@@ -525,16 +631,86 @@
                             <div>
                                 <span class="font-black text-gray-800 text-lg">تميز الإعلان</span>
                                 <p class="text-xs text-gray-500 font-bold mt-1 flex items-center gap-1">
-                                    <i class="fa-solid fa-circle-info"></i> سيكون الإعلان في المقدمة لمدة 3 أيام بمعدل 10 ريال.
+                                    <i class="fa-solid fa-circle-info"></i> يكون الإعلان في مقدمة الإعلانات ويحمل علامة ذهبية
                                 </p>
                             </div>
                         </div>
                         <div class="flex items-center gap-1 font-black text-gray-800 text-lg">
-                            <span>10</span>
+                            <span>{{ \App\Models\Setting::where('key', 'promotion_price')->first()->value ?? 80 }}</span>
                             <img src="{{ asset('images/Vector-blue.svg') }}" class="w-4 h-4">
                         </div>
                     </div>
 
+                </div>
+            </div>
+
+            <!-- Step: Payment Details (Hidden by default, shown if is_featured is enabled) -->
+            <div class="step-container" id="paymentStepContainer" data-title="تفاصيل الدفع">
+                <div class="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 space-y-6">
+                    <div class="flex items-center gap-3 mb-6">
+                        <h2 class="text-2xl font-black text-gray-900">تفاصيل الدفع</h2>
+                    </div>
+
+                    <!-- Card Type Selectors -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <label class="flex items-center justify-center p-4 border-2 border-primary bg-blue-50/50 rounded-2xl cursor-pointer hover:border-primary transition-all text-primary font-bold text-center relative group">
+                            <input type="radio" name="payment_card_type" value="mada" checked class="sr-only">
+                            <div class="flex flex-col items-center gap-2">
+                                <img src="{{ asset('images/images 2.png') }}" class="h-8 object-contain" alt="mada">
+                            </div>
+                        </label>
+                        <label class="flex items-center justify-center p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all text-gray-500 font-bold text-center relative group">
+                            <input type="radio" name="payment_card_type" value="visa_mastercard" class="sr-only">
+                            <div class="flex flex-col items-center gap-2">
+                                <img src="{{ asset('images/image 10.png') }}" class="h-8 object-contain" alt="visa_mastercard">
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Payment Fields -->
+                    <div class="space-y-4 pt-4">
+                        <div class="space-y-2">
+                            <label class="block text-gray-700 font-black">اسم البطاقة</label>
+                            <input type="text" name="card_name" placeholder="أدخل اسم كرتك" class="form-input">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-gray-700 font-black">رقم البطاقة</label>
+                            <input type="text" name="card_number" placeholder="أدخل رقم كرتك" class="form-input text-left" dir="ltr" maxlength="19">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <label class="block text-gray-700 font-black">تاريخ الانتهاء</label>
+                                <input type="text" name="card_expiry" placeholder="MM/YY" class="form-input text-center" dir="ltr" maxlength="5">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-gray-700 font-black">CVV</label>
+                                <input type="text" name="card_cvv" placeholder="CVV" class="form-input text-center" dir="ltr" maxlength="4">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Summary Block -->
+                    <div class="bg-gray-50 p-5 rounded-3xl space-y-3 mt-6 border border-gray-100">
+                        <h3 class="font-black text-gray-800 text-lg border-b border-gray-200/60 pb-2 mb-2">ملخص الحساب</h3>
+                        @php
+                            $promoPrice = \App\Models\Setting::where('key', 'promotion_price')->first()->value ?? 80;
+                            $taxRate = 0.15; // 15% VAT for Saudi Arabia
+                            $taxAmount = round($promoPrice * $taxRate, 2);
+                            $totalAmount = $promoPrice + $taxAmount;
+                        @endphp
+                        <div class="flex justify-between items-center text-sm font-bold text-gray-500">
+                            <span>سعر تميز الاعلان</span>
+                            <span>{{ $promoPrice }} ر.س</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm font-bold text-gray-500">
+                            <span>الرسوم والضريبة (15%)</span>
+                            <span>{{ $taxAmount }} ر.س</span>
+                        </div>
+                        <div class="flex justify-between items-center text-lg font-black text-gray-800 border-t border-dashed border-gray-200 pt-3 mt-2">
+                            <span class="text-primary">الإجمالي</span>
+                            <span class="text-primary">{{ $totalAmount }} ر.س</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -546,7 +722,7 @@
                     التالي
                 </button>
                 <div id="submitBtns" class="hidden flex gap-3">
-                    <button type="button" class="px-6 py-4 rounded-xl text-lg font-black text-gray-600 bg-white border-2 border-gray-200 hover:bg-gray-50 transition-all">
+                    <button type="button" onclick="saveAsDraft()" class="px-6 py-4 rounded-xl text-lg font-black text-gray-600 bg-white border-2 border-gray-200 hover:bg-gray-50 transition-all">
                         استمر كمسودة
                     </button>
                     <button type="submit" id="submitBtn" class="bg-primary text-white px-8 py-4 rounded-xl text-lg font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
@@ -574,6 +750,8 @@
 <script>
     let currentStep = 1;
     const totalSteps = {{ count($category->pages) + 3 }};
+    let actualTotalSteps = totalSteps;
+    let isFeaturedChecked = false;
 
     const nextBtn = document.getElementById('nextBtn');
     const prevBtn = document.getElementById('prevBtn');
@@ -581,6 +759,84 @@
     const progressBar = document.getElementById('progressBar');
     const stepIndicator = document.getElementById('stepIndicator');
     const stepTitle = document.getElementById('stepTitle');
+
+    window.setInspectionTimeType = function(type) {
+        const btnSingle = document.getElementById('btn_time_type_single');
+        const btnRange = document.getElementById('btn_time_type_range');
+        const singleContainer = document.getElementById('singleTimeContainer');
+        const rangeContainer = document.getElementById('rangeTimeContainer');
+        const radioSingle = document.getElementById('radio_single');
+        const radioRange = document.getElementById('radio_range');
+
+        if (type === 'single') {
+            btnSingle.className = "flex items-center justify-center gap-3 p-4 border-2 border-primary bg-blue-50/50 rounded-2xl cursor-pointer hover:border-primary transition-all text-primary font-bold text-center";
+            btnRange.className = "flex items-center justify-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all text-gray-500 font-bold text-center";
+            singleContainer.classList.remove('hidden');
+            rangeContainer.classList.add('hidden');
+            radioSingle.checked = true;
+        } else {
+            btnRange.className = "flex items-center justify-center gap-3 p-4 border-2 border-primary bg-blue-50/50 rounded-2xl cursor-pointer hover:border-primary transition-all text-primary font-bold text-center";
+            btnSingle.className = "flex items-center justify-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all text-gray-500 font-bold text-center";
+            singleContainer.classList.add('hidden');
+            rangeContainer.classList.remove('hidden');
+            radioRange.checked = true;
+        }
+    };
+
+    window.syncInspectionData = function() {
+        const isRange = document.getElementById('radio_range').checked;
+        const hiddenInput = document.getElementById('inspection_date_hidden');
+        const hiddenEndInput = document.getElementById('inspection_end_date_hidden');
+        const infoTextarea = document.getElementById('inspection_info_textarea');
+        
+        if (isRange) {
+            const rangeStart = document.getElementById('inspection_range_start').value;
+            const rangeEnd = document.getElementById('inspection_range_end').value;
+            const rangeFrom = document.getElementById('inspection_range_from').value;
+            const rangeTo = document.getElementById('inspection_range_to').value;
+            
+            const fromText = document.getElementById('inspection_range_from').options[document.getElementById('inspection_range_from').selectedIndex].text;
+            const toText = document.getElementById('inspection_range_to').options[document.getElementById('inspection_range_to').selectedIndex].text;
+            
+            // Set start date
+            if (rangeStart && rangeFrom) {
+                hiddenInput.value = rangeStart + ' ' + rangeFrom + ':00';
+            } else {
+                hiddenInput.value = '';
+            }
+
+            // Set end date
+            if (rangeEnd && rangeTo) {
+                hiddenEndInput.value = rangeEnd + ' ' + rangeTo + ':00';
+            } else {
+                hiddenEndInput.value = '';
+            }
+            
+            // Format descriptive inspection info
+            let currentInfo = infoTextarea.value;
+            currentInfo = currentInfo.replace(/\[فترة المعاينة:.*?\]/g, '').trim();
+
+            let rangeLabel = '';
+            if (rangeStart && rangeEnd) {
+                const startFormatted = new Date(rangeStart).toLocaleDateString('ar-SA', { weekday: 'long', month: 'long', day: 'numeric' });
+                const endFormatted = new Date(rangeEnd).toLocaleDateString('ar-SA', { weekday: 'long', month: 'long', day: 'numeric' });
+                rangeLabel = `[فترة المعاينة: من ${startFormatted} إلى ${endFormatted}، يومياً من ${fromText} إلى ${toText}]`;
+            } else if (rangeStart) {
+                rangeLabel = `[فترة المعاينة: من الساعة ${fromText} إلى ${toText} يومياً]`;
+            }
+
+            infoTextarea.value = rangeLabel + (currentInfo ? '\n' + currentInfo : '');
+        } else {
+            const singleVal = document.getElementById('inspection_date_single').value;
+            if (singleVal) {
+                hiddenInput.value = singleVal.replace('T', ' ');
+            } else {
+                hiddenInput.value = '';
+            }
+            if (hiddenEndInput) hiddenEndInput.value = '';
+            infoTextarea.value = infoTextarea.value.replace(/\[فترة المعاينة:.*?\]/g, '').trim();
+        }
+    };
     
     window.togglePriceFields = function() {
         const adTypeSelect = document.querySelector('select[name="ad_type"]');
@@ -695,21 +951,26 @@
                 
                 // Init map if we are on inspection step
                 if (step.dataset.title === 'تفاصيل المعاينة') {
-                    setTimeout(initMap, 200);
+                    setTimeout(() => {
+                        initMap();
+                        if (map) {
+                            map.invalidateSize();
+                        }
+                    }, 200);
                 }
             }
         });
 
         // Update Progress
-        const percent = (currentStep / totalSteps) * 100;
+        const percent = (currentStep / actualTotalSteps) * 100;
         progressBar.style.width = percent + '%';
-        stepIndicator.innerText = `المرحلة ${currentStep} من ${totalSteps}`;
+        stepIndicator.innerText = `المرحلة ${currentStep} من ${actualTotalSteps}`;
 
         // Buttons visibility
         prevBtn.classList.toggle('hidden', currentStep === 1);
         
         const submitBtnsContainer = document.getElementById('submitBtns');
-        if (currentStep === totalSteps) {
+        if (currentStep === actualTotalSteps) {
             nextBtn.classList.add('hidden');
             if (submitBtnsContainer) {
                 submitBtnsContainer.classList.remove('hidden');
@@ -731,6 +992,12 @@
     nextBtn.onclick = () => {
         // Validate current step
         const currentStepContainer = document.querySelector(`.step-container[data-step="${currentStep}"]`);
+        
+        // Sync before validation if we are on inspection step
+        if (currentStepContainer.dataset.title === 'تفاصيل المعاينة') {
+            syncInspectionData();
+        }
+
         const inputs = currentStepContainer.querySelectorAll('input[required], textarea[required], select[required]');
         let valid = true;
         inputs.forEach(input => {
@@ -763,21 +1030,57 @@
     };
 
     // Image Preview
-    document.getElementById('imageInput').onchange = function(e) {
+    let selectedFiles = [];
+
+    function renderPreviews() {
         const preview = document.getElementById('imagePreview');
         preview.innerHTML = '';
-        const files = e.target.files;
-        for (let i = 0; i < files.length; i++) {
+        
+        selectedFiles.forEach((file, index) => {
             const reader = new FileReader();
             reader.onload = function(event) {
                 const div = document.createElement('div');
-                div.className = 'relative aspect-square rounded-2xl overflow-hidden border border-gray-100 shadow-sm';
-                div.innerHTML = `<img src="${event.target.result}" class="w-full h-full object-cover">`;
+                div.className = 'relative aspect-square rounded-2xl overflow-hidden border border-gray-100 shadow-sm group';
+                div.innerHTML = `
+                    <img src="${event.target.result}" class="w-full h-full object-cover">
+                    <button type="button" onclick="removeSelectedFile(${index})" class="absolute top-1 left-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center z-10 opacity-0 group-hover:opacity-100 transition-all shadow hover:bg-red-600" title="حذف الصورة">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                `;
                 preview.appendChild(div);
             }
-            reader.readAsDataURL(files[i]);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    window.removeSelectedFile = function(index) {
+        selectedFiles.splice(index, 1);
+        renderPreviews();
+    };
+
+    document.getElementById('imageInput').onchange = function(e) {
+        if (e.target.files) {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    selectedFiles.push(file);
+                }
+            });
+            renderPreviews();
+            e.target.value = '';
         }
     };
+
+    document.getElementById('adForm').addEventListener('submit', function(e) {
+        syncInspectionData();
+        if (selectedFiles.length > 0) {
+            const dataTransfer = new DataTransfer();
+            selectedFiles.forEach(file => {
+                dataTransfer.items.add(file);
+            });
+            document.getElementById('imageInput').files = dataTransfer.files;
+        }
+    });
 
     // Property File Upload Handlers
     window.handlePropFileChange = function(input, id) {
@@ -829,5 +1132,83 @@
             reader.readAsDataURL(input.files[0]);
         }
     };
+
+    // Listen to is_featured checkbox changes
+    const featuredCheckbox = document.querySelector('input[name="is_featured"]');
+    if (featuredCheckbox) {
+        featuredCheckbox.addEventListener('change', function() {
+            isFeaturedChecked = this.checked;
+            actualTotalSteps = isFeaturedChecked ? (totalSteps + 1) : totalSteps;
+            
+            const paymentStep = document.getElementById('paymentStepContainer');
+            const paymentInputs = paymentStep.querySelectorAll('input');
+            if (isFeaturedChecked) {
+                paymentStep.setAttribute('data-step', totalSteps + 1);
+                paymentInputs.forEach(input => {
+                    if (input.name !== 'payment_card_type') {
+                        input.setAttribute('required', 'required');
+                    }
+                });
+            } else {
+                paymentStep.removeAttribute('data-step');
+                paymentInputs.forEach(input => {
+                    input.removeAttribute('required');
+                });
+            }
+            updateUI();
+        });
+    }
+
+    // Toggle styling on payment card selector clicks
+    document.querySelectorAll('input[name="payment_card_type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.querySelectorAll('input[name="payment_card_type"]').forEach(r => {
+                r.closest('label').className = "flex items-center justify-center p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all text-gray-500 font-bold text-center relative group";
+            });
+            if (this.checked) {
+                this.closest('label').className = "flex items-center justify-center p-4 border-2 border-primary bg-blue-50/50 rounded-2xl cursor-pointer hover:border-primary transition-all text-primary font-bold text-center relative group";
+            }
+        });
+    });
+
+    // Credit Card Input formatting helper
+    const cardNumInput = document.querySelector('input[name="card_number"]');
+    if (cardNumInput) {
+        cardNumInput.addEventListener('input', function(e) {
+            let val = e.target.value.replace(/\D/g, '');
+            let formatted = val.match(/.{1,4}/g)?.join(' ') || '';
+            e.target.value = formatted.substring(0, 19);
+        });
+    }
+
+    const cardExpiryInput = document.querySelector('input[name="card_expiry"]');
+    if (cardExpiryInput) {
+        cardExpiryInput.addEventListener('input', function(e) {
+            let val = e.target.value.replace(/\D/g, '');
+            if (val.length >= 2) {
+                e.target.value = val.substring(0, 2) + '/' + val.substring(2, 4);
+            } else {
+                e.target.value = val;
+            }
+        });
+    }
+
+    const cardCvvInput = document.querySelector('input[name="card_cvv"]');
+    if (cardCvvInput) {
+        cardCvvInput.addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
+        });
+    }
+
+    window.saveAsDraft = function() {
+        const form = document.getElementById('adForm');
+        document.getElementById('formStatusInput').value = 'incomplete';
+        form.setAttribute('novalidate', 'novalidate');
+        form.submit();
+    };
+
+    // Initialize UI on load
+    updateUI();
+    updateCitiesText();
 </script>
 @endsection

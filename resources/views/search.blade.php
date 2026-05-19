@@ -1161,6 +1161,48 @@
         };
 
         // Countdown timers
+        function updateCountdowns() {
+            const containers = document.querySelectorAll('[data-end]');
+            containers.forEach(container => {
+                const endDateStr = container.getAttribute('data-end');
+                if (!endDateStr) return;
+                
+                const endDate = new Date(endDateStr).getTime();
+                const now = new Date().getTime();
+                const diff = endDate - now;
+                
+                const timerEl = container.querySelector('.countdown-timer');
+                if (!timerEl) return;
+                
+                if (diff <= 0) {
+                    timerEl.innerHTML = '<span class="text-red-500 font-bold">منتهي</span>';
+                    return;
+                }
+                
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                if (container.classList.contains('sidebar-countdown')) {
+                    // Update specific spans for sidebar
+                    const dEl = timerEl.querySelector('.days');
+                    const hEl = timerEl.querySelector('.hours');
+                    const mEl = timerEl.querySelector('.minutes');
+                    const sEl = timerEl.querySelector('.seconds');
+                    
+                    if(dEl) dEl.innerText = days.toString().padStart(2, '0');
+                    if(hEl) hEl.innerText = hours.toString().padStart(2, '0');
+                    if(mEl) mEl.innerText = minutes.toString().padStart(2, '0');
+                    if(sEl) sEl.innerText = seconds.toString().padStart(2, '0');
+                } else {
+                    // Standard text format for cards
+                    timerEl.innerText = `${days}ي ${hours}س ${minutes}د ${seconds}ث`;
+                }
+            });
+        }
+        setInterval(updateCountdowns, 1000);
+        updateCountdowns();
 
         document.addEventListener('DOMContentLoaded', function() {
 

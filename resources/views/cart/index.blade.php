@@ -24,7 +24,7 @@
                 @foreach($cartItems as $item)
                 <div class="bg-white rounded-[32px] p-6 flex flex-col md:flex-row items-center gap-8 shadow-sm border border-gray-100 group hover:border-primary/20 transition-all">
                     <div class="w-32 h-32 rounded-[24px] overflow-hidden flex-shrink-0 shadow-md">
-                        <img src="{{ asset($item->ad->image) }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <img src="{{ Str::startsWith($item->ad->image, 'http') ? $item->ad->image : '/' . ltrim($item->ad->image, '/') }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                     </div>
                     <div class="flex-1 text-center md:text-right">
                         <div class="flex flex-col md:flex-row justify-between items-start gap-4 mb-4">

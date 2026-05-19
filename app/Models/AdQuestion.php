@@ -9,10 +9,11 @@ class AdQuestion extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['ad_id', 'user_id', 'question', 'answer', 'answered_at'];
+    protected $fillable = ['ad_id', 'user_id', 'question', 'answer', 'answered_at', 'is_visible'];
 
     protected $casts = [
         'answered_at' => 'datetime',
+        'is_visible' => 'boolean',
     ];
 
     public function ad()

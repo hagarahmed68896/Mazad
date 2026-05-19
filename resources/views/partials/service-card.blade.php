@@ -3,7 +3,7 @@
     <div class="service-header p-5 flex items-center justify-between border-b border-gray-50 bg-gray-50/30">
         <div class="flex items-center gap-3">
             <div class="relative">
-                <img src="{{ $service->user->avatar ? asset($service->user->avatar) : 'https://ui-avatars.com/api/?name='.urlencode($service->user->name).'&background=1A73E8&color=fff' }}" 
+                <img src="{{ $service->user->avatar ? (Str::startsWith($service->user->avatar, 'http') ? $service->user->avatar : '/' . ltrim($service->user->avatar, '/')) : 'https://ui-avatars.com/api/?name='.urlencode($service->user->name).'&background=1A73E8&color=fff' }}" 
                      class="w-10 h-10 rounded-xl object-cover ring-2 ring-white shadow-sm">
             </div>
             <div>
@@ -16,7 +16,7 @@
 
     <!-- Card Body: Image & Details -->
     <a href="{{ route('services.show', $service->id) }}" class="service-image relative group-hover:scale-[1.02] transition-transform duration-500 overflow-hidden">
-        <img src="{{ $service->image ? asset($service->image) : 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=600&q=80' }}" 
+        <img src="{{ $service->image ? (Str::startsWith($service->image, 'http') ? $service->image : '/' . ltrim($service->image, '/')) : 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=600&q=80' }}" 
              class="w-full h-48 object-cover">
         
         <!-- Price Badge Over Image -->

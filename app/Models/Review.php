@@ -10,7 +10,7 @@ class Review extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['reviewer_id', 'rated_user_id', 'order_id', 'ad_id', 'rating', 'comment', 'status'];
+    protected $fillable = ['reviewer_id', 'rated_user_id', 'order_id', 'ad_id', 'rating', 'comment', 'status', 'reply', 'is_visible'];
 
     public function reviewer(): BelongsTo
     {

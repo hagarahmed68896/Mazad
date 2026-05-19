@@ -1,7 +1,7 @@
 <div class="p-ad-card">
     <div class="p-card-image">
         @php
-            $image = $ad->image ? asset($ad->image) : null;
+            $image = $ad->image ? (Str::startsWith($ad->image, 'http') ? $ad->image : '/' . ltrim($ad->image, '/')) : null;
         @endphp
         <a href="{{ route('ads.show', $ad->id) }}" class="h-full w-full block bg-gray-50">
             @if($image)
@@ -13,12 +13,20 @@
             @endif
         </a>
         
-        <div class="p-wishlist cursor-pointer" onclick="event.preventDefault(); event.stopPropagation(); requireAuth(() => toggleGlobalWishlist(null, {{ $ad->id }}))">
-            @php
-                $is_favorited_card = Auth::check() && Auth::user()->favorites()->where('ad_id', $ad->id)->exists();
-            @endphp
-            <i class="{{ $is_favorited_card ? 'fa-solid' : 'fa-regular' }} fa-heart wishlist-icon-{{ $ad->id }}" style="{{ $is_favorited_card ? 'color: #EF4444 !important;' : '' }}"></i>
-        </div>
+        @if(isset($showSelectionCheckbox) && $showSelectionCheckbox)
+            <div class="ad-select-checkbox-container" onclick="event.stopPropagation();" style="position: absolute; top: 1rem; right: 1rem; z-index: 50; background: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1.5px solid #E2E8F0; cursor: pointer; transition: all 0.2s ease;">
+                <input type="checkbox" name="ad_ids[]" value="{{ $ad->id }}" class="ad-bulk-checkbox" style="width: 18px; height: 18px; cursor: pointer; accent-color: #1A73E8;">
+            </div>
+        @endif
+
+        @if(!Auth::check() || Auth::id() != $ad->user_id)
+            <div class="p-wishlist cursor-pointer" onclick="event.preventDefault(); event.stopPropagation(); requireAuth(() => toggleGlobalWishlist(null, {{ $ad->id }}))">
+                @php
+                    $is_favorited_card = Auth::check() && Auth::user()->favorites()->where('ad_id', $ad->id)->exists();
+                @endphp
+                <i class="{{ $is_favorited_card ? 'fa-solid' : 'fa-regular' }} fa-heart wishlist-icon-{{ $ad->id }}" style="{{ $is_favorited_card ? 'color: #EF4444 !important;' : '' }}"></i>
+            </div>
+        @endif
 
         <div class="p-badges">
             @if($ad->is_featured)
@@ -62,10 +70,7 @@
         <a href="{{ route('ads.show', $ad->id) }}" style="text-decoration: none; color: inherit;">
             <h3 class="p-ad-title">{{ $ad->title }}</h3>
         </a>
-        <div class="p-location">
-            <i class="fa-solid fa-location-dot"></i>
-            <span>{{ $ad->address ?? ($ad->city->name ?? 'السعودية') }}</span>
-        </div>
+    
 
         <div class="p-price-row" style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.75rem;">
             @php
@@ -105,7 +110,58 @@
 
         <div class="p-card-footer">
             @if(Auth::check() && Auth::id() == $ad->user_id)
-                <a href="{{ route('ads.edit', $ad->id) }}" class="btn btn-p-outline" style="flex: 1; border-color: #1A73E8; color: #1A73E8;">تعديل الإعلان</a>
+                @if(in_array($ad->status, ['incomplete', 'pending']))
+                    <div style="display: flex; gap: 0.5rem; width: 100%;">
+                        <a href="{{ route('ads.edit', $ad->id) }}" class="btn btn-p-outline" style="flex: 1; border-color: #1A73E8; color: #1A73E8; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 40px;">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>إكمال</span>
+                        </a>
+                        <form id="delete-form-{{ $ad->id }}" action="{{ route('ads.destroy', $ad->id) }}" method="POST" style="flex: 1; display: flex;">
+                            @csrf
+                            @method('DELETE')
+                            <button type="button" onclick="confirmDelete({{ $ad->id }})" class="btn btn-p-outline" style="width: 100%; border-color: #EF4444; color: #EF4444; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 40px;">
+                                <i class="fa-solid fa-trash-can"></i>
+                                <span>حذف</span>
+                            </button>
+                        </form>
+                    </div>
+                @elseif($ad->status == 'active')
+                    <div style="display: flex; width: 100%;">
+                        <a href="{{ route('ads.edit', $ad->id) }}" class="btn btn-p-outline" style="width: 100%; border-color: #1A73E8; color: #1A73E8; text-align: center; text-decoration: none; justify-content: center; display: flex; align-items: center; gap: 0.5rem; border-radius: 12px; height: 40px;">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>تعديل</span>
+                        </a>
+                    </div>
+                @elseif($ad->status == 'finished' || $ad->status == 'sold')
+                    <div style="display: flex; gap: 0.5rem; width: 100%;">
+                        <a href="{{ route('ads.edit', $ad->id) }}" class="btn btn-p-outline" style="flex: 1; border-color: #1A73E8; color: #1A73E8; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 40px;">
+                            <i class="fa-solid fa-pen-to-square text-sm"></i>
+                            <span>تعديل</span>
+                        </a>
+                        <form action="{{ route('ads.repost', $ad->id) }}" method="POST" style="flex: 1; display: flex;">
+                            @csrf
+                            <button type="submit" class="btn btn-p-primary" style="width: 100%; background-color: #1A73E8; border-color: #1A73E8; color: white; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 40px; cursor: pointer; text-decoration: none;">
+                                <i class="fa-solid fa-rotate text-sm"></i>
+                                <span>إعادة النشر</span>
+                            </button>
+                        </form>
+                    </div>
+                @elseif($ad->status == 'upcoming')
+                    <div style="display: flex; gap: 0.5rem; width: 100%;">
+                        <a href="{{ route('ads.edit', $ad->id) }}" class="btn btn-p-outline" style="flex: 1; border-color: #1A73E8; color: #1A73E8; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 40px;">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>تعديل</span>
+                        </a>
+                        <form id="delete-form-{{ $ad->id }}" action="{{ route('ads.destroy', $ad->id) }}" method="POST" style="flex: 1; display: flex;">
+                            @csrf
+                            @method('DELETE')
+                            <button type="button" onclick="confirmDelete({{ $ad->id }})" class="btn btn-p-outline" style="width: 100%; border-color: #EF4444; color: #EF4444; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 40px;">
+                                <i class="fa-solid fa-trash-can"></i>
+                                <span>حذف</span>
+                            </button>
+                        </form>
+                    </div>
+                @endif
             @else
                 @if($ad->type == 'direct_purchase')
                     <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">شراء</a>
@@ -122,3 +178,28 @@
     </div>
 </div>
 
+<script>
+    if (typeof confirmDelete !== 'function') {
+        window.confirmDelete = function(adId) {
+            Swal.fire({
+                title: 'هل أنت متأكد؟',
+                text: "لن تتمكن من التراجع عن حذف هذا الإعلان!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#EF4444',
+                cancelButtonColor: '#64748B',
+                confirmButtonText: 'نعم، احذفه!',
+                cancelButtonText: 'إلغاء',
+                customClass: {
+                    popup: 'rounded-[32px]',
+                    confirmButton: 'rounded-xl px-6 py-3 font-bold',
+                    cancelButton: 'rounded-xl px-6 py-3 font-bold'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('delete-form-' + adId).submit();
+                }
+            });
+        }
+    }
+</script>

@@ -17,6 +17,14 @@ class HomeController extends Controller
         if (Auth::check() && Auth::user()->email === 'admin@mazad.com') {
             return redirect()->route('admin.dashboard');
         }
+
+        // Auto-activate upcoming ads whose start date has arrived
+        Ad::where('status', 'upcoming')
+            ->where(function($q) {
+                $q->whereNull('start_date')->orWhere('start_date', '<=', now());
+            })
+            ->update(['status' => 'active']);
+
         $banners = Banner::where('status', true)->get();
         $discoveryCategories = Category::whereNull('parent_id')->get();
         
@@ -147,6 +155,13 @@ class HomeController extends Controller
 
     public function search(Request $request)
     {
+        // Auto-activate upcoming ads whose start date has arrived
+        Ad::where('status', 'upcoming')
+            ->where(function($q) {
+                $q->whereNull('start_date')->orWhere('start_date', '<=', now());
+            })
+            ->update(['status' => 'active']);
+
         $query = Ad::with(['category', 'user', 'city']);
 
         // Filter out blocked users' ads
@@ -203,7 +218,9 @@ class HomeController extends Controller
 
         // Status Filter (Default to active)
         $adStatus = $request->get('ad_status', 'active');
-        $query->where('status', $adStatus);
+        $query->where('status', $adStatus)->where(function($q) {
+            $q->whereNull('end_date')->orWhere('end_date', '>', now());
+        });
 
         // City
         if ($request->has('city') && !empty($request->city)) {
@@ -278,14 +295,22 @@ class HomeController extends Controller
     {
         $ad = Ad::with(['category', 'user', 'city', 'adProperties.property', 'images'])->findOrFail($id);
         
+        // Draft privacy check: If the ad is incomplete, only the owner can view it
+        if ($ad->status === 'incomplete' && (!Auth::check() || Auth::id() !== $ad->user_id)) {
+            abort(404);
+        }
+        
         // Increment views
         $ad->increment('views_count');
 
-        // Related Ads (Same category)
+        // Related Ads (Same category, only active and not expired)
         $relatedAds = Ad::with(['category', 'user', 'city'])
             ->where('category_id', $ad->category_id)
             ->where('id', '!=', $ad->id)
             ->where('status', 'active')
+            ->where(function($q) {
+                $q->whereNull('end_date')->orWhere('end_date', '>', now());
+            })
             ->limit(4)
             ->get();
 
@@ -305,7 +330,7 @@ class HomeController extends Controller
             ->merge($ad->images->pluck('image'))
             ->filter()
             ->unique()
-            ->map(fn($img) => asset($img))
+            ->map(fn($img) => \Illuminate\Support\Str::startsWith($img, 'http') ? $img : '/' . ltrim($img, '/'))
             ->values();
 
         // 3. Final collection (Real images only)

@@ -8,6 +8,7 @@ use App\Models\Ad;
 use App\Models\Category;
 use App\Models\City;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Region;
 
 class SearchController extends Controller
 {
@@ -161,6 +162,35 @@ class SearchController extends Controller
         return response()->json([
             'success' => true,
             'data' => $category->properties
+        ]);
+    }
+
+    public function filters()
+    {
+        $categories = Category::whereNull('parent_id')->with('children')->get();
+        $regions = Region::with('cities')->get();
+        $cities = City::all();
+        
+        $minPrice = Ad::where('status', 'active')->min('price') ?? 0;
+        $maxPrice = Ad::where('status', 'active')->max('price') ?? 100000;
+
+        $types = [
+            ['key' => 'direct_purchase', 'label' => 'شراء مباشر'],
+            ['key' => 'electronic_auction', 'label' => 'مزاد إلكتروني'],
+            ['key' => 'hybrid_auction', 'label' => 'مزاد هجين'],
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'فلاتر البحث المتاحة',
+            'data' => [
+                'categories' => $categories,
+                'regions' => $regions,
+                'cities' => $cities,
+                'types' => $types,
+                'min_price' => $minPrice,
+                'max_price' => $maxPrice,
+            ]
         ]);
     }
 }

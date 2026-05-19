@@ -50,6 +50,28 @@ class AuthController extends Controller
             return $this->apiResponse(false, 'هذا الحساب معطل أو بانتظار التفعيل', null, 403);
         }
 
+        // 🔒 New Device Login Detection
+        $userAgent = $request->userAgent() ?: 'unknown_device';
+        $deviceSignature = md5($userAgent);
+
+        $knownDevices = is_array($user->known_devices) ? $user->known_devices : [];
+
+        if (!in_array($deviceSignature, $knownDevices)) {
+            \App\Models\Notification::create([
+                'user_id' => $user->id,
+                'type' => 'alert',
+                'title' => 'تنبيه أمان: تسجيل دخول جديد',
+                'content' => "تم رصد تسجيل دخول جديد لحسابك من جهاز جديد في تاريخ " . now()->format('Y-m-d H:i') . ". إذا لم تكن أنت، يرجى تغيير كلمة المرور فوراً لتأمين حسابك.",
+                'status' => 'sent',
+                'read_at' => null
+            ]);
+
+            $knownDevices[] = $deviceSignature;
+            $user->update([
+                'known_devices' => $knownDevices
+            ]);
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return $this->apiResponse(true, 'تم تسجيل الدخول بنجاح', [

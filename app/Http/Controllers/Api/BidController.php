@@ -358,4 +358,214 @@ class BidController extends Controller
             ]);
         });
     }
+
+    /**
+     * Get bids & offers received on authenticated user's ads via API.
+     */
+    public function myBidsOffers(Request $request)
+    {
+        $user = Auth::user();
+        $tab = $request->get('tab', 'offers'); // 'offers' or 'auctions'
+
+        $query = Bid::whereHas('ad', function($q) use ($user, $tab) {
+            $q->where('user_id', $user->id);
+            if ($tab === 'offers') {
+                $q->where('type', 'direct_purchase');
+            } else {
+                $q->whereIn('type', ['electronic_auction', 'hybrid_auction', 'tender']);
+            }
+        })->with(['ad.category', 'ad.city', 'user']);
+
+        // Filter: Status (all, accepted, rejected, active)
+        $status = $request->get('status', 'all');
+        if ($status !== 'all') {
+            if ($status === 'accepted') {
+                $query->where('status', 'accepted');
+            } elseif ($status === 'rejected') {
+                $query->where('status', 'rejected');
+            } elseif ($status === 'active') {
+                $query->where('status', 'active');
+            }
+        }
+
+        // Keywords
+        if ($request->has('q') && !empty($request->q)) {
+            $query->where(function($q) use ($request) {
+                $q->whereHas('ad', function($aq) use ($request) {
+                    $aq->where('title', 'like', '%' . $request->q . '%');
+                })->orWhereHas('user', function($uq) use ($request) {
+                    $uq->where('name', 'like', '%' . $request->q . '%');
+                });
+            });
+        }
+
+        // Category
+        if ($request->has('category_id') && !empty($request->category_id)) {
+            $query->whereHas('ad', function($q) use ($request) {
+                $q->where('category_id', $request->category_id);
+            });
+        }
+
+        // Advertiser Type (فرد / شركة / مندوب)
+        if ($request->has('advertiser_type') && !empty($request->advertiser_type)) {
+            $query->whereHas('user', function($q) use ($request) {
+                $q->where('account_type', $request->advertiser_type);
+            });
+        }
+
+        // Sorting
+        $sort = $request->get('sort', 'newest');
+        if ($sort === 'price_high') {
+            $query->orderBy('amount', 'desc');
+        } elseif ($sort === 'price_low') {
+            $query->orderBy('amount', 'asc');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $bids = $query->paginate($request->get('per_page', 10));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'قائمة المزايدات والعروض الواردة',
+            'data' => $this->formatPagination($bids)
+        ]);
+    }
+
+    /**
+     * Accept a bid or offer via API.
+     */
+    public function acceptBidOffer(Request $request, $bidId)
+    {
+        $bid = Bid::with('ad')->findOrFail($bidId);
+
+        if ($bid->ad->user_id !== Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح لك بإجراء هذه العملية.'
+            ], 403);
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function() use ($bid) {
+            $bid->update(['status' => 'accepted']);
+            Bid::where('ad_id', $bid->ad_id)->where('id', '!=', $bid->id)->where('status', 'active')->update(['status' => 'rejected']);
+            $bid->ad->update(['status' => 'finished']);
+
+            \App\Models\Order::create([
+                'order_number' => 'ORD-' . strtoupper(\Illuminate\Support\Str::random(10)),
+                'ad_id' => $bid->ad_id,
+                'buyer_id' => $bid->user_id,
+                'seller_id' => Auth::id(),
+                'final_price' => $bid->amount,
+                'status' => 'pending_payment',
+            ]);
+
+            try {
+                \App\Models\Notification::create([
+                    'user_id' => $bid->user_id,
+                    'title' => 'تم قبول عرضك! 🎉',
+                    'content' => 'تم قبول عرضك بقيمة ' . number_format($bid->amount) . ' ريال على إعلان "' . $bid->ad->title . '". يرجى الذهاب لصفحة مشترياتك لإتمام الدفع.',
+                    'type' => 'bid_accepted',
+                ]);
+            } catch (\Exception $e) {
+                // ignore
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم قبول العرض بنجاح 🎉'
+        ]);
+    }
+
+    /**
+     * Reject a bid or offer via API.
+     */
+    public function rejectBidOffer(Request $request, $bidId)
+    {
+        $bid = Bid::with('ad')->findOrFail($bidId);
+
+        if ($bid->ad->user_id !== Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح لك بإجراء هذه العملية.'
+            ], 403);
+        }
+
+        $bid->update(['status' => 'rejected']);
+
+        try {
+            \App\Models\Notification::create([
+                'user_id' => $bid->user_id,
+                'title' => 'تم رفض عرضك',
+                'content' => 'عذراً، تم رفض عرضك بقيمة ' . number_format($bid->amount) . ' ريال على إعلان "' . $bid->ad->title . '".',
+                'type' => 'bid_rejected',
+            ]);
+        } catch (\Exception $e) {
+            // ignore
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم رفض العرض بنجاح.'
+        ]);
+    }
+
+    /**
+     * Make a counter offer via API.
+     */
+    public function counterBidOffer(Request $request, $bidId)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+        ]);
+
+        $bid = Bid::with('ad')->findOrFail($bidId);
+
+        if ($bid->ad->user_id !== Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح لك بإجراء هذه العملية.'
+            ], 403);
+        }
+
+        $sessionKey = "bid_counter_limit_" . $bid->id;
+        $remaining = session()->get($sessionKey, 2);
+
+        if ($remaining <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لقد استنفدت الحد الأقصى للعروض المضادة.'
+            ], 400);
+        }
+
+        $remaining--;
+        session()->put($sessionKey, $remaining);
+
+        $oldAmount = $bid->amount;
+        $bid->update([
+            'amount' => $request->amount,
+            'status' => 'active'
+        ]);
+
+        try {
+            \App\Models\Notification::create([
+                'user_id' => $bid->user_id,
+                'title' => 'عرض مضاد من البائع 💰',
+                'content' => 'قدم البائع عرضاً مضاداً بقيمة ' . number_format($request->amount) . ' ريال بدلاً من ' . number_format($oldAmount) . ' ريال على إعلان "' . $bid->ad->title . '".',
+                'type' => 'bid_counter',
+            ]);
+        } catch (\Exception $e) {
+            // ignore
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إرسال العرض المضاد بنجاح.',
+            'data' => [
+                'new_amount' => (float) $request->amount,
+                'remaining' => $remaining
+            ]
+        ]);
+    }
 }

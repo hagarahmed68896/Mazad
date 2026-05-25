@@ -408,4 +408,348 @@ class BidController extends Controller
             return back()->with('success', 'تم الاشتراك في المزاد بنجاح! يمكنك الآن البدء بالمزايدة.');
         });
     }
+
+    public function historyPage(Request $request, $id)
+    {
+        $ad = Ad::with(['category'])->findOrFail($id);
+        
+        $bids = Bid::where('ad_id', $ad->id)
+            ->whereIn('type', ['bid', 'tender'])
+            ->with('user')
+            ->orderBy('amount', 'desc')
+            ->paginate(15);
+
+        // Map and mask user names to match screenshot (e.g. 0750-باسم)
+        $bids->getCollection()->transform(function($bid) {
+            $user = $bid->user;
+            if ($user) {
+                $phoneSuffix = substr($user->phone ?? '1234', -4);
+                $firstName = explode(' ', $user->name)[0] ?? 'مزايد';
+                $bid->masked_name = $phoneSuffix . '-' . $firstName;
+            } else {
+                $bid->masked_name = 'مزايد مجهول';
+            }
+            return $bid;
+        });
+
+        return view('ads.bids-history', compact('ad', 'bids'));
+    }
+
+    /**
+     * Display Bids & Offers received on user's ads.
+     */
+    public function myBidsOffers(Request $request)
+    {
+        if (!Auth::check()) {
+            return redirect()->route('login')->with('error', 'يجب تسجيل الدخول أولاً.');
+        }
+
+        $user = Auth::user();
+        $tab = $request->get('tab', 'offers'); // 'offers' or 'auctions'
+
+        $query = Bid::whereHas('ad', function($q) use ($user, $tab, $request) {
+            $q->where('user_id', $user->id);
+            if ($tab === 'offers') {
+                $q->where('type', 'direct_purchase');
+            } else {
+                if ($request->filled('type')) {
+                    if ($request->type === 'auction') {
+                        $q->whereIn('type', ['electronic_auction', 'hybrid_auction']);
+                    } else {
+                        $q->where('type', $request->type);
+                    }
+                } else {
+                    $q->whereIn('type', ['electronic_auction', 'hybrid_auction', 'tender']);
+                }
+
+                if ($request->filled('is_enfaz')) {
+                    $q->where('is_enfaz', 1);
+                }
+            }
+        })->with(['ad.category', 'ad.city', 'user']);
+
+        // Filter: Status (all, accepted, rejected, active, upcoming)
+        $status = $request->get('status', 'all');
+        if ($status !== 'all') {
+            if ($status === 'accepted') {
+                $query->where('status', 'accepted');
+            } elseif ($status === 'rejected') {
+                $query->where('status', 'rejected');
+            } elseif ($status === 'active') {
+                $query->where('status', 'active');
+            } elseif ($status === 'upcoming') {
+                $query->whereHas('ad', function($q) {
+                    $q->where('status', 'upcoming');
+                });
+            }
+        }
+
+        // Filter: Keywords (Search)
+        if ($request->has('q') && !empty($request->q)) {
+            $query->where(function($q) use ($request) {
+                $q->whereHas('ad', function($aq) use ($request) {
+                    $aq->where('title', 'like', '%' . $request->q . '%');
+                })->orWhereHas('user', function($uq) use ($request) {
+                    $uq->where('name', 'like', '%' . $request->q . '%');
+                });
+            });
+        }
+
+        // Filter: City
+        if ($request->has('city') && !empty($request->city)) {
+            $query->whereHas('ad', function($q) use ($request) {
+                $q->where('city_id', $request->city);
+            });
+        }
+
+        // Filter: Category
+        $activeCategory = null;
+        if ($request->has('category') && !empty($request->category)) {
+            $activeCategory = \App\Models\Category::with('properties')->find($request->category);
+            $query->whereHas('ad', function($q) use ($request) {
+                $q->where('category_id', $request->category);
+            });
+        }
+
+        // Filter: Dynamic Category Properties (props)
+        if ($activeCategory && $request->has('props') && is_array($request->props)) {
+            foreach ($request->props as $propId => $val) {
+                if ($val !== null && $val !== '') {
+                    $query->whereHas('ad.adProperties', function($q) use ($propId, $val) {
+                        $q->where('property_id', $propId);
+                        if (is_array($val)) {
+                            $q->whereIn('value', $val);
+                        } else {
+                            $q->where('value', $val);
+                        }
+                    });
+                }
+            }
+        }
+
+        // Filter: Advertiser Type (فرد / شركة / مندوب)
+        if ($request->has('advertiser_type') && !empty($request->advertiser_type)) {
+            $query->whereHas('user', function($q) use ($request) {
+                $q->where('account_type', $request->advertiser_type);
+            });
+        }
+
+        // Sorting
+        $sort = $request->get('sort', 'newest');
+        if ($sort === 'price_high') {
+            $query->orderBy('amount', 'desc');
+        } elseif ($sort === 'price_low') {
+            $query->orderBy('amount', 'asc');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $bids = $query->paginate(10)->appends($request->all());
+
+        // Categories, Cities, Settings for filters
+        $categories = \App\Models\Category::whereNull('parent_id')->with('subCategories')->get();
+        $cities = \App\Models\City::all();
+        $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
+
+        return view('ads.bids-offers', compact('bids', 'categories', 'cities', 'settings', 'tab', 'activeCategory'));
+    }
+
+    /**
+     * Accept a bid or offer.
+     */
+    public function acceptBidOffer(Request $request, $bidId)
+    {
+        $bid = Bid::with('ad')->findOrFail($bidId);
+
+        // Can only accept bids on owned ads
+        if ($bid->ad->user_id !== Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح لك بإجراء هذه العملية.'
+            ], 403);
+        }
+
+        DB::transaction(function() use ($bid) {
+            // Update this bid status to accepted
+            $bid->update(['status' => 'accepted']);
+
+            // Reject all other active bids on this ad
+            Bid::where('ad_id', $bid->ad_id)
+                ->where('id', '!=', $bid->id)
+                ->where('status', 'active')
+                ->update(['status' => 'rejected']);
+
+            // Mark the ad as finished
+            $bid->ad->update(['status' => 'finished']);
+
+            // Create Order
+            \App\Models\Order::create([
+                'order_number' => 'ORD-' . strtoupper(\Illuminate\Support\Str::random(10)),
+                'ad_id' => $bid->ad_id,
+                'buyer_id' => $bid->user_id,
+                'seller_id' => Auth::id(),
+                'final_price' => $bid->amount,
+                'status' => 'pending_payment',
+            ]);
+
+            // Notify the buyer
+            try {
+                Notification::create([
+                    'user_id' => $bid->user_id,
+                    'title' => 'تم قبول عرضك! 🎉',
+                    'content' => 'تم قبول عرضك بقيمة ' . number_format($bid->amount) . ' ريال على إعلان "' . $bid->ad->title . '". يرجى الذهاب لصفحة مشترياتك لإتمام الدفع.',
+                    'type' => 'bid_accepted',
+                ]);
+            } catch (\Exception $e) {
+                \Log::warning('Notification failed: ' . $e->getMessage());
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم قبول العرض والاتفاق بنجاح! 🎉'
+        ]);
+    }
+
+    /**
+     * Reject a bid or offer.
+     */
+    public function rejectBidOffer(Request $request, $bidId)
+    {
+        $bid = Bid::with('ad')->findOrFail($bidId);
+
+        if ($bid->ad->user_id !== Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح لك بإجراء هذه العملية.'
+            ], 403);
+        }
+
+        $bid->update(['status' => 'rejected']);
+
+        // Notify the buyer
+        try {
+            Notification::create([
+                'user_id' => $bid->user_id,
+                'title' => 'تم رفض عرضك',
+                'content' => 'عذراً، تم رفض عرضك بقيمة ' . number_format($bid->amount) . ' ريال على إعلان "' . $bid->ad->title . '".',
+                'type' => 'bid_rejected',
+            ]);
+        } catch (\Exception $e) {
+            \Log::warning('Notification failed: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم رفض العرض بنجاح.'
+        ]);
+    }
+
+    /**
+     * Make a counter offer on a bid/offer.
+     */
+    public function counterBidOffer(Request $request, $bidId)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+        ]);
+
+        $bid = Bid::with('ad')->findOrFail($bidId);
+
+        if ($bid->ad->user_id !== Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح لك بإجراء هذه العملية.'
+            ], 403);
+        }
+
+        // Track remaining counters in session
+        $sessionKey = "bid_counter_limit_" . $bid->id;
+        $remaining = session()->get($sessionKey, 2);
+
+        if ($remaining <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لقد استنفدت الحد الأقصى للعروض المضادة على هذا العرض.'
+            ], 400);
+        }
+
+        $remaining--;
+        session()->put($sessionKey, $remaining);
+
+        // Update bid amount and keep it active (open for negotiation)
+        $oldAmount = $bid->amount;
+        $bid->update([
+            'amount' => $request->amount,
+            'status' => 'active'
+        ]);
+
+        // Notify buyer about the counter-offer
+        try {
+            Notification::create([
+                'user_id' => $bid->user_id,
+                'title' => 'عرض مضاد من البائع 💰',
+                'content' => 'قدم البائع عرضاً مضاداً بقيمة ' . number_format($request->amount) . ' ريال بدلاً من ' . number_format($oldAmount) . ' ريال على إعلان "' . $bid->ad->title . '". يمكنك قبوله أو تقديم سومة جديدة.',
+                'type' => 'bid_counter',
+            ]);
+        } catch (\Exception $e) {
+            \Log::warning('Notification failed: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إرسال عرضك المضاد بنجاح.',
+            'data' => [
+                'new_amount' => $request->amount,
+                'remaining' => $remaining
+            ]
+        ]);
+    }
+
+    /**
+     * Get details of a bid/offer for modal popup.
+     */
+    public function getDetails(Request $request, $bidId)
+    {
+        $bid = Bid::with(['ad.category', 'ad.city', 'user'])->findOrFail($bidId);
+
+        if ($bid->ad->user_id !== Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح لك.'
+            ], 403);
+        }
+
+        $sessionKey = "bid_counter_limit_" . $bid->id;
+        $remaining = session()->get($sessionKey, 2);
+
+        // Format dates
+        $dateStr = $bid->created_at->format('Y/m/d - h:i:s a');
+        $dateStr = str_replace(['am', 'pm'], ['ص', 'م'], $dateStr);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $bid->id,
+                'amount' => $bid->amount,
+                'status' => $bid->status,
+                'created_at' => $dateStr,
+                'remaining_offers' => $remaining,
+                'buyer' => [
+                    'name' => $bid->user->name,
+                    'phone' => $bid->user->phone,
+                    'account_type_lbl' => $bid->user->account_type == 'company' ? 'شركة' : ($bid->user->account_type == 'partner' ? 'مندوب شركة' : 'فرد'),
+                    'account_type' => $bid->user->account_type,
+                    'joined_at' => $bid->user->created_at ? $bid->user->created_at->format('Y/m/d') : 'قديم'
+                ],
+                'ad' => [
+                    'id' => $bid->ad->id,
+                    'title' => $bid->ad->title,
+                    'price' => $bid->ad->price,
+                    'type_lbl' => $bid->ad->type == 'direct_purchase' ? 'شراء فوري' : 'مزاد',
+                    'category' => $bid->ad->category->name ?? 'غير مصنف'
+                ]
+            ]
+        ]);
+    }
 }

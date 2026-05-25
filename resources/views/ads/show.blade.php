@@ -19,12 +19,18 @@
             </nav>
             @php
                 $is_favorited = Auth::check() && Auth::user()->favorites()->where('ad_id', $ad->id)->exists();
+                $is_look_later = Auth::check() && Auth::user()->lookLaters()->where('ad_id', $ad->id)->exists();
             @endphp
             <div class="flex gap-2">
                 @if(!Auth::check() || Auth::id() != $ad->user_id)
                 <button onclick="requireAuth(() => toggleGlobalWishlist(event, {{ $ad->id }}))" id="wishlistBtn" class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-2xl border border-gray-100 hover:shadow-md transition-all text-sm font-bold text-gray-700">
                     <i class="{{ $is_favorited ? 'fa-solid' : 'fa-regular' }} fa-heart wishlist-icon-{{ $ad->id }}" style="{{ $is_favorited ? 'color: #EF4444 !important;' : 'color: #1A73E8;' }}"></i> 
                     <span id="wishlistText">{{ $is_favorited ? 'في المفضلة' : 'أضف للمفضلة' }}</span>
+                </button>
+
+                <button onclick="requireAuth(() => toggleGlobalLookLater(event, {{ $ad->id }}))" id="lookLaterBtn" class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-2xl border border-gray-100 hover:shadow-md transition-all text-sm font-bold text-gray-700">
+                    <i class="{{ $is_look_later ? 'fa-solid' : 'fa-regular' }} fa-bookmark look-later-icon-{{ $ad->id }}" style="{{ $is_look_later ? 'color: #1A73E8 !important;' : 'color: #1A73E8;' }}"></i> 
+                    <span id="lookLaterText">{{ $is_look_later ? 'محفوظ للاطلاع لاحقاً' : 'حفظ للاطلاع لاحقاً' }}</span>
                 </button>
                 @endif
                 <button onclick="shareAd()" class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-2xl border border-gray-100 hover:shadow-md transition-all text-sm font-bold text-gray-700">
@@ -617,226 +623,322 @@
             <div class="w-full lg:w-[32%]">
                 <div class="sticky top-28">
                     <div class="bg-white rounded-[32px] p-6 shadow-xl shadow-blue-900/5 border border-gray-100 mb-8 overflow-hidden">
-                        <!-- Stats Table Section -->
-                        <div class="border border-gray-100 rounded-2xl overflow-hidden mb-6">
-                            @php
-                                // General Ad Status
-                                $ad_status_label = 'قائم';
-                                $ad_status_class = 'bg-emerald-50 text-emerald-600 border-emerald-100';
-                                if($ad->status == 'upcoming') {
-                                    $ad_status_label = 'قادم';
-                                    $ad_status_class = 'bg-blue-50 text-blue-600 border-blue-100';
-                                } elseif($ad->status == 'finished') {
-                                    $ad_status_label = 'منتهي';
-                                    $ad_status_class = 'bg-rose-50 text-rose-500 border-rose-100';
-                                }
-
-                                // Auction Specific Status
-                                $auction_status_label = null;
-                                $auction_status_class = '';
-                                $b_status = $ad->bid_status ?? $ad->status;
-                                
-                                if($ad->type == 'hybrid_auction' || $ad->type == 'electronic_auction') {
-                                    if($b_status == 'upcoming') {
-                                        $auction_status_label = 'لم تبدأ المزايدة';
-                                        $auction_status_class = 'bg-gray-100 text-gray-500 border-gray-200';
-                                    } elseif($b_status == 'active') {
-                                        $auction_status_label = 'جاري';
-                                        $auction_status_class = 'bg-emerald-50 text-emerald-600 border-emerald-100';
-                                    } elseif($b_status == 'postponed') {
-                                        $auction_status_label = 'مؤجل';
-                                        $auction_status_class = 'bg-amber-50 text-amber-600 border-amber-100';
-                                    } elseif($b_status == 'not_sold') {
-                                        $auction_status_label = 'لم يتم البيع';
-                                        $auction_status_class = 'bg-rose-50 text-rose-600 border-rose-100';
-                                    } elseif($b_status == 'sold' || $b_status == 'finished') {
-                                        $auction_status_label = 'تم البيع';
-                                        $auction_status_class = 'bg-emerald-50 text-emerald-500 border-emerald-100';
-                                    }
-                                }
-
-                                // Price Calculations
-                                $comm_setting = \App\Models\Setting::where('key', 'commission_rate')->first();
-                                $comm_rate = (float) ($comm_setting ? $comm_setting->value : 2.5);
-                                if($comm_rate > 50) $comm_rate = 2.5; 
-                                
-                                $vat_rate = 15; 
-                                $admin_fees = (float) (\App\Models\Setting::where('key', 'admin_fees')->first()->value ?? 19);
-                                $transfer_fees = (float) (\App\Models\Setting::where('key', 'transfer_fees')->first()->value ?? 500);
-
-                                $saai_val = $ad->price * ($comm_rate / 100);
-                                $vat_val = $saai_val * ($vat_rate / 100);
-                                $total_price = $ad->price + $saai_val + $vat_val + $admin_fees + $transfer_fees;
-                                $total_purchase_price = $ad->price + $admin_fees + $transfer_fees;
-                            @endphp
-
-                            <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                <span class="text-gray-900 font-bold text-sm whitespace-nowrap">حالة الاعلان</span>
-                                <span class="{{ $ad_status_class }} px-4 py-1 rounded-full text-xs font-black border">{{ $ad_status_label }}</span>
-                            </div>
-
-                            @if($auction_status_label)
-                            <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                <span class="text-gray-900 font-bold text-sm whitespace-nowrap">حالة المزاد</span>
-                                <span class="{{ $auction_status_class }} px-4 py-1 rounded-full text-xs font-black border">{{ $auction_status_label }}</span>
-                            </div>
-                            @endif
-
-                            <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4 sidebar-countdown" data-end="{{ $ad->end_date ? \Carbon\Carbon::parse($ad->end_date)->toIso8601String() : '' }}">
-                                <span class="text-gray-900 font-bold text-sm whitespace-nowrap">ينتهي في</span>
-                                <div class="text-primary font-black text-sm countdown-timer flex items-center gap-1 justify-end" dir="ltr" style="font-family: 'Courier New', Courier, monospace;">
-                                    <div class="flex items-center gap-0.5"><span class="days">00</span><span>d</span></div>
-                                    <span class="text-gray-300">:</span>
-                                    <div class="flex items-center gap-0.5"><span class="hours">00</span><span>h</span></div>
-                                    <span class="text-gray-300">:</span>
-                                    <div class="flex items-center gap-0.5"><span class="minutes">00</span><span>m</span></div>
-                                    <span class="text-gray-300">:</span>
-                                    <div class="flex items-center gap-0.5"><span class="seconds">00</span><span>s</span></div>
-                                </div>
-                            </div>
-
-                            @if($ad->inspection_info)
-                            <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                <span class="text-gray-900 font-bold text-sm whitespace-nowrap">وقت المعاينة</span>
-                                <span class="text-gray-500 font-black text-sm text-left">{{ $ad->inspection_info }}</span>
-                            </div>
-                            @endif
-                            <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المشاهدات</span>
-                                <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->views_count) }}</span>
-                            </div>
-                            <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                <span class="text-gray-900 font-bold text-sm whitespace-nowrap">
-                                    @if($ad->type == 'tender')
-                                        المناقصات
-                                    @else
-                                        {{ $ad->type == 'direct_purchase' ? 'السومات' : 'المزايدات' }}
-                                    @endif
-                                </span>
-                                <button onclick="showBidsModal()" class="text-primary font-black text-sm underline text-left hover:text-blue-700 transition-colors">{{ number_format($ad->bids()->count()) }}</button>
-                            </div>
-                            <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المفضلة</span>
-                                <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->favorites()->count()) }}</span>
-                            </div>
-                            <div class="grid grid-cols-[1fr_auto] items-center p-4 {{ $ad->type == 'direct_purchase' ? '' : 'border-b' }} border-gray-50 gap-4">
-                                <span class="text-gray-900 font-bold text-sm whitespace-nowrap">
-                                    @if($ad->type == 'tender')
-                                        السعر الحالي
-                                    @elseif($ad->type == 'direct_purchase')
-                                        سعر الشراء
-                                    @elseif($b_status == 'sold' || $b_status == 'finished')
-                                        السعر النهائي
-                                    @else
-                                        السعر الحالي
-                                    @endif
-                                </span>
-                                <div class="flex items-center gap-1 justify-end text-gray-900">
-                                    <span class="font-black text-lg">{{ number_format($ad->price) }}</span>
-                                    <x-riyal-icon class="w-4 h-4" />
-                                </div>
-                            </div>
-                            
-                            @if($ad->type != 'direct_purchase' || ($b_status == 'sold' || $b_status == 'finished'))
-                            <div class="grid grid-cols-[1fr_auto] items-center p-4 bg-gray-50/30 gap-4">
-                                <span class="text-gray-900 font-black text-base whitespace-nowrap">السعر الإجمالي</span>
-                                <div class="flex items-center gap-2 justify-end">
-                                    <i onclick="showPriceModal()" class="fa-solid fa-circle-info text-gray-400 text-sm cursor-pointer hover:text-primary transition-colors"></i>
-                                    <div class="flex items-center gap-1 text-primary">
-                                        <span class="font-black text-xl">{{ number_format($total_price) }}</span>
-                                        <x-riyal-icon class="w-5 h-5" />
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
-                        </div>
-
-                        @if($ad->type == 'direct_purchase' && Auth::id() != $ad->user_id)
-                        <!-- Quantity Selector -->
-                        <div class="mb-6 space-y-3">
-                            <div class="flex justify-between items-center px-1">
-                                <span class="text-gray-900 font-black">الكمية</span>
-                            </div>
-                            <div class="flex items-center gap-4 bg-gray-50/80 rounded-2xl p-4 border border-gray-100">
-                                <div class="flex items-center gap-3 bg-white rounded-xl border border-gray-100 p-1">
-                                    <button onclick="updateQty(1)" class="w-10 h-10 flex items-center justify-center rounded-lg border border-primary text-primary hover:bg-primary hover:text-white transition-all"><i class="fa-solid fa-plus"></i></button>
-                                    <span id="qtyDisplay" class="font-black text-lg min-w-[20px] text-center">1</span>
-                                    <button onclick="updateQty(-1)" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 transition-all"><i class="fa-solid fa-minus"></i></button>
-                                </div>
-                                <div class="flex-1 flex items-center gap-1 justify-end text-gray-900">
-                                    <span id="totalPriceDisplay" class="font-black text-2xl" data-base="{{ $ad->price }}">{{ number_format($ad->price) }}</span>
-                                    <x-riyal-icon class="w-6 h-6" />
-                                </div>
-                            </div>
-                        </div>
-                        @endif
-
-                        <!-- Action Buttons -->
                         @php
-                            $is_closed = $ad->status == 'finished' || (isset($b_status) && ($b_status == 'sold' || $b_status == 'finished'));
+                            $buyerOrder = null;
+                            if(Auth::check()) {
+                                $buyerOrder = \App\Models\Order::where('ad_id', $ad->id)
+                                    ->where('buyer_id', Auth::id())
+                                    ->first();
+                            }
                         @endphp
 
-                        @if(!$is_closed && Auth::id() != $ad->user_id)
-                        <div class="space-y-3">
-                            @if($ad->type == 'electronic_auction' || $ad->type == 'hybrid_auction')
+                        @if($buyerOrder)
+                            <!-- BUYER SPECIFIC CARD (Matching Image 1) -->
+                            @php
+                                $b_order_status = $buyerOrder->status; // pending_payment, paid, receiving, received
+                                
+                                $b_status_label = 'قائم';
+                                $b_status_class = 'bg-emerald-50 text-emerald-600 border-emerald-100';
+                                
+                                if($b_order_status == 'pending_payment') {
+                                    $b_status_label = 'قيد الدفع';
+                                    $b_status_class = 'bg-amber-50 text-amber-600 border-amber-100';
+                                } elseif($b_order_status == 'paid') {
+                                    $b_status_label = 'تم الدفع';
+                                    $b_status_class = 'bg-emerald-50 text-emerald-600 border-emerald-100';
+                                } elseif($b_order_status == 'receiving') {
+                                    $b_status_label = 'قيد الاستلام';
+                                    $b_status_class = 'bg-orange-50 text-orange-500 border-orange-100';
+                                } elseif($b_order_status == 'received') {
+                                    $b_status_label = 'تم الاستلام';
+                                    $b_status_class = 'bg-blue-50 text-blue-600 border-blue-100';
+                                }
+                            @endphp
+
+                            <!-- Stats Table -->
+                            <div class="border border-gray-100 rounded-2xl overflow-hidden mb-6">
+                                <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
+                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">حالة الاعلان</span>
+                                    <span class="{{ $b_status_class }} px-4 py-1 rounded-full text-xs font-black border">{{ $b_status_label }}</span>
+                                </div>
+                                <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
+                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المشاهدات</span>
+                                    <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->views_count) }}</span>
+                                </div>
+                                <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
+                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المزايدات</span>
+                                    <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->bids()->count()) }}</span>
+                                </div>
+                                <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
+                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المفضلة</span>
+                                    <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->favorites()->count()) }}</span>
+                                </div>
+                                <div class="grid grid-cols-[1fr_auto] items-center p-4 gap-4">
+                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">السعر النهائي</span>
+                                    <div class="flex items-center gap-1 justify-end text-primary">
+                                        <span class="font-black text-lg">{{ number_format($buyerOrder->final_price) }}</span>
+                                        <x-riyal-icon class="w-4 h-4 text-primary" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Delivery Code box if status is receiving -->
+                            @if($b_order_status == 'receiving')
+                                <div class="p-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-center justify-between text-right mb-6 animate-in fade-in duration-300" style="background-color: #FFF7ED; border-color: #FED7AA; color: #EA580C;" onclick="event.stopPropagation()">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fa-solid fa-copy cursor-pointer text-lg text-orange-500 hover:text-orange-700 transition-colors" onclick="copyAdDeliveryCode('{{ $buyerOrder->delivery_code ?? '839201' }}')" title="نسخ كود التسليم"></i>
+                                        <span class="text-base font-black tracking-wider" style="font-family: monospace;">{{ $buyerOrder->delivery_code ?? '839201' }}</span>
+                                    </div>
+                                    <span class="text-sm font-bold text-orange-700">كود التسليم</span>
+                                </div>
+                            @endif
+
+                            <!-- Action Buttons -->
+                            <div class="space-y-3">
+                                @if($b_order_status == 'pending_payment')
+                                    <button type="button" onclick="showAdPaymentDetails('{{ $buyerOrder->order_number }}', '{{ number_format($buyerOrder->final_price) }}')" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
+                                        اتمام الدفع
+                                    </button>
+                                @elseif($b_order_status == 'receiving')
+                                    <button type="button" onclick="openAdDeliveryModal('{{ $buyerOrder->delivery_code ?? '839201' }}')" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
+                                        أرسل كود التسليم
+                                    </button>
+                                @elseif($b_order_status == 'received')
+                                    @if($buyerOrder->review)
+                                        <button type="button" disabled class="w-full bg-gray-100 text-gray-400 font-bold py-4 rounded-xl border border-gray-200 flex items-center justify-center gap-2">
+                                            <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                                            <span>تم التقييم بنجاح</span>
+                                        </button>
+                                    @else
+                                        <button type="button" onclick="openAdRatingModal('{{ $seller->id ?? '' }}', '{{ $seller->name ?? 'البائع' }}')" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
+                                            أقيم تجربتك
+                                        </button>
+                                    @endif
+                                @endif
+                            </div>
+
+                        @else
+                            <!-- Stats Table Section -->
+                            <div class="border border-gray-100 rounded-2xl overflow-hidden mb-6">
                                 @php
-                                    $has_joined = \App\Models\Bid::where('ad_id', $ad->id)->where('user_id', auth()->id())->where('type', 'deposit')->exists();
+                                    // General Ad Status
+                                    $ad_status_label = 'قائم';
+                                    $ad_status_class = 'bg-emerald-50 text-emerald-600 border-emerald-100';
+                                    if($ad->status == 'upcoming') {
+                                        $ad_status_label = 'قادم';
+                                        $ad_status_class = 'bg-blue-50 text-blue-600 border-blue-100';
+                                    } elseif($ad->status == 'finished') {
+                                        $ad_status_label = 'منتهي';
+                                        $ad_status_class = 'bg-rose-50 text-rose-500 border-rose-100';
+                                    }
+
+                                    // Auction Specific Status
+                                    $auction_status_label = null;
+                                    $auction_status_class = '';
+                                    $b_status = $ad->bid_status ?? $ad->status;
+                                    
+                                    if($ad->type == 'hybrid_auction' || $ad->type == 'electronic_auction') {
+                                        if($b_status == 'upcoming') {
+                                            $auction_status_label = 'لم تبدأ المزايدة';
+                                            $auction_status_class = 'bg-gray-100 text-gray-500 border-gray-200';
+                                        } elseif($b_status == 'active') {
+                                            $auction_status_label = 'جاري';
+                                            $auction_status_class = 'bg-emerald-50 text-emerald-600 border-emerald-100';
+                                        } elseif($b_status == 'postponed') {
+                                            $auction_status_label = 'مؤجل';
+                                            $auction_status_class = 'bg-amber-50 text-amber-600 border-amber-100';
+                                        } elseif($b_status == 'not_sold') {
+                                            $auction_status_label = 'لم يتم البيع';
+                                            $auction_status_class = 'bg-rose-50 text-rose-600 border-rose-100';
+                                        } elseif($b_status == 'sold' || $b_status == 'finished') {
+                                            $auction_status_label = 'تم البيع';
+                                            $auction_status_class = 'bg-emerald-50 text-emerald-500 border-emerald-100';
+                                        }
+                                    }
+
+                                    // Price Calculations
+                                    $comm_setting = \App\Models\Setting::where('key', 'commission_rate')->first();
+                                    $comm_rate = (float) ($comm_setting ? $comm_setting->value : 2.5);
+                                    if($comm_rate > 50) $comm_rate = 2.5; 
+                                    
+                                    $vat_rate = 15; 
+                                    $admin_fees = (float) (\App\Models\Setting::where('key', 'admin_fees')->first()->value ?? 19);
+                                    $transfer_fees = (float) (\App\Models\Setting::where('key', 'transfer_fees')->first()->value ?? 500);
+
+                                    $saai_val = $ad->price * ($comm_rate / 100);
+                                    $vat_val = $saai_val * ($vat_rate / 100);
+                                    $total_price = $ad->price + $saai_val + $vat_val + $admin_fees + $transfer_fees;
+                                    $total_purchase_price = $ad->price + $admin_fees + $transfer_fees;
                                 @endphp
 
-                                @if(!$has_joined && $b_status != 'upcoming')
-                                    <button onclick="requireAuth(showJoinAuctionModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg mb-3">
-                                        اشترك في المزاد الآن
-                                    </button>
-                                @elseif($b_status == 'upcoming')
-                                    <button onclick="requireAuth(showJoinAuctionModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg mb-3">
-                                        اشترك في المزاد (قريباً)
-                                    </button>
-                                @else
-                                    <!-- Joined or Active: Show Separate Bidding Buttons -->
-                                    <div class="grid grid-cols-2 gap-3 mb-3">
-                                        <button onclick="requireAuth(showBidModal)" class="bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
-                                            زايد الآن
-                                        </button>
-                                        <button onclick="requireAuth(showAutoBidModal)" class="border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-sm">
-                                            المزايدة التلقائية
-                                        </button>
-                                    </div>
+                                <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
+                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">حالة الاعلان</span>
+                                    <span class="{{ $ad_status_class }} px-4 py-1 rounded-full text-xs font-black border">{{ $ad_status_label }}</span>
+                                </div>
+
+                                @if($auction_status_label)
+                                <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
+                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">حالة المزاد</span>
+                                    <span class="{{ $auction_status_class }} px-4 py-1 rounded-full text-xs font-black border">{{ $auction_status_label }}</span>
+                                </div>
                                 @endif
 
-                                <button onclick="requireAuth(showPurchaseModal)" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-lg mb-3">
-                                    اشترِ الآن
-                                </button>
-                                <button onclick="requireAuth(() => addToCart({{ $ad->id }}))" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-lg">
-                                     أضف الي السلة <i class="fa-solid fa-cart-shopping text-sm"></i>
-                                </button>
-                            @elseif($ad->type == 'tender')
-                                <div class="grid grid-cols-2 gap-3">
-                                    <button onclick="requireAuth(showTenderModal)" class="bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
-                                        ناقص الآن
-                                    </button>
-                                    <button onclick="requireAuth(showAutoTenderModal)" class="border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-sm">
-                                        المناقصة التلقائية
-                                    </button>
-                                </div>
-                            @else
-                                <div class="space-y-3">
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <button onclick="requireAuth(showPurchaseModal)" class="bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 text-lg order-2">اشترِ الآن</button>
-                                        <button onclick="requireAuth(showOfferModal)" class="border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-lg order-1">قدم عرضك</button>
+                                <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4 sidebar-countdown" data-end="{{ $ad->end_date ? \Carbon\Carbon::parse($ad->end_date)->toIso8601String() : '' }}">
+                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">ينتهي في</span>
+                                    <div class="text-primary font-black text-sm countdown-timer flex items-center gap-1 justify-end" dir="ltr" style="font-family: 'Courier New', Courier, monospace;">
+                                        <div class="flex items-center gap-0.5"><span class="days">00</span><span>d</span></div>
+                                        <span class="text-gray-300">:</span>
+                                        <div class="flex items-center gap-0.5"><span class="hours">00</span><span>h</span></div>
+                                        <span class="text-gray-300">:</span>
+                                        <div class="flex items-center gap-0.5"><span class="minutes">00</span><span>m</span></div>
+                                        <span class="text-gray-300">:</span>
+                                        <div class="flex items-center gap-0.5"><span class="seconds">00</span><span>s</span></div>
                                     </div>
+                                </div>
+
+                                @if($ad->inspection_info)
+                                <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
+                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">وقت المعاينة</span>
+                                    <span class="text-gray-500 font-black text-sm text-left">{{ $ad->inspection_info }}</span>
+                                </div>
+                                @endif
+                                <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
+                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المشاهدات</span>
+                                    <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->views_count) }}</span>
+                                </div>
+                                <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
+                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">
+                                        @if($ad->type == 'tender')
+                                            المناقصات
+                                        @else
+                                            {{ $ad->type == 'direct_purchase' ? 'السومات' : 'المزايدات' }}
+                                        @endif
+                                    </span>
+                                    <button onclick="showBidsModal()" class="text-primary font-black text-sm underline text-left hover:text-blue-700 transition-colors">{{ number_format($ad->bids()->count()) }}</button>
+                                </div>
+                                <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
+                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المفضلة</span>
+                                    <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->favorites()->count()) }}</span>
+                                </div>
+                                <div class="grid grid-cols-[1fr_auto] items-center p-4 {{ $ad->type == 'direct_purchase' ? '' : 'border-b' }} border-gray-50 gap-4">
+                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">
+                                        @if($ad->type == 'tender')
+                                            السعر الحالي
+                                        @elseif($ad->type == 'direct_purchase')
+                                            سعر الشراء
+                                        @elseif($b_status == 'sold' || $b_status == 'finished')
+                                            السعر النهائي
+                                        @else
+                                            السعر الحالي
+                                        @endif
+                                    </span>
+                                    <div class="flex items-center gap-1 justify-end text-gray-900">
+                                        <span class="font-black text-lg">{{ number_format($ad->price) }}</span>
+                                        <x-riyal-icon class="w-4 h-4" />
+                                    </div>
+                                </div>
+                                
+                                @if($ad->type != 'direct_purchase' || ($b_status == 'sold' || $b_status == 'finished'))
+                                <div class="grid grid-cols-[1fr_auto] items-center p-4 bg-gray-50/30 gap-4">
+                                    <span class="text-gray-900 font-black text-base whitespace-nowrap">السعر الإجمالي</span>
+                                    <div class="flex items-center gap-2 justify-end">
+                                        <i onclick="showPriceModal()" class="fa-solid fa-circle-info text-gray-400 text-sm cursor-pointer hover:text-primary transition-colors"></i>
+                                        <div class="flex items-center gap-1 text-primary">
+                                            <span class="font-black text-xl">{{ number_format($total_price) }}</span>
+                                            <x-riyal-icon class="w-5 h-5" />
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
+                            </div>
+
+                            @if($ad->type == 'direct_purchase' && Auth::id() != $ad->user_id)
+                            <!-- Quantity Selector -->
+                            <div class="mb-6 space-y-3">
+                                <div class="flex justify-between items-center px-1">
+                                    <span class="text-gray-900 font-black">الكمية</span>
+                                </div>
+                                <div class="flex items-center gap-4 bg-gray-50/80 rounded-2xl p-4 border border-gray-100">
+                                    <div class="flex items-center gap-3 bg-white rounded-xl border border-gray-100 p-1">
+                                        <button onclick="updateQty(1)" class="w-10 h-10 flex items-center justify-center rounded-lg border border-primary text-primary hover:bg-primary hover:text-white transition-all"><i class="fa-solid fa-plus"></i></button>
+                                        <span id="qtyDisplay" class="font-black text-lg min-w-[20px] text-center">1</span>
+                                        <button onclick="updateQty(-1)" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 transition-all"><i class="fa-solid fa-minus"></i></button>
+                                    </div>
+                                    <div class="flex-1 flex items-center gap-1 justify-end text-gray-900">
+                                        <span id="totalPriceDisplay" class="font-black text-2xl" data-base="{{ $ad->price }}">{{ number_format($ad->price) }}</span>
+                                        <x-riyal-icon class="w-6 h-6" />
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Action Buttons -->
+                            @php
+                                $is_closed = $ad->status == 'finished' || (isset($b_status) && ($b_status == 'sold' || $b_status == 'finished'));
+                            @endphp
+
+                            @if(!$is_closed && Auth::id() != $ad->user_id)
+                            <div class="space-y-3">
+                                @if($ad->type == 'electronic_auction' || $ad->type == 'hybrid_auction')
+                                    @php
+                                        $has_joined = \App\Models\Bid::where('ad_id', $ad->id)->where('user_id', auth()->id())->where('type', 'deposit')->exists();
+                                    @endphp
+
+                                    @if(!$has_joined && $b_status != 'upcoming')
+                                        <button onclick="requireAuth(showJoinAuctionModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg mb-3">
+                                            اشترك في المزاد الآن
+                                        </button>
+                                    @elseif($b_status == 'upcoming')
+                                        <button onclick="requireAuth(showJoinAuctionModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg mb-3">
+                                            اشترك في المزاد (قريباً)
+                                        </button>
+                                    @else
+                                        <!-- Joined or Active: Show Separate Bidding Buttons -->
+                                        <div class="grid grid-cols-2 gap-3 mb-3">
+                                            <button onclick="requireAuth(showBidModal)" class="bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
+                                                زايد الآن
+                                            </button>
+                                            <button onclick="requireAuth(showAutoBidModal)" class="border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-sm">
+                                                المزايدة التلقائية
+                                            </button>
+                                        </div>
+                                    @endif
+
+                                    <button onclick="requireAuth(showPurchaseModal)" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-lg mb-3">
+                                        اشترِ الآن
+                                    </button>
                                     <button onclick="requireAuth(() => addToCart({{ $ad->id }}))" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-lg">
                                          أضف الي السلة <i class="fa-solid fa-cart-shopping text-sm"></i>
                                     </button>
+                                @elseif($ad->type == 'tender')
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <button onclick="requireAuth(showTenderModal)" class="bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
+                                            ناقص الآن
+                                        </button>
+                                        <button onclick="requireAuth(showAutoTenderModal)" class="border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-sm">
+                                            المناقصة التلقائية
+                                        </button>
+                                    </div>
+                                @else
+                                    <div class="space-y-3">
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <button onclick="requireAuth(showPurchaseModal)" class="bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 text-lg order-2">اشترِ الآن</button>
+                                            <button onclick="requireAuth(showOfferModal)" class="border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-lg order-1">قدم عرضك</button>
+                                        </div>
+                                        <button onclick="requireAuth(() => addToCart({{ $ad->id }}))" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-lg">
+                                             أضف الي السلة <i class="fa-solid fa-cart-shopping text-sm"></i>
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
+                            @elseif(Auth::id() == $ad->user_id)
+                                <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 text-center">
+                                    <p class="text-primary font-black mb-4">أنت صاحب هذا الإعلان</p>
+                                    <a href="{{ route('ads.edit', $ad->id) }}" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-3">
+                                        <i class="fa-solid fa-pen-to-square"></i> تعديل الإعلان
+                                    </a>
                                 </div>
                             @endif
-                        </div>
-                        @elseif(Auth::id() == $ad->user_id)
-                            <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 text-center">
-                                <p class="text-primary font-black mb-4">أنت صاحب هذا الإعلان</p>
-                                <a href="{{ route('ads.edit', $ad->id) }}" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-3">
-                                    <i class="fa-solid fa-pen-to-square"></i> تعديل الإعلان
-                                </a>
-                            </div>
                         @endif
                     </div> <!-- End Card -->
                 </div> <!-- End Sticky -->
@@ -1887,6 +1989,7 @@
                 const cartCount = document.getElementById('cartCount');
                 if (cartCount) {
                     cartCount.innerText = data.cart_count;
+                    cartCount.style.display = 'flex';
                     cartCount.classList.remove('hidden');
                 }
             } else {
@@ -2074,7 +2177,216 @@
             }
         });
     };
+
+    // Buyer interactive card action functions
+    window.copyAdDeliveryCode = function(code) {
+        navigator.clipboard.writeText(code).then(() => {
+            Swal.fire({
+                title: 'تم النسخ!',
+                text: 'تم نسخ كود الاستلام بنجاح، قدّمه للبائع لتسليم السلعة.',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false,
+                customClass: { popup: 'rounded-[32px]' }
+            });
+        });
+    };
+
+    window.showAdPaymentDetails = function(orderNumber, price) {
+        Swal.fire({
+            title: '<span style="font-size: 1.35rem; font-weight: 900; color: #1E293B;">تفاصيل الحساب البنكي للدفع</span>',
+            html: `
+                <div class="text-right space-y-4 font-bold" style="direction: rtl; text-align: right;">
+                    <div class="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl mb-4">
+                        <p class="text-xs text-gray-500 font-bold mb-1">رقم الطلب:</p>
+                        <p class="text-sm font-black text-blue-600">#${orderNumber}</p>
+                        <p class="text-xs text-gray-500 font-bold mt-2 mb-1">الإجمالي المطلوب سداده:</p>
+                        <p class="text-lg font-black text-gray-900">${price} ريال سعودي</p>
+                    </div>
+                    <div class="space-y-3 text-slate-700">
+                        <div>
+                            <span class="text-xs text-gray-400 font-bold block">اسم البنك:</span>
+                            <span class="text-sm font-black text-slate-700 block">البنك الأهلي السعودي (SNB)</span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-400 font-bold block">اسم الحساب:</span>
+                            <span class="text-sm font-black text-slate-700 block">شركة تقنية المعلومات للمزادات المحدودة</span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-400 font-bold block">رقم الحساب:</span>
+                            <span class="text-sm font-black text-slate-700 block">1000000839201</span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-400 font-bold block">رقم الآيبان (IBAN):</span>
+                            <div class="flex items-center justify-between bg-slate-50 border border-slate-100 p-2.5 rounded-xl mt-1">
+                                <span class="text-xs font-black text-slate-800" style="font-family: monospace; letter-spacing: 0.5px;">SA9876543210000012345678</span>
+                                <button type="button" onclick="navigator.clipboard.writeText('SA9876543210000012345678'); Swal.fire('نسخ!', 'تم نسخ رقم الآيبان.', 'success')" class="text-blue-500 hover:text-blue-700 font-bold text-xs">نسخ</button>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-rose-500 font-bold leading-relaxed mt-4 pt-3 border-t border-slate-100">
+                        * تنبيه: يرجى كتابة رقم الطلب (#${orderNumber}) في وصف الحوالة البنكية، ثم إرسال صورة التحويل لخدمة العملاء لإتمام مراجعة الطلب وتأكيد عملية الدفع.
+                    </p>
+                </div>
+            `,
+            showConfirmButton: true,
+            confirmButtonText: 'موافق',
+            confirmButtonColor: '#1A73E8',
+            customClass: {
+                popup: 'rounded-[32px] p-8 max-w-[460px] w-full text-right',
+                confirmButton: 'rounded-2xl px-8 py-3.5 font-bold text-sm w-full bg-primary border-0'
+            }
+        });
+    };
+
+    window.openAdDeliveryModal = function(code) {
+        const digits = String(code).split('');
+        while (digits.length < 6) {
+            digits.push('');
+        }
+        
+        Swal.fire({
+            title: `<span style="font-size: 1.35rem; font-weight: 900; color: #1E293B;">إرسال كود التسليم</span>`,
+            html: `
+                <div class="text-center" style="direction: rtl;">
+                    <p class="text-xs font-bold text-slate-500 leading-relaxed mb-6">
+                        سيتم إرسال كود التسليم إلى البائع لتوثيق عملية الاستلام. قدم الكود للبائع عند تسليم السلعة.
+                    </p>
+                    <div class="flex justify-center gap-2 my-6" style="direction: ltr;">
+                        ${digits.map(d => `
+                            <div class="w-12 h-14 bg-slate-50 border-2 border-slate-200 rounded-xl flex items-center justify-center font-black text-xl text-slate-800" style="box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">${d}</div>
+                        `).join('')}
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'إرسال',
+            cancelButtonText: 'إلغاء',
+            confirmButtonColor: '#1A73E8',
+            cancelButtonColor: '#E2E8F0',
+            customClass: {
+                popup: 'rounded-[32px] p-8 max-w-[460px] w-full text-right',
+                confirmButton: 'rounded-2xl px-6 py-3 font-bold text-sm bg-primary border-0',
+                cancelButton: 'rounded-2xl px-6 py-3 font-bold text-sm text-slate-500 border-0 bg-slate-200'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                navigator.clipboard.writeText(code).then(() => {
+                    Swal.fire({
+                        title: 'تم بنجاح!',
+                        text: 'تم نسخ كود التسليم وإرساله بنجاح إلى البائع لتأكيد الاستلام.',
+                        icon: 'success',
+                        timer: 2500,
+                        showConfirmButton: false,
+                        customClass: { popup: 'rounded-[32px]' }
+                    });
+                });
+            }
+        });
+    };
+
+    window.openAdRatingModal = function(sellerId, sellerName) {
+        let currentRating = 5;
+        
+        Swal.fire({
+            title: `<span style="font-size: 1.35rem; font-weight: 900; color: #1E293B;">قيّم تجربتك</span>`,
+            html: `
+                <style>
+                    .swal2-stars {
+                        display: flex;
+                        justify-content: center;
+                        gap: 0.4rem;
+                        font-size: 2.25rem;
+                        direction: ltr;
+                        margin: 1rem 0;
+                    }
+                    .swal2-star-item {
+                        color: #CBD5E1;
+                        cursor: pointer;
+                        transition: color 0.15s ease;
+                    }
+                    .swal2-star-item.selected,
+                    .swal2-star-item:hover,
+                    .swal2-star-item:hover ~ .swal2-star-item {
+                        color: #F59E0B;
+                    }
+                </style>
+                <div class="text-center" style="direction: rtl;">
+                    <p class="text-xs font-bold text-slate-400 mb-4">شارك رأيك وساعد الآخرين في اختيار الأفضل</p>
+                    <div class="swal2-stars" id="star-rating-container">
+                        <i class="fa-solid fa-star swal2-star-item selected" data-index="1"></i>
+                        <i class="fa-solid fa-star swal2-star-item selected" data-index="2"></i>
+                        <i class="fa-solid fa-star swal2-star-item selected" data-index="3"></i>
+                        <i class="fa-solid fa-star swal2-star-item selected" data-index="4"></i>
+                        <i class="fa-solid fa-star swal2-star-item selected" data-index="5"></i>
+                    </div>
+                    <div class="text-right mt-4 mb-2 pr-1">
+                        <label class="text-xs font-black text-slate-800">اكتب رأيك</label>
+                    </div>
+                    <textarea id="swal-rating-comment" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:outline-none focus:border-blue-500 text-sm font-bold" rows="3" placeholder="مشاركة رأيك يساعدنا على التجربة"></textarea>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'إرسال',
+            cancelButtonText: 'إلغاء',
+            confirmButtonColor: '#1A73E8',
+            cancelButtonColor: '#E2E8F0',
+            customClass: {
+                popup: 'rounded-[32px] p-8 max-w-[460px] w-full text-right',
+                confirmButton: 'rounded-2xl px-6 py-3 font-bold text-sm bg-primary border-0',
+                cancelButton: 'rounded-2xl px-6 py-3 font-bold text-sm text-slate-500 border-0 bg-slate-200'
+            },
+            didOpen: () => {
+                const starItems = document.querySelectorAll('.swal2-star-item');
+                starItems.forEach(star => {
+                    star.addEventListener('click', (e) => {
+                        const index = parseInt(star.getAttribute('data-index'));
+                        currentRating = index;
+                        starItems.forEach(s => {
+                            const idx = parseInt(s.getAttribute('data-index'));
+                            if (idx <= index) {
+                                s.classList.add('selected');
+                            } else {
+                                s.classList.remove('selected');
+                            }
+                        });
+                    });
+                });
+            },
+            preConfirm: () => {
+                const comment = document.getElementById('swal-rating-comment').value.trim();
+                return { rating: currentRating, comment: comment };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.getElementById('purchasesReviewForm');
+                if(form) {
+                    document.getElementById('review_seller_id').value = sellerId;
+                    document.getElementById('review_rating_val').value = result.value.rating;
+                    document.getElementById('review_comment_val').value = result.value.comment;
+                    
+                    Swal.fire({
+                        title: 'جاري تسجيل التقييم...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    form.submit();
+                }
+            }
+        });
+    };
 </script>
+
+<!-- Review submission form (executed via JS dynamically) -->
+<form id="purchasesReviewForm" action="{{ route('reviews.store') }}" method="POST" style="display: none;">
+    @csrf
+    <input type="hidden" name="rated_user_id" id="review_seller_id">
+    <input type="hidden" name="rating" id="review_rating_val">
+    <input type="hidden" name="comment" id="review_comment_val">
+</form>
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

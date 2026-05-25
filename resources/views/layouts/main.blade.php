@@ -8,12 +8,7 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -347,6 +342,14 @@
                         });
                     }
 
+                    if (data.action === 'added') {
+                        const txtEl = document.getElementById('wishlistText');
+                        if (txtEl) txtEl.innerText = 'في المفضلة';
+                    } else {
+                        const txtEl = document.getElementById('wishlistText');
+                        if (txtEl) txtEl.innerText = 'أضف للمفضلة';
+                    }
+
                     // Special case for ad details page
                     if (typeof toggleWishlistUI === 'function') {
                         toggleWishlistUI(data.action);
@@ -368,6 +371,69 @@
                     icon: 'error',
                     title: 'خطأ',
                     text: 'حدث خطأ أثناء تحديث المفضلة'
+                });
+            });
+        }
+
+        // Global Look Later Logic
+        function toggleGlobalLookLater(event, adId) {
+            console.log('Toggling Look Later for Ad:', adId);
+            const icons = document.querySelectorAll(`.look-later-icon-${adId}`);
+            
+            fetch(`/look-later/toggle/${adId}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Look Later Response:', data);
+                if (data.status === 'success') {
+                    if (icons.length > 0) {
+                        icons.forEach(icon => {
+                            if (data.action === 'added') {
+                                icon.classList.remove('fa-regular');
+                                icon.classList.add('fa-solid');
+                                icon.style.setProperty('color', '#1A73E8', 'important');
+                            } else {
+                                icon.classList.remove('fa-solid');
+                                icon.classList.add('fa-regular');
+                                icon.style.color = '';
+                            }
+                        });
+                    }
+
+                    if (data.action === 'added') {
+                        const txtEl = document.getElementById('lookLaterText');
+                        if (txtEl) txtEl.innerText = 'محفوظ للاطلاع لاحقاً';
+                    } else {
+                        const txtEl = document.getElementById('lookLaterText');
+                        if (txtEl) txtEl.innerText = 'حفظ للاطلاع لاحقاً';
+                    }
+
+                    // Special case for details page
+                    if (typeof toggleLookLaterUI === 'function') {
+                        toggleLookLaterUI(data.action);
+                    }
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: data.message,
+                        showConfirmButton: false,
+                        timer: 1500,
+                        position: 'top-end',
+                        toast: true
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Look Later Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'حدث خطأ أثناء تحديث قائمة الاطلاع لاحقاً'
                 });
             });
         }

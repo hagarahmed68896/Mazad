@@ -36,18 +36,34 @@ Route::get('/ads/{id}/bids/info', [BidController::class, 'info']);
 Route::get('/ads/{id}/bids/history', [BidController::class, 'history']);
 Route::post('/update-location', [LocationController::class, 'updateLocation']);
 
+// Support and Help Desk Pages (Public)
+Route::get('/faqs', [\App\Http\Controllers\Api\SupportController::class, 'faqs']);
+Route::get('/privacy-policy', [\App\Http\Controllers\Api\SupportController::class, 'privacy']);
+Route::get('/terms-conditions', [\App\Http\Controllers\Api\SupportController::class, 'terms']);
+Route::post('/contact-us', [\App\Http\Controllers\Api\SupportController::class, 'storeTicket']);
+
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::get('/profile', [AuthController::class, 'profile']);
+    Route::post('/profile/update', [AuthController::class, 'updateProfile']);
+    Route::post('/profile/password', [AuthController::class, 'updatePassword']);
+    Route::post('/profile/bank', [AuthController::class, 'updateBank']);
+    Route::post('/profile/avatar', [AuthController::class, 'updateAvatar']);
+    Route::post('/profile/cover', [AuthController::class, 'updateCover']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/update-interests', [AuthController::class, 'updateInterests']);
+    Route::get('/interests', [AuthController::class, 'getInterests']);
+    Route::get('/profile/notifications', [AuthController::class, 'getNotificationSettings']);
+    Route::post('/profile/notifications', [AuthController::class, 'updateNotificationSettings']);
+    Route::post('/profile/fcm-token', [AuthController::class, 'updateFcmToken']);
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
-    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+    Route::match(['delete', 'post'], '/notifications/{id}', [NotificationController::class, 'destroy']);
+    Route::post('/notifications/{id}/delete', [NotificationController::class, 'destroy']);
 
     // Ads creation
     Route::get('/ads/create/metadata', [\App\Http\Controllers\Api\AdController::class, 'createMetadata']);
@@ -55,23 +71,44 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/ads', [\App\Http\Controllers\Api\AdController::class, 'store']);
     Route::post('/ads/{id}/update', [\App\Http\Controllers\Api\AdController::class, 'update']);
     Route::delete('/ads/{id}', [\App\Http\Controllers\Api\AdController::class, 'destroy']);
+    Route::post('/ads/{id}/delete', [\App\Http\Controllers\Api\AdController::class, 'destroy']);
     Route::post('/ads/{id}/repost', [\App\Http\Controllers\Api\AdController::class, 'repost']);
 
     // Bidding
     Route::post('/ads/{id}/bids', [BidController::class, 'store']);
 
-    // Orders (Buy Now)
+    // Orders (Buy Now) & Sales Management
     Route::post('/ads/{id}/orders', [OrderController::class, 'store']);
+    Route::get('/my-sales', [OrderController::class, 'mySales']);
+    Route::get('/my-purchases', [OrderController::class, 'myPurchases']);
+    Route::post('/my-sales/seed', [OrderController::class, 'seedMySales']);
+    Route::post('/my-sales/bulk-mark-sold', [OrderController::class, 'bulkMarkSold']);
+    Route::post('/orders/{id}/confirm-delivery', [OrderController::class, 'confirmDelivery']);
+
+    // Reports & Analytics
+    Route::get('/reports', [\App\Http\Controllers\Api\ReportController::class, 'index']);
 
     // Wishlist
     Route::get('/wishlist', [\App\Http\Controllers\Api\WishlistController::class, 'index']);
     Route::post('/wishlist/toggle/{adId}', [\App\Http\Controllers\Api\WishlistController::class, 'toggle']);
+
+    // Look Later
+    Route::get('/look-later', [\App\Http\Controllers\Api\LookLaterController::class, 'index']);
+    Route::post('/look-later/toggle/{adId}', [\App\Http\Controllers\Api\LookLaterController::class, 'toggle']);
+
+    // Bids & Offers
+    Route::get('/bids-offers', [\App\Http\Controllers\Api\BidController::class, 'myBidsOffers']);
+    Route::post('/bids-offers/{bidId}/accept', [\App\Http\Controllers\Api\BidController::class, 'acceptBidOffer']);
+    Route::post('/bids-offers/{bidId}/reject', [\App\Http\Controllers\Api\BidController::class, 'rejectBidOffer']);
+    Route::post('/bids-offers/{bidId}/counter', [\App\Http\Controllers\Api\BidController::class, 'counterBidOffer']);
     
     // Cart Routes
     Route::get('/cart', [\App\Http\Controllers\Api\CartController::class, 'index']);
     Route::post('/cart/add', [\App\Http\Controllers\Api\CartController::class, 'store']);
+    Route::patch('/cart/update/{id}', [\App\Http\Controllers\Api\CartController::class, 'update']);
     Route::delete('/cart/remove/{id}', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
     Route::post('/cart/clear', [\App\Http\Controllers\Api\CartController::class, 'clear']);
+    Route::post('/cart/checkout', [\App\Http\Controllers\Api\CartController::class, 'checkout']);
 
     // Chat Routes
     Route::get('/chats', [\App\Http\Controllers\Api\ChatController::class, 'index']);
@@ -80,8 +117,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/chats/{id}', [\App\Http\Controllers\Api\ChatController::class, 'destroy']);
     Route::post('/users/{userId}/block', [\App\Http\Controllers\Api\ChatController::class, 'toggleBlock']);
 
-    // Payment Route
+    // Payment & Promotion Routes
     Route::post('/ads/{id}/payment', [\App\Http\Controllers\Api\AdController::class, 'processPayment']);
+    Route::post('/ads/promote/bulk', [\App\Http\Controllers\Api\AdController::class, 'processBulkPromotion']);
 
     // Question Routes
     Route::post('/ads/{id}/questions', [\App\Http\Controllers\Api\AdQuestionController::class, 'store']);
@@ -92,4 +130,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'store']);
     Route::post('/reviews/{id}/reply', [\App\Http\Controllers\Api\ReviewController::class, 'reply']);
     Route::post('/reviews/{id}/toggle-visibility', [\App\Http\Controllers\Api\ReviewController::class, 'toggleVisibility']);
+    // Inquiries Route
+    Route::get('/my-inquiries', [\App\Http\Controllers\Api\SupportController::class, 'myInquiries']);
+
+    // Team Management Routes
+    Route::get('/settings/team', [\App\Http\Controllers\Api\TeamController::class, 'index']);
+    Route::post('/settings/team', [\App\Http\Controllers\Api\TeamController::class, 'store']);
+    Route::get('/settings/team/{id}', [\App\Http\Controllers\Api\TeamController::class, 'show']);
+    Route::post('/settings/team/{id}/update', [\App\Http\Controllers\Api\TeamController::class, 'update']);
+    Route::delete('/settings/team/{id}', [\App\Http\Controllers\Api\TeamController::class, 'destroy']);
 });

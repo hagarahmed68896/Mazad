@@ -143,7 +143,7 @@
         <section class="section reports-section">
             <div class="section-header d-flex justify-content-between align-items-center">
                 <h2 class="section-title" style="margin: 0;font-weight: bold;font-size: 2rem;">تقاريري</h2>
-                <a href="#" class="view-all-btn">عرض التفاصيل</a>
+                <a href="{{ route('reports.index') }}" class="view-all-btn">عرض التفاصيل</a>
             </div>
             <div class="reports-card">
                 <div class="reports-info">

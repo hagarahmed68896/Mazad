@@ -356,7 +356,7 @@ class HomeController extends Controller
             }
         }
 
-        $user = \App\Models\User::with(['ads.category', 'ads.city'])->findOrFail($id);
+        $user = \App\Models\User::with(['ads.category', 'ads.city', 'company'])->findOrFail($id);
         $categories = Category::whereNull('parent_id')->get();
         $settings = Setting::pluck('value', 'key')->toArray();
         $cities = City::all();

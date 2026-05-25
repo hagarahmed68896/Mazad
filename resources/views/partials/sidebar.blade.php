@@ -24,17 +24,17 @@
                 <div class="sidebar-divider"></div>
             @endif
             <h4 class="section-title">معلومات الحساب</h4>
-            <a href="#" class="sidebar-link">
+            <a href="{{ route('profile.index') }}" class="sidebar-link">
                 <i class="fa-regular fa-user"></i>
                 <span>ملفي الشخصي</span>
             </a>
-            <a href="#" class="sidebar-link">
+            <a href="{{ route('profile.interests.index') }}" class="sidebar-link">
                 <i class="fa-solid fa-shapes"></i>
                 <span>اهتماماتي</span>
             </a>
             @auth
                 @if(Auth::user()->account_type === 'company')
-                    <a href="#" class="sidebar-link">
+                    <a href="{{ route('team.index') }}" class="sidebar-link">
                         <i class="fa-solid fa-users"></i>
                         <span>أعضاء الفريق</span>
                     </a>
@@ -48,7 +48,7 @@
                     <span class="badge" style="background: #EF4444; color: white; border-radius: 50%; padding: 0.1rem 0.4rem; font-size: 0.7rem; margin-right: auto;">{{ $unreadMessages }}</span>
                 @endif
             </a>
-            <a href="#" class="sidebar-link">
+            <a href="{{ route('profile.notifications.index') }}" class="sidebar-link">
                 <i class="fa-regular fa-bell"></i>
                 <span>إعدادات الإشعارات</span>
             </a>
@@ -63,31 +63,31 @@
                 <i class="fa-regular fa-rectangle-list"></i>
                 <span>إعلاناتي</span>
             </a>
-            <a href="#" class="sidebar-link">
+            <a href="{{ route('wishlist.index') }}" class="sidebar-link">
                 <i class="fa-regular fa-heart"></i>
                 <span>مفضلتي</span>
             </a>
-            <a href="#" class="sidebar-link">
-                <i class="fa-regular fa-star"></i>
-                <span>تقييماتي</span>
-            </a>
-            <a href="#" class="sidebar-link">
-                <i class="fa-regular fa-calendar-check"></i>
-                <span>مبيعاتي</span>
-            </a>
-            <a href="#" class="sidebar-link">
-                <i class="fa-solid fa-chart-column"></i>
-                <span>تقاريري</span>
-            </a>
-            <a href="#" class="sidebar-link">
-                <i class="fa-solid fa-cart-shopping"></i>
-                <span>مشترياتي</span>
-            </a>
-            <a href="#" class="sidebar-link">
+            <a href="{{ route('look-later.index') }}" class="sidebar-link">
                 <i class="fa-regular fa-bookmark"></i>
                 <span>منتجات للاطلاع لاحقاً</span>
             </a>
-            <a href="#" class="sidebar-link">
+            <a href="{{ route('reviews.my') }}" class="sidebar-link">
+                <i class="fa-regular fa-star"></i>
+                <span>تقييماتي</span>
+            </a>
+            <a href="{{ route('sales.my') }}" class="sidebar-link">
+                <i class="fa-regular fa-calendar-check"></i>
+                <span>مبيعاتي</span>
+            </a>
+            <a href="{{ route('reports.index') }}" class="sidebar-link">
+                <i class="fa-solid fa-chart-column"></i>
+                <span>تقاريري</span>
+            </a>
+            <a href="{{ route('purchases.my') }}" class="sidebar-link">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span>مشترياتي</span>
+            </a>
+            <a href="{{ route('bids-offers.index') }}" class="sidebar-link">
                 <i class="fa-solid fa-gavel"></i>
                 <span>للمزادات والعروض</span>
             </a>
@@ -98,23 +98,23 @@
         <!-- Support Section -->
         <div class="sidebar-section">
             <h4 class="section-title">الدعم والمساعدة</h4>
-            <a href="#" class="sidebar-link">
+            <a href="{{ route('faqs') }}" class="sidebar-link">
                 <i class="fa-regular fa-circle-question"></i>
                 <span>الأسئلة الشائعة</span>
             </a>
-            <a href="#" class="sidebar-link">
+            <a href="{{ route('terms') }}" class="sidebar-link">
                 <i class="fa-regular fa-file-lines"></i>
                 <span>الشروط و الاحكام</span>
             </a>
-            <a href="#" class="sidebar-link">
+            <a href="{{ route('privacy') }}" class="sidebar-link">
                 <i class="fa-regular fa-shield"></i>
                 <span>سياسة الخصوصية</span>
             </a>
-            <a href="#" class="sidebar-link">
+            <a href="{{ route('contact') }}" class="sidebar-link">
                 <i class="fa-solid fa-headset"></i>
                 <span>الدعم و المساعدة</span>
             </a>
-            <a href="#" class="sidebar-link">
+            <a href="{{ route('inquiries.my') }}" class="sidebar-link">
                 <i class="fa-regular fa-message"></i>
                 <span>استفساراتي</span>
             </a>

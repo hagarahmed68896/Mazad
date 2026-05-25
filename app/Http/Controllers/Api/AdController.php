@@ -564,4 +564,40 @@ class AdController extends Controller
             'data' => $ad
         ]);
     }
+
+    /**
+     * Process bulk promotion of selected ads via API.
+     */
+    public function processBulkPromotion(Request $request)
+    {
+        $request->validate([
+            'ad_ids' => 'required|array',
+            'ad_ids.*' => 'exists:ads,id',
+        ]);
+        
+        $user = auth('sanctum')->user();
+        $adIds = $request->ad_ids;
+        
+        // Ensure all selected ads belong to the logged-in user
+        $adsCount = Ad::where('user_id', $user->id)
+            ->whereIn('id', $adIds)
+            ->count();
+            
+        if ($adsCount !== count($adIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'بعض الإعلانات المحددة لا تنتمي لحسابك.'
+            ], 403);
+        }
+        
+        // Bulk update is_featured = 1
+        Ad::whereIn('id', $adIds)->update([
+            'is_featured' => 1,
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تمييز الإعلانات المحددة بنجاح! 🚀'
+        ]);
+    }
 }

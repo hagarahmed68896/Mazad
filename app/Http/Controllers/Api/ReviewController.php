@@ -98,4 +98,23 @@ class ReviewController extends Controller
             'data' => $review
         ]);
     }
+
+    /**
+     * Get paginated list of reviews received by the authenticated user.
+     */
+    public function myReviews()
+    {
+        $userId = auth('sanctum')->id();
+        
+        $reviews = Review::with('reviewer:id,name,avatar')
+            ->where('rated_user_id', $userId)
+            ->latest()
+            ->paginate(10);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب التقييمات بنجاح.',
+            'data' => $this->formatPagination($reviews)
+        ]);
+    }
 }

@@ -47,7 +47,22 @@ Route::middleware('auth')->group(function() {
     Route::delete('/notifications/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
     Route::post('/update-interests', [AuthController::class, 'updateInterests'])->name('update-interests.web');
     Route::post('/skip-interests', [AuthController::class, 'skipInterests'])->name('skip-interests.web');
+    Route::get('/wishlist', [\App\Http\Controllers\WishlistController::class, 'index'])->name('wishlist.index');
     Route::post('/wishlist/toggle/{adId}', [\App\Http\Controllers\WishlistController::class, 'toggle'])->name('wishlist.toggle');
+    Route::get('/look-later', [\App\Http\Controllers\LookLaterController::class, 'index'])->name('look-later.index');
+    Route::post('/look-later/toggle/{adId}', [\App\Http\Controllers\LookLaterController::class, 'toggle'])->name('look-later.toggle');
+    Route::get('/my-sales', [\App\Http\Controllers\OrderController::class, 'mySales'])->name('sales.my');
+    Route::get('/my-purchases', [\App\Http\Controllers\OrderController::class, 'myPurchases'])->name('purchases.my');
+    Route::get('/bids-offers', [\App\Http\Controllers\BidController::class, 'myBidsOffers'])->name('bids-offers.index');
+    Route::post('/bids-offers/{bidId}/accept', [\App\Http\Controllers\BidController::class, 'acceptBidOffer'])->name('bids-offers.accept');
+    Route::post('/bids-offers/{bidId}/reject', [\App\Http\Controllers\BidController::class, 'rejectBidOffer'])->name('bids-offers.reject');
+    Route::post('/bids-offers/{bidId}/counter', [\App\Http\Controllers\BidController::class, 'counterBidOffer'])->name('bids-offers.counter');
+    Route::get('/bids-offers/{bidId}/details', [\App\Http\Controllers\BidController::class, 'getDetails'])->name('bids-offers.details');
+    Route::get('/reports', [\App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
+    Route::get('/ads/{id}/bids-history', [\App\Http\Controllers\BidController::class, 'historyPage'])->name('bids.history-page');
+    Route::post('/my-sales/seed', [\App\Http\Controllers\OrderController::class, 'seedMySales'])->name('sales.seed');
+    Route::post('/my-sales/bulk-mark-sold', [\App\Http\Controllers\OrderController::class, 'bulkMarkSold'])->name('sales.bulk-mark-sold');
+    Route::post('/orders/{order}/confirm-delivery', [\App\Http\Controllers\OrderController::class, 'confirmDelivery'])->name('orders.confirm-delivery');
     Route::post('/ads/{id}/question', [\App\Http\Controllers\AdQuestionController::class, 'store'])->name('ads.question.store');
     Route::post('/questions/{id}/reply', [\App\Http\Controllers\AdQuestionController::class, 'reply'])->name('questions.reply');
     Route::post('/questions/{id}/toggle-visibility', [\App\Http\Controllers\AdQuestionController::class, 'toggleVisibility'])->name('questions.toggle-visibility');
@@ -55,6 +70,7 @@ Route::middleware('auth')->group(function() {
     Route::post('/reviews', [\App\Http\Controllers\ReviewController::class, 'store'])->name('reviews.store');
     Route::post('/reviews/{id}/reply', [\App\Http\Controllers\ReviewController::class, 'reply'])->name('reviews.reply');
     Route::post('/reviews/{id}/toggle-visibility', [\App\Http\Controllers\ReviewController::class, 'toggleVisibility'])->name('reviews.toggle-visibility');
+    Route::get('/my-reviews', [\App\Http\Controllers\ReviewController::class, 'myReviews'])->name('reviews.my');
     Route::get('/chats', [\App\Http\Controllers\ChatController::class, 'index'])->name('chats.index');
     Route::post('/chats/start', [\App\Http\Controllers\ChatController::class, 'startConversation'])->name('chats.start');
     Route::post('/chats/{id}/message', [\App\Http\Controllers\ChatController::class, 'sendMessage'])->name('chats.send');
@@ -65,13 +81,44 @@ Route::middleware('auth')->group(function() {
 
 
 
+    // Profile Settings Routes
+    Route::get('/settings/profile', [\App\Http\Controllers\ProfileController::class, 'index'])->name('profile.index');
+    Route::put('/settings/profile', [\App\Http\Controllers\ProfileController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/settings/avatar', [\App\Http\Controllers\ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
+    Route::put('/settings/bank', [\App\Http\Controllers\ProfileController::class, 'updateBank'])->name('profile.bank.update');
+    Route::put('/settings/password', [\App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profile.password.update');
+    Route::get('/settings/interests', [\App\Http\Controllers\ProfileController::class, 'interestsIndex'])->name('profile.interests.index');
+    Route::put('/settings/interests', [\App\Http\Controllers\ProfileController::class, 'updateInterests'])->name('profile.interests.update');
+    Route::get('/settings/notifications', [\App\Http\Controllers\ProfileController::class, 'notificationsIndex'])->name('profile.notifications.index');
+    Route::put('/settings/notifications', [\App\Http\Controllers\ProfileController::class, 'updateNotifications'])->name('profile.notifications.update');
+
     // Cart Routes
     Route::get('/cart', [\App\Http\Controllers\CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add', [\App\Http\Controllers\CartController::class, 'store'])->name('cart.add');
     Route::patch('/cart/update/{id}', [\App\Http\Controllers\CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/remove/{id}', [\App\Http\Controllers\CartController::class, 'destroy'])->name('cart.remove');
+    Route::post('/cart/checkout', [\App\Http\Controllers\CartController::class, 'checkout'])->name('cart.checkout');
+
+    // Team Management Routes (Company Only)
+    Route::get('/settings/team', [\App\Http\Controllers\TeamController::class, 'index'])->name('team.index');
+    Route::get('/settings/team/create', [\App\Http\Controllers\TeamController::class, 'create'])->name('team.create');
+    Route::post('/settings/team', [\App\Http\Controllers\TeamController::class, 'store'])->name('team.store');
+    Route::delete('/settings/team/{id}', [\App\Http\Controllers\TeamController::class, 'destroy'])->name('team.destroy');
+    Route::get('/settings/team/{id}/edit', [\App\Http\Controllers\TeamController::class, 'edit'])->name('team.edit');
+    Route::put('/settings/team/{id}', [\App\Http\Controllers\TeamController::class, 'update'])->name('team.update');
 });
 
+
+// Support and Policies Pages
+Route::get('/faqs', [\App\Http\Controllers\SupportController::class, 'faqs'])->name('faqs');
+Route::get('/privacy-policy', [\App\Http\Controllers\SupportController::class, 'privacy'])->name('privacy');
+Route::get('/terms-conditions', [\App\Http\Controllers\SupportController::class, 'terms'])->name('terms');
+Route::get('/contact-us', [\App\Http\Controllers\SupportController::class, 'contactUs'])->name('contact');
+Route::post('/contact-us', [\App\Http\Controllers\SupportController::class, 'storeTicket'])->name('contact.store');
+
+Route::middleware('auth')->group(function() {
+    Route::get('/my-inquiries', [\App\Http\Controllers\SupportController::class, 'myInquiries'])->name('inquiries.my');
+});
 
 // Public Auth Routes
 Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -277,4 +324,233 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
         // Reports & Analytics
         Route::get('reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
     });
+});
+
+Route::get('/seed-sales-data', function() {
+    // 1. Find or create seller
+    $seller = \App\Models\User::where('phone', 'like', '%512345678')->first() 
+           ?? \App\Models\User::where('phone', 'like', '%0512345678%')->first();
+           
+    if (!$seller) {
+        $seller = \App\Models\User::create([
+            'name' => 'البائع المميز',
+            'email' => 'seller5123@mazad.com',
+            'phone' => '0512345678',
+            'password' => \Illuminate\Support\Facades\Hash::make('123456'),
+            'account_type' => 'individual',
+            'status' => 'active',
+            'city_id' => \App\Models\City::first()->id ?? null,
+        ]);
+    }
+
+    // 2. Find or create buyer
+    $buyer = \App\Models\User::where('email', 'buyer5123@mazad.com')->first();
+    if (!$buyer) {
+        $buyer = \App\Models\User::create([
+            'name' => 'أحمد المشتري',
+            'email' => 'buyer5123@mazad.com',
+            'phone' => '0599999999',
+            'password' => \Illuminate\Support\Facades\Hash::make('123456'),
+            'account_type' => 'individual',
+            'status' => 'active',
+            'city_id' => \App\Models\City::first()->id ?? null,
+        ]);
+    }
+
+    $categories = \App\Models\Category::whereNotNull('parent_id')->get();
+    if ($categories->isEmpty()) {
+        $categories = \App\Models\Category::all();
+    }
+    $cities = \App\Models\City::all();
+    
+    // Get existing images from database
+    $images = \App\Models\Ad::whereNotNull('image')->limit(12)->pluck('image')->toArray();
+
+    // Clean up existing ads of this seller to avoid cluttering
+    $seller->ads()->delete();
+
+    // Array of mock data items for each of the 6 states
+    $paidItems = [
+        ['title' => 'لابتوب ديل XPS 15 شاشة تعمل باللمس', 'price' => 33000, 'type' => 'direct_purchase'],
+        ['title' => 'كاميرا سوني Alpha 7 IV الاحترافية', 'price' => 9500, 'type' => 'direct_purchase'],
+        ['title' => 'ساعة آبل الترا الإصدار الثاني رياضية', 'price' => 3200, 'type' => 'direct_purchase'],
+        ['title' => 'سماعات دي جي بوس اللاسلكية عازلة للضوضاء', 'price' => 1500, 'type' => 'direct_purchase']
+    ];
+
+    $pendingPaymentItems = [
+        ['title' => 'برج سكني وتجاري استثماري في الرياض', 'price' => 7000000, 'type' => 'electronic_auction'],
+        ['title' => 'شقة فاخرة إطلالة بحرية كاملة في جدة', 'price' => 850000, 'type' => 'electronic_auction'],
+        ['title' => 'أرض تجارية على طريق الملك فهد بالرياض', 'price' => 12000000, 'type' => 'electronic_auction'],
+        ['title' => 'مجمع سكني مغلق حديث شمال العاصمة', 'price' => 25000000, 'type' => 'electronic_auction']
+    ];
+
+    $deliveringItems = [
+        ['title' => 'لابتوب لينوفو ثينك باد X1 كاربون', 'price' => 10000, 'type' => 'direct_purchase'],
+        ['title' => 'جهاز آيباد برو شريحة M2 شاشة 12.9', 'price' => 5400, 'type' => 'direct_purchase'],
+        ['title' => 'نظام صوتي منزلي متكامل من ياماها', 'price' => 3800, 'type' => 'direct_purchase'],
+        ['title' => 'آلة قهوة بريفيل باريستا إكسبريس الاحترافية', 'price' => 2900, 'type' => 'direct_purchase']
+    ];
+
+    $receivedItems = [
+        ['title' => 'سيارة بي إم دبليو M4 كوبيه رياضية', 'price' => 2800000, 'type' => 'hybrid_auction'],
+        ['title' => 'سيارة مرسيدس C200 موديل 2024 فل كامل', 'price' => 240000, 'type' => 'hybrid_auction'],
+        ['title' => 'دراجة نارية رياضية ياماها R6 ياباني', 'price' => 45000, 'type' => 'hybrid_auction'],
+        ['title' => 'سيارة تسلا موديل 3 فل كامل كهربائية', 'price' => 180000, 'type' => 'hybrid_auction']
+    ];
+
+    $expiredItems = [
+        ['title' => 'فيلا سكنية مودرن مع مسبح خاص بحطين', 'price' => 5000000, 'type' => 'electronic_auction'],
+        ['title' => 'شاليه فاخر حي الرمال مساحات واسعة', 'price' => 1200000, 'type' => 'electronic_auction'],
+        ['title' => 'استراحة خاصة مجهزة بالكامل بالدرعية', 'price' => 3500000, 'type' => 'electronic_auction'],
+        ['title' => 'مزرعة منتجة بوسط القصيم مساحة كبرى', 'price' => 8000000, 'type' => 'electronic_auction']
+    ];
+
+    $activeItems = [
+        ['title' => 'هاتف آيفون 15 برو ماكس 512 جيجا', 'price' => 4500, 'type' => 'direct_purchase'],
+        ['title' => 'شاشة إل جي OLED 65 بوصة ذكية 4K', 'price' => 6200, 'type' => 'direct_purchase'],
+        ['title' => 'منصة ألعاب بلايستيشن 5 مع ذراعين ولعبة', 'price' => 2100, 'type' => 'direct_purchase'],
+        ['title' => 'نظارة أبل فيجن برو للواقع المختلط الجديدة', 'price' => 14500, 'type' => 'direct_purchase']
+    ];
+
+    $adIndex = 0;
+
+    // Create 4 Paid Ads & Orders
+    foreach ($paidItems as $index => $item) {
+        $img = $images[$adIndex % count($images)] ?? null;
+        $adIndex++;
+        $ad = \App\Models\Ad::create([
+            'user_id' => $seller->id,
+            'category_id' => $categories->random()->id ?? null,
+            'city_id' => $cities->random()->id ?? null,
+            'title' => $item['title'],
+            'type' => $item['type'],
+            'price' => $item['price'],
+            'status' => 'finished',
+            'image' => $img,
+            'end_date' => now()->subDays($index + 1),
+        ]);
+        \App\Models\Order::create([
+            'order_number' => 'ORD-PAID-' . ($index + 1),
+            'ad_id' => $ad->id,
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'final_price' => $item['price'] + 519,
+            'status' => 'paid',
+        ]);
+    }
+
+    // Create 4 Pending Payment Ads & Orders
+    foreach ($pendingPaymentItems as $index => $item) {
+        $img = $images[$adIndex % count($images)] ?? null;
+        $adIndex++;
+        $ad = \App\Models\Ad::create([
+            'user_id' => $seller->id,
+            'category_id' => $categories->random()->id ?? null,
+            'city_id' => $cities->random()->id ?? null,
+            'title' => $item['title'],
+            'type' => $item['type'],
+            'price' => $item['price'],
+            'status' => 'finished',
+            'image' => $img,
+            'end_date' => now()->subDays($index + 1),
+        ]);
+        \App\Models\Order::create([
+            'order_number' => 'ORD-PEND-' . ($index + 1),
+            'ad_id' => $ad->id,
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'final_price' => $item['price'] + 519,
+            'status' => 'pending_payment',
+        ]);
+    }
+
+    // Create 4 Delivering Ads & Orders (Confirm Delivery)
+    foreach ($deliveringItems as $index => $item) {
+        $img = $images[$adIndex % count($images)] ?? null;
+        $adIndex++;
+        $ad = \App\Models\Ad::create([
+            'user_id' => $seller->id,
+            'category_id' => $categories->random()->id ?? null,
+            'city_id' => $cities->random()->id ?? null,
+            'title' => $item['title'],
+            'type' => $item['type'],
+            'price' => $item['price'],
+            'status' => 'finished',
+            'image' => $img,
+            'end_date' => now()->subDays($index + 1),
+        ]);
+        \App\Models\Order::create([
+            'order_number' => 'ORD-RECV-' . ($index + 1),
+            'ad_id' => $ad->id,
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'final_price' => $item['price'] + 519,
+            'status' => 'receiving',
+            'delivery_code' => '123456',
+        ]);
+    }
+
+    // Create 4 Received Ads & Orders
+    foreach ($receivedItems as $index => $item) {
+        $img = $images[$adIndex % count($images)] ?? null;
+        $adIndex++;
+        $ad = \App\Models\Ad::create([
+            'user_id' => $seller->id,
+            'category_id' => $categories->random()->id ?? null,
+            'city_id' => $cities->random()->id ?? null,
+            'title' => $item['title'],
+            'type' => $item['type'],
+            'price' => $item['price'],
+            'status' => 'finished',
+            'image' => $img,
+            'end_date' => now()->subDays($index + 1),
+        ]);
+        \App\Models\Order::create([
+            'order_number' => 'ORD-RCVD-' . ($index + 1),
+            'ad_id' => $ad->id,
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'final_price' => $item['price'] + 519,
+            'status' => 'received',
+        ]);
+    }
+
+    // Create 4 Expired Unsold Ads (منتهي - إعادة بيع / تعديل)
+    foreach ($expiredItems as $index => $item) {
+        $img = $images[$adIndex % count($images)] ?? null;
+        $adIndex++;
+        \App\Models\Ad::create([
+            'user_id' => $seller->id,
+            'category_id' => $categories->random()->id ?? null,
+            'city_id' => $cities->random()->id ?? null,
+            'title' => $item['title'],
+            'type' => $item['type'],
+            'price' => $item['price'],
+            'status' => 'finished',
+            'image' => $img,
+            'end_date' => now()->subDays($index + 2),
+        ]);
+    }
+
+    // Create 4 Active Unsold Ads (قائم - تعديل)
+    foreach ($activeItems as $index => $item) {
+        $img = $images[$adIndex % count($images)] ?? null;
+        $adIndex++;
+        \App\Models\Ad::create([
+            'user_id' => $seller->id,
+            'category_id' => $categories->random()->id ?? null,
+            'city_id' => $cities->random()->id ?? null,
+            'title' => $item['title'],
+            'type' => $item['type'],
+            'price' => $item['price'],
+            'status' => 'active',
+            'image' => $img,
+            'end_date' => now()->addDays($index + 3),
+        ]);
+    }
+
+    return "<h2>تم إضافة البيانات التجريبية الغنية بنجاح للبائع (0512345678)! 🎉</h2>
+            <p>تم إنشاء 24 إعلاناً متميزاً بكافة الحالات (4 إعلانات لكل حالة من الحالات الستة: تم الدفع، قيد الدفع، قيد الاستلام بكود 123456، تم الاستلام، منتهي، قائم).</p>
+            <p>الآن يمكنك استعراض الصفحات، تجربة الفلترة، التنقل بين التبويبات، والتبديل بين الشبكة والقائمة بأريحية كاملة.</p>
+            <p><a href='" . route('sales.my') . "'>اضغط هنا للذهاب لصفحة مبيعاتي لمشاهدة البيانات الغنية</a></p>";
 });

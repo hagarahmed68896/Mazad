@@ -18,6 +18,23 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+        if ($request->has('phone')) {
+            $phone = $request->input('phone');
+            if ($phone) {
+                $phone = preg_replace('/[^0-9]/', '', $phone);
+                while (str_starts_with($phone, '0')) {
+                    $phone = substr($phone, 1);
+                }
+                if (str_starts_with($phone, '966')) {
+                    $phone = substr($phone, 3);
+                }
+                while (str_starts_with($phone, '0')) {
+                    $phone = substr($phone, 1);
+                }
+                $request->merge(['phone' => $phone]);
+            }
+        }
+
         $credentials = $request->validate([
             'phone' => ['required', 'string', 'regex:/^5[0-9]{8}$/'],
             'password' => ['required', 'string'],
@@ -116,6 +133,23 @@ class AuthController extends Controller
 
     public function sendResetLink(Request $request)
     {
+        if ($request->has('phone')) {
+            $phone = $request->input('phone');
+            if ($phone) {
+                $phone = preg_replace('/[^0-9]/', '', $phone);
+                while (str_starts_with($phone, '0')) {
+                    $phone = substr($phone, 1);
+                }
+                if (str_starts_with($phone, '966')) {
+                    $phone = substr($phone, 3);
+                }
+                while (str_starts_with($phone, '0')) {
+                    $phone = substr($phone, 1);
+                }
+                $request->merge(['phone' => $phone]);
+            }
+        }
+
         $request->validate([
             'phone' => ['required', 'string', 'regex:/^5[0-9]{8}$/'],
         ], [

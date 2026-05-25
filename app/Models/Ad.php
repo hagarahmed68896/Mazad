@@ -18,6 +18,26 @@ class Ad extends Model
         'allow_bidding', 'allow_negotiation', 'buy_now_price', 'inspection_date', 'inspection_end_date'
     ];
 
+    protected $appends = ['is_favorited', 'is_look_later'];
+
+    public function getIsFavoritedAttribute()
+    {
+        $user = auth('sanctum')->user() ?: (auth()->user() ?: \Illuminate\Support\Facades\Auth::user());
+        if ($user) {
+            return $this->favorites()->where('user_id', $user->id)->exists();
+        }
+        return false;
+    }
+
+    public function getIsLookLaterAttribute()
+    {
+        $user = auth('sanctum')->user() ?: (auth()->user() ?: \Illuminate\Support\Facades\Auth::user());
+        if ($user) {
+            return $this->lookLaters()->where('user_id', $user->id)->exists();
+        }
+        return false;
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -66,6 +86,11 @@ class Ad extends Model
     public function favorites(): HasMany
     {
         return $this->hasMany(Favorite::class);
+    }
+
+    public function lookLaters(): HasMany
+    {
+        return $this->hasMany(LookLater::class);
     }
 
     public function questions(): HasMany

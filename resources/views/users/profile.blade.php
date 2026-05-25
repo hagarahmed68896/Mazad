@@ -207,42 +207,71 @@
                             <h1 class="text-3xl md:text-5xl font-black text-gray-900 mb-2">{{ $user->name }}</h1>
                             <p class="text-lg text-gray-400 font-bold flex items-center justify-center md:justify-start gap-2">
                                 <i class="fa-solid fa-building text-primary/40"></i>
-                                {{ $user->company_name ?? 'شركة أوطان للاستثمار' }}
+                                {{ $user->company_name ?? ($user->company ? $user->company->company_name : 'شركة أوطان للاستثمار') }}
                             </p>
+                            @if(auth()->check() && auth()->id() == $user->parent_id)
+                                <!-- Stats in single row under company name (For Company Owner View of Representative) -->
+                                <div class="flex flex-wrap items-center justify-center md:justify-start gap-5 mt-4 text-sm font-black text-gray-700">
+                                    <span class="flex items-center gap-2">
+                                        <i class="fa-solid fa-boxes-stacked text-gray-400"></i>
+                                        <span>{{ number_format($adsCount) }} إعلانات</span>
+                                    </span>
+                                    <span class="text-gray-300">|</span>
+                                    <span class="flex items-center gap-2">
+                                        <i class="fa-solid fa-handshake text-gray-400"></i>
+                                        <span>{{ number_format($soldCount) }} منتجات تم بيعها</span>
+                                    </span>
+                                    <span class="text-gray-300">|</span>
+                                    <span class="flex items-center gap-1.5">
+                                        <i class="fa-solid fa-star text-amber-400"></i>
+                                        <span>{{ number_format($rating, 1) }} ({{ $reviewsCount }} تقييم)</span>
+                                    </span>
+                                </div>
+                            @endif
                         </div>
                         <div class="flex items-center justify-center gap-3">
-                            <button class="bg-primary text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center gap-3">
-                                <i class="fa-solid fa-comments"></i> الدردشة
-                            </button>
-                            <button onclick="shareProfile()" class="w-14 h-14 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center hover:text-primary hover:bg-blue-50 transition-all border border-gray-100">
-                                <i class="fa-solid fa-share-nodes text-xl"></i>
-                            </button>
-                            <button onclick="toggleReportModal()" class="w-14 h-14 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center hover:text-red-500 hover:bg-red-50 transition-all border border-gray-100" title="الإبلاغ عن هذا المستخدم">
-                                <i class="fa-solid fa-circle-exclamation text-xl"></i>
-                            </button>
+                            @if(auth()->check() && auth()->id() == $user->parent_id)
+                                <!-- Delete Button for Company Owner to delete member -->
+                                <button onclick="deleteMember({{ $user->id }}, '{{ $user->name }}')" class="bg-gray-200/80 hover:bg-red-50 text-gray-700 hover:text-red-600 px-6 py-2.5 rounded-xl font-black transition-all flex items-center gap-2 border border-gray-300/40 shadow-sm cursor-pointer text-sm">
+                                    <span>حذف</span>
+                                    <i class="fa-regular fa-trash-can text-sm"></i>
+                                </button>
+                            @else
+                                <button class="bg-primary text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center gap-3">
+                                    <i class="fa-solid fa-comments"></i> الدردشة
+                                </button>
+                                <button onclick="shareProfile()" class="w-14 h-14 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center hover:text-primary hover:bg-blue-50 transition-all border border-gray-100">
+                                    <i class="fa-solid fa-share-nodes text-xl"></i>
+                                </button>
+                                <button onclick="toggleReportModal()" class="w-14 h-14 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center hover:text-red-500 hover:bg-red-50 transition-all border border-gray-100" title="الإبلاغ عن هذا المستخدم">
+                                    <i class="fa-solid fa-circle-exclamation text-xl"></i>
+                                </button>
+                            @endif
                         </div>
                     </div>
 
-                    <!-- Stats Row -->
-                    <div class="flex flex-wrap items-center justify-center md:justify-start gap-12">
-                        <div class="text-center md:text-right">
-                            <span class="block text-3xl font-black text-gray-900">{{ number_format($adsCount) }}</span>
-                            <span class="text-sm font-bold text-gray-400">إعلان نشط</span>
-                        </div>
-                        <div class="w-px h-10 bg-gray-100 hidden md:block"></div>
-                        <div class="text-center md:text-right">
-                            <span class="block text-3xl font-black text-gray-900">{{ number_format($soldCount) }}</span>
-                            <span class="text-sm font-bold text-gray-400">منتجات تم بيعها</span>
-                        </div>
-                        <div class="w-px h-10 bg-gray-100 hidden md:block"></div>
-                        <div class="text-center md:text-right">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-3xl font-black text-gray-900">{{ number_format($rating, 1) }}</span>
-                                <i class="fa-solid fa-star text-amber-400"></i>
+                    @if(!(auth()->check() && auth()->id() == $user->parent_id))
+                        <!-- Stats Row (Only shown if NOT viewed by the parent company owner) -->
+                        <div class="flex flex-wrap items-center justify-center md:justify-start gap-12">
+                            <div class="text-center md:text-right">
+                                <span class="block text-3xl font-black text-gray-900">{{ number_format($adsCount) }}</span>
+                                <span class="text-sm font-bold text-gray-400">إعلان نشط</span>
                             </div>
-                            <span class="text-sm font-bold text-gray-400">{{ $reviewsCount }} تقييم</span>
+                            <div class="w-px h-10 bg-gray-100 hidden md:block"></div>
+                            <div class="text-center md:text-right">
+                                <span class="block text-3xl font-black text-gray-900">{{ number_format($soldCount) }}</span>
+                                <span class="text-sm font-bold text-gray-400">منتجات تم بيعها</span>
+                            </div>
+                            <div class="w-px h-10 bg-gray-100 hidden md:block"></div>
+                            <div class="text-center md:text-right">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-3xl font-black text-gray-900">{{ number_format($rating, 1) }}</span>
+                                    <i class="fa-solid fa-star text-amber-400"></i>
+                                </div>
+                                <span class="text-sm font-bold text-gray-400">{{ $reviewsCount }} تقييم</span>
+                            </div>
                         </div>
-                    </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -811,6 +840,54 @@
             modal.classList.remove('flex');
             document.body.style.overflow = 'auto';
         }
+    }
+    function deleteMember(id, name) {
+        Swal.fire({
+            title: 'هل أنت متأكد؟',
+            text: `سيتم حذف المندوب/العضو "${name}" بالكامل وإلغاء صلاحية وصوله للمنصة.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#EF4444',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: 'نعم، احذفه',
+            cancelButtonText: 'إلغاء',
+            customClass: {
+                popup: 'rounded-[32px]'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Perform AJAX delete request
+                fetch(`/settings/team/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'تم الحذف!',
+                            text: data.message,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            customClass: { popup: 'rounded-[32px]' }
+                        }).then(() => {
+                            // Redirect to team management index
+                            window.location.href = "{{ route('team.index') }}";
+                        });
+                    } else {
+                        Swal.fire('خطأ', data.message || 'فشل حذف عضو الفريق', 'error');
+                    }
+                })
+                .catch(() => {
+                    Swal.fire('خطأ', 'حدث خلل في الاتصال بالخادم.', 'error');
+                });
+            }
+        });
     }
 </script>
 @endpush

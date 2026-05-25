@@ -140,11 +140,11 @@ class SearchController extends Controller
         }
 
         $ads = $query->paginate($request->get('per_page', 15));
-
+        
         return response()->json([
             'success' => true,
             'message' => 'نتائج البحث',
-            'data' => $ads
+            'data' => $this->formatPagination($ads)
         ]);
     }
 

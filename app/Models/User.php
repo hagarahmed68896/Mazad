@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 use Laravel\Sanctum\HasApiTokens;
 
@@ -14,9 +15,13 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'password', 'phone', 'address', 'account_type',
+        'name', 'email', 'password', 'phone', 'address', 'account_type', 'parent_id', 'commission_rate',
         'company_name', 'commercial_register', 'ads_count', 'sales',
         'purchases', 'status', 'city_id', 'avatar', 'latitude', 'longitude', 'known_devices',
+        'bio', 'bank_name', 'bank_account_name', 'bank_account_number', 'bank_iban', 'bank_address', 'cover',
+        'fcm_token', 'all_notifications', 'bid_notifications', 'bid_approaching_limit_notifications',
+        'bid_approaching_limit_percentage', 'bid_reached_limit_notifications',
+        'auction_update_notifications', 'favorite_auction_notifications', 'winning_bid_notifications',
     ];
 
     protected $hidden = [
@@ -30,6 +35,14 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'known_devices' => 'array',
+            'all_notifications' => 'boolean',
+            'bid_notifications' => 'boolean',
+            'bid_approaching_limit_notifications' => 'boolean',
+            'bid_approaching_limit_percentage' => 'integer',
+            'bid_reached_limit_notifications' => 'boolean',
+            'auction_update_notifications' => 'boolean',
+            'favorite_auction_notifications' => 'boolean',
+            'winning_bid_notifications' => 'boolean',
         ];
     }
 
@@ -51,6 +64,16 @@ class User extends Authenticatable
     public function sales(): HasMany
     {
         return $this->hasMany(Order::class, 'seller_id');
+    }
+
+    public function teamMembers(): HasMany
+    {
+        return $this->hasMany(User::class, 'parent_id');
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'parent_id');
     }
 
     public function transactions(): HasMany
@@ -101,6 +124,11 @@ class User extends Authenticatable
     public function favorites(): HasMany
     {
         return $this->hasMany(Favorite::class);
+    }
+
+    public function lookLaters(): HasMany
+    {
+        return $this->hasMany(LookLater::class);
     }
 
     public function cartItems(): HasMany

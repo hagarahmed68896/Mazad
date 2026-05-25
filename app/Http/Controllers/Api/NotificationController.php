@@ -25,9 +25,9 @@ class NotificationController extends Controller
                 return $this->apiResponse(false, 'المستخدم غير مصرح له', null, 401);
             }
             $notifications = $user->notifications()->orderBy('created_at', 'desc')->paginate(20);
-            return $this->apiResponse(true, 'قائمة التنبيهات', $notifications);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('API Notifications Index Error: ' . $e->getMessage());
+            return $this->apiResponse(true, 'قائمة التنبيهات', $this->formatPagination($notifications));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('API Notifications Index Error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             return $this->apiResponse(false, 'حدث خطأ أثناء جلب التنبيهات: ' . $e->getMessage(), null, 500);
         }
     }
@@ -45,8 +45,8 @@ class NotificationController extends Controller
             }
             $notification->update(['read_at' => now()]);
             return $this->apiResponse(true, 'تم تحديد التنبيه كمقروء');
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('API Notification MarkRead Error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('API Notification MarkRead Error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             return $this->apiResponse(false, 'حدث خطأ أثناء تحديث التنبيه: ' . $e->getMessage(), null, 500);
         }
     }
@@ -60,8 +60,8 @@ class NotificationController extends Controller
             }
             $user->unreadNotifications()->update(['read_at' => now()]);
             return $this->apiResponse(true, 'تم تحديد جميع التنبيهات كمقروءة');
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('API Notification MarkAllRead Error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('API Notification MarkAllRead Error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             return $this->apiResponse(false, 'حدث خطأ أثناء تحديث التنبيهات: ' . $e->getMessage(), null, 500);
         }
     }
@@ -79,7 +79,7 @@ class NotificationController extends Controller
             }
             $notification->delete();
             return $this->apiResponse(true, 'تم حذف التنبيه بنجاح');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('API Notification Delete Error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             return $this->apiResponse(false, 'حدث خطأ أثناء حذف التنبيه: ' . $e->getMessage(), null, 500);
         }

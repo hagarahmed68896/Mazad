@@ -64,12 +64,10 @@
                 <div class="auth-actions" style="display: flex; align-items: center; gap: 1.25rem;">
                     <!-- Icons section -->
                     <div class="nav-icons" style="display: flex; align-items: center; gap: 0.2rem;">
-                        <a href="{{ route('cart.index') }}" class="nav-icon-link">
+                        <a href="{{ route('cart.index') }}" class="nav-icon-link" id="cartBtn">
                             <i class="fa-solid fa-cart-shopping"></i>
                             @php $cartCount = Auth::user()->cartItems->count(); @endphp
-                            @if($cartCount > 0)
-                                <span class="nav-badge">{{ $cartCount }}</span>
-                            @endif
+                            <span class="nav-badge" id="cartCount" style="display: {{ $cartCount > 0 ? 'flex' : 'none' }}">{{ $cartCount }}</span>
                         </a>
                         <a href="{{ route('chats.index') }}" class="nav-icon-link">
                             <i class="fa-regular fa-comment-dots"></i>

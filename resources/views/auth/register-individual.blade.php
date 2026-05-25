@@ -77,7 +77,7 @@
                     <div class="space-y-1 text-right">
                         <label class="block text-sm font-bold text-[#1C1C1C] mb-2" for="phone">رقم الجوال</label>
                         <div class="relative flex items-center border border-[#E2E8F0] rounded-xl overflow-hidden focus-within:border-[#1A73E8] focus-within:ring-1 focus-within:ring-[#1A73E8] transition-all bg-white">
-                            <input type="text" name="phone" id="phone" value="{{ old('phone') }}" required inputmode="numeric" maxlength="9" pattern="^5[0-9]{8}$" oninput="this.value = this.value.replace(/[^0-9]/g, ''); if(this.value.length > 0 && this.value[0] !== '5') this.value = '';" placeholder="أدخل رقم الجوال" class="w-full bg-transparent border-none focus:ring-0 px-4 py-3.5 placeholder:text-[#94A3B8] font-semibold text-[0.95rem]" dir="rtl">
+                            <input type="text" name="phone" id="phone" value="{{ old('phone') }}" required inputmode="numeric" maxlength="9" pattern="^5[0-9]{8}$" oninput="let val = this.value.replace(/[^0-9]/g, ''); if(val.startsWith('0')) { val = val.substring(1); } this.value = val.slice(0,9);" placeholder="أدخل رقم الجوال" class="w-full bg-transparent border-none focus:ring-0 px-4 py-3.5 placeholder:text-[#94A3B8] font-semibold text-[0.95rem]" dir="rtl">
                             <span class="px-4 py-3.5 text-[#94A3B8] font-semibold text-sm bg-transparent border-r border-[#E2E8F0]" dir="ltr">+966</span>
                         </div>
                     </div>

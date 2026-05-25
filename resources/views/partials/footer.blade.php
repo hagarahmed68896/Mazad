@@ -77,8 +77,12 @@
         <div class="footer-bottom">
         
             <div class="footer-bottom-links">
-                <a href="#">الشروط و الاحكام</a>
-                <a href="#">سياسة الخصوصية</a>
+                <a href="{{ route('terms') }}">الشروط والأحكام</a>
+                <a href="{{ route('privacy') }}">سياسة الخصوصية</a>
+                <a href="{{ route('faqs') }}">الأسئلة الشائعة</a>
+                @auth
+                    <a href="{{ route('inquiries.my') }}">استفساراتي</a>
+                @endauth
             </div>
                 <div class="footer-copyright">
                 {{ $settings['copyright'] ?? '©2025 copyright' }}

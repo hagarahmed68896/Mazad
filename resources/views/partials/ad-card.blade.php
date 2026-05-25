@@ -20,11 +20,18 @@
         @endif
 
         @if(!Auth::check() || Auth::id() != $ad->user_id)
-            <div class="p-wishlist cursor-pointer" onclick="event.preventDefault(); event.stopPropagation(); requireAuth(() => toggleGlobalWishlist(null, {{ $ad->id }}))">
+            <div class="p-wishlist cursor-pointer" onclick="event.preventDefault(); event.stopPropagation(); requireAuth(() => toggleGlobalWishlist(null, {{ $ad->id }}))" title="أضف للمفضلة">
                 @php
                     $is_favorited_card = Auth::check() && Auth::user()->favorites()->where('ad_id', $ad->id)->exists();
                 @endphp
                 <i class="{{ $is_favorited_card ? 'fa-solid' : 'fa-regular' }} fa-heart wishlist-icon-{{ $ad->id }}" style="{{ $is_favorited_card ? 'color: #EF4444 !important;' : '' }}"></i>
+            </div>
+
+            <div class="p-wishlist cursor-pointer" onclick="event.preventDefault(); event.stopPropagation(); requireAuth(() => toggleGlobalLookLater(null, {{ $ad->id }}))" title="حفظ للاطلاع لاحقاً" style="left: 4.5rem;">
+                @php
+                    $is_look_later_card = Auth::check() && Auth::user()->lookLaters()->where('ad_id', $ad->id)->exists();
+                @endphp
+                <i class="{{ $is_look_later_card ? 'fa-solid' : 'fa-regular' }} fa-bookmark look-later-icon-{{ $ad->id }}" style="{{ $is_look_later_card ? 'color: #1A73E8 !important;' : '' }}"></i>
             </div>
         @endif
 

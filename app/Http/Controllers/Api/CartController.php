@@ -91,4 +91,89 @@ class CartController extends Controller
             'message' => 'تم إفراغ السلة بنجاح'
         ]);
     }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'quantity' => 'required|integer|min:1'
+        ]);
+
+        $cartItem = Cart::where('user_id', Auth::id())->find($id);
+        
+        if (!$cartItem) {
+            return response()->json([
+                'success' => false,
+                'message' => 'المنتج غير موجود في السلة'
+            ], 404);
+        }
+
+        $cartItem->update(['quantity' => $request->quantity]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تحديث الكمية بنجاح',
+            'data' => $cartItem
+        ]);
+    }
+
+    public function checkout(Request $request)
+    {
+        $request->validate([
+            'buyer_name' => 'required|string|max:255',
+            'buyer_phone' => 'required|string|max:20',
+            'buyer_address' => 'required|string',
+            'buyer_latitude' => 'nullable|numeric',
+            'buyer_longitude' => 'nullable|numeric',
+            'payment_method' => 'required|in:card,mada,bank_transfer,cod,apple_pay',
+        ]);
+
+        $cartItems = Cart::where('user_id', Auth::id())->with('ad')->get();
+
+        if ($cartItems->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'السلة فارغة'
+            ], 400);
+        }
+
+        $orders = [];
+        $totalAmount = 0;
+
+        foreach ($cartItems as $item) {
+            $shippingPrice = $item->ad->shipping_price ?? 0;
+            $finalPrice = ($item->price * $item->quantity) + $shippingPrice;
+            $totalAmount += $finalPrice;
+
+            $orders[] = \App\Models\Order::create([
+                'order_number' => 'ORD-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                'ad_id' => $item->ad_id,
+                'buyer_id' => Auth::id(),
+                'seller_id' => $item->ad->user_id,
+                'final_price' => $finalPrice,
+                'status' => 'pending' // Or 'paid' depending on logic
+            ]);
+        }
+
+        // Create transaction
+        \App\Models\Transaction::create([
+            'transaction_number' => 'TRX-' . strtoupper(\Illuminate\Support\Str::random(10)),
+            'user_id' => Auth::id(),
+            'amount' => $totalAmount,
+            'payment_method' => $request->payment_method,
+            'type' => 'payment',
+            'status' => 'completed'
+        ]);
+
+        // Clear cart
+        Cart::where('user_id', Auth::id())->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إتمام الطلب بنجاح',
+            'data' => [
+                'orders' => $orders,
+                'total_amount' => $totalAmount
+            ]
+        ]);
+    }
 }

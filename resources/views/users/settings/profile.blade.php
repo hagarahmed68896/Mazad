@@ -289,6 +289,12 @@
                                 </div>
 
                                 <div>
+                                    <label class="block text-gray-700 font-bold mb-2 text-right text-sm">سويفت كود (Swift Code)</label>
+                                    <input type="text" name="bank_swift_code" value="{{ old('bank_swift_code', Auth::user()->bank_swift_code) }}" placeholder="أدخل السويفت كود للبنك" class="w-full bg-white border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm text-right" dir="ltr" oninput="this.value = this.value.toUpperCase();">
+                                    @error('bank_swift_code') <span class="text-red-500 text-xs font-bold mt-1 block text-right">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div>
                                     <label class="block text-gray-700 font-bold mb-2 text-right text-sm">عنوان البنك / الفرع</label>
                                     <input type="text" name="bank_address" value="{{ old('bank_address', Auth::user()->bank_address) }}" placeholder="أدخل عنوان البنك أو اسم الفرع" class="w-full bg-white border border-gray-200 rounded-2xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm text-right">
                                     @error('bank_address') <span class="text-red-500 text-xs font-bold mt-1 block text-right">{{ $message }}</span> @enderror
@@ -590,7 +596,7 @@
     @if($errors->has('current_password') || $errors->has('password'))
         switchTab('password');
     @endif
-    @if($errors->has('bank_name') || $errors->has('bank_account_name') || $errors->has('bank_account_number') || $errors->has('bank_iban') || $errors->has('bank_address'))
+    @if($errors->has('bank_name') || $errors->has('bank_account_name') || $errors->has('bank_account_number') || $errors->has('bank_iban') || $errors->has('bank_address') || $errors->has('bank_swift_code'))
         switchTab('bank');
     @endif
 </script>

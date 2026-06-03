@@ -18,7 +18,7 @@ class User extends Authenticatable
         'name', 'email', 'password', 'phone', 'address', 'account_type', 'parent_id', 'commission_rate',
         'company_name', 'commercial_register', 'ads_count', 'sales',
         'purchases', 'status', 'city_id', 'avatar', 'latitude', 'longitude', 'known_devices',
-        'bio', 'bank_name', 'bank_account_name', 'bank_account_number', 'bank_iban', 'bank_address', 'cover',
+        'bio', 'bank_name', 'bank_account_name', 'bank_account_number', 'bank_iban', 'bank_address', 'bank_swift_code', 'cover',
         'fcm_token', 'all_notifications', 'bid_notifications', 'bid_approaching_limit_notifications',
         'bid_approaching_limit_percentage', 'bid_reached_limit_notifications',
         'auction_update_notifications', 'favorite_auction_notifications', 'winning_bid_notifications',

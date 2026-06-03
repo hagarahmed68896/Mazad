@@ -63,6 +63,32 @@ class SupportController extends Controller
     }
 
     /**
+     * Get Contact Info & Social Media Links
+     */
+    public function contactInfo()
+    {
+        $settings = \App\Models\Setting::where('group', 'contacts')->pluck('value', 'key')->toArray();
+
+        // Parse social links if stored as JSON string
+        $socialLinks = [];
+        if (isset($settings['social_links'])) {
+            $decoded = json_decode($settings['social_links'], true);
+            if (is_array($decoded)) {
+                $socialLinks = $decoded;
+            }
+        }
+
+        $data = [
+            'phone' => $settings['phone'] ?? '+966 50 123 4567',
+            'email' => $settings['email'] ?? 'support@yourapp.sa',
+            'copyright' => $settings['copyright'] ?? '© 2026 جميع الحقوق محفوظة',
+            'social_links' => $socialLinks
+        ];
+
+        return $this->apiResponse(true, 'بيانات التواصل والدعم الفني', $data);
+    }
+
+    /**
      * Get Privacy Policy
      */
     public function privacy()

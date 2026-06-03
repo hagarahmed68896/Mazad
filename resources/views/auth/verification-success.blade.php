@@ -60,18 +60,39 @@
         <!-- Success Modal Overlay -->
         <div class="overlay">
             <div class="success-modal">
-                <div class="w-24 h-24 bg-[#22C55E] rounded-full flex items-center justify-center mx-auto mb-8 ">
-                   <img src="{{ asset('images/Vector-1.svg') }}" alt="">
+                <div style="width: 96px; height: 96px; background-color: #22C55E; border-radius: 9999px; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem; box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);">
+                    <svg style="width: 48px; height: 48px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
                 </div>
 
                 <h1 class="text-2xl font-black text-[#1C1C1C] mb-3">تم التحقق بنجاح</h1>
-                <p class="text-[#64748B] text-sm font-semibold leading-loose mb-8">
-                    تقدر الحين تبدأ تتصفح وتشارك في المزادات.
-                </p>
 
-                <a href="{{ $redirectUrl }}" class="block w-full py-4 bg-[#1A73E8] hover:bg-blue-700 text-white rounded-xl text-lg font-bold transition-all shadow-lg shadow-blue-500/25">
-                    {{ $redirectText }}
-                </a>
+                @if(Auth::check() && Auth::user()->account_type === 'partner')
+                    @if(Auth::user()->interests()->exists())
+                        <p class="text-[#64748B] text-sm font-semibold leading-loose mb-8">
+                            مرحباً بك مجدداً، يمكنك الآن الانتقال إلى لوحة تحكم خدماتك لإدارتها بكل سهولة.
+                        </p>
+
+                        <a href="{{ route('ads.my') }}" class="block w-full py-4 bg-[#1A73E8] hover:bg-blue-700 text-white rounded-xl text-lg font-bold transition-all shadow-lg shadow-blue-500/25">
+                            الذهاب للوحة التحكم
+                        </a>
+                    @else
+                        <p class="text-[#64748B] text-sm font-semibold leading-loose mb-8">
+                            مرحبا بك، يمكنك الآن إعداد خدماتك والبدء في استقبال الطلبات.
+                        </p>
+
+                        <a href="{{ route('register.partner.interests') }}" class="block w-full py-4 bg-[#1A73E8] hover:bg-blue-700 text-white rounded-xl text-lg font-bold transition-all shadow-lg shadow-blue-500/25">
+                            أضف خدماتك
+                        </a>
+                    @endif
+                @else
+                    <p class="text-[#64748B] text-sm font-semibold leading-loose mb-8">
+                        تقدر الحين تبدأ تتصفح وتشارك في المزادات.
+                    </p>
+
+                    <a href="{{ $redirectUrl }}" class="block w-full py-4 bg-[#1A73E8] hover:bg-blue-700 text-white rounded-xl text-lg font-bold transition-all shadow-lg shadow-blue-500/25">
+                        {{ $redirectText }}
+                    </a>
+                @endif
             </div>
         </div>
     </main>

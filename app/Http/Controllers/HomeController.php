@@ -14,8 +14,13 @@ class HomeController extends Controller
 {
     public function index()
     {
-        if (Auth::check() && Auth::user()->email === 'admin@mazad.com') {
-            return redirect()->route('admin.dashboard');
+        if (Auth::check()) {
+            if (Auth::user()->email === 'admin@mazad.com') {
+                return redirect()->route('admin.dashboard');
+            }
+            if (Auth::user()->account_type === 'partner') {
+                return redirect()->route('ads.my');
+            }
         }
 
         // Auto-activate upcoming ads whose start date has arrived
@@ -38,7 +43,8 @@ class HomeController extends Controller
                 $blockedUserIds = \App\Models\BlockedUser::where('user_id', auth()->id())->pluck('blocked_user_id')
                     ->merge(\App\Models\BlockedUser::where('blocked_user_id', auth()->id())->pluck('user_id'))
                     ->toArray();
-                $query->whereNotIn('user_id', $blockedUserIds);
+                $query->whereNotIn('user_id', $blockedUserIds)
+                      ->where('user_id', '!=', auth()->id());
             }
 
             if ($interestIdsStr) {
@@ -61,22 +67,36 @@ class HomeController extends Controller
         );
             
         // 2. Interactive Ads (الإعلانات الأكثر تفاعل)
-        $interactiveAds = Ad::with(['category', 'user', 'city'])
+        $interactiveQuery = Ad::with(['category', 'user', 'city'])
             ->where('status', 'active')
             ->where(function($q) {
                 $q->whereNull('end_date')->orWhere('end_date', '>', now());
-            })
-            ->orderBy('views_count', 'desc')
+            });
+        if (auth()->check()) {
+            $blockedUserIds = \App\Models\BlockedUser::where('user_id', auth()->id())->pluck('blocked_user_id')
+                ->merge(\App\Models\BlockedUser::where('blocked_user_id', auth()->id())->pluck('user_id'))
+                ->toArray();
+            $interactiveQuery->whereNotIn('user_id', $blockedUserIds)
+                             ->where('user_id', '!=', auth()->id());
+        }
+        $interactiveAds = $interactiveQuery->orderBy('views_count', 'desc')
             ->orderBy('bids_count', 'desc')
             ->limit(12)
             ->get();
             
         // 3. Ending Soon (الإعلانات قرب الانتهاء)
-        $endingSoon = Ad::with(['category', 'user', 'city'])
+        $endingSoonQuery = Ad::with(['category', 'user', 'city'])
             ->where('status', 'active')
             ->whereNotNull('end_date')
-            ->where('end_date', '>', now())
-            ->orderBy('end_date', 'asc') 
+            ->where('end_date', '>', now());
+        if (auth()->check()) {
+            $blockedUserIds = \App\Models\BlockedUser::where('user_id', auth()->id())->pluck('blocked_user_id')
+                ->merge(\App\Models\BlockedUser::where('blocked_user_id', auth()->id())->pluck('user_id'))
+                ->toArray();
+            $endingSoonQuery->whereNotIn('user_id', $blockedUserIds)
+                            ->where('user_id', '!=', auth()->id());
+        }
+        $endingSoon = $endingSoonQuery->orderBy('end_date', 'asc') 
             ->limit(12)
             ->get();
 
@@ -450,10 +470,93 @@ class HomeController extends Controller
 
     public function serviceShow($id)
     {
-        $service = \App\Models\Service::findOrFail($id);
+        $service = \App\Models\Service::find($id);
+        if (!$service) {
+            // Fallback for partner ads stored in the ads table
+            $service = \App\Models\Ad::find($id);
+        }
+
+        if (!$service) {
+            abort(404);
+        }
+
         $categories = Category::whereNull('parent_id')->get();
         $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
 
-        return view('services.show', compact('service', 'categories', 'settings'));
+        // 1. Fetch reviews received by this advertiser
+        $reviews = \App\Models\Review::where('rated_user_id', $service->user_id)
+            ->with('reviewer')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $totalReviews = $reviews->count();
+        $avgRating = $totalReviews > 0 ? round($reviews->avg('rating'), 1) : 4.8; // Fallback to 4.8 premium default if no reviews
+
+        // 2. Fetch rating distribution (5 down to 1 stars)
+        $ratingDistribution = [];
+        for ($i = 5; $i >= 1; $i--) {
+            $count = $reviews->where('rating', $i)->count();
+            $percentage = $totalReviews > 0 ? round(($count / $totalReviews) * 100) : 20; // Default 20% distribution as visually pictured in placeholder
+            $ratingDistribution[$i] = [
+                'count' => $count,
+                'percentage' => $percentage
+            ];
+        }
+
+        // 3. Fetch related services from this seller
+        if ($service instanceof \App\Models\Ad) {
+            $userServices = \App\Models\Ad::where('user_id', $service->user_id)
+                ->where('id', '!=', $service->id)
+                ->where('category_id', 4)
+                ->limit(4)
+                ->get();
+        } else {
+            $userServices = \App\Models\Service::where('user_id', $service->user_id)
+                ->where('id', '!=', $service->id)
+                ->limit(4)
+                ->get();
+        }
+
+        return view('services.show', compact(
+            'service', 
+            'categories', 
+            'settings',
+            'reviews',
+            'totalReviews',
+            'avgRating',
+            'ratingDistribution',
+            'userServices'
+        ));
+    }
+
+    public function serviceGallery($id, $index = 0)
+    {
+        $service = \App\Models\Service::find($id);
+        if (!$service) {
+            $service = \App\Models\Ad::find($id);
+        }
+
+        if (!$service) {
+            abort(404);
+        }
+
+        $seller = $service->user;
+
+        $additionalImages = ($service instanceof \App\Models\Ad) ? $service->images : collect();
+        $allImages = collect([$service->image])
+            ->merge($additionalImages->pluck('image'))
+            ->filter()
+            ->unique()
+            ->map(fn($img) => \Illuminate\Support\Str::startsWith($img, 'http') ? $img : '/' . ltrim($img, '/'))
+            ->values();
+
+        $categories = Category::whereNull('parent_id')->get();
+        $settings = Setting::pluck('value', 'key')->toArray();
+        $startIndex = (int)$index;
+
+        // Map $service to $ad so the ads.gallery view is reused seamlessly
+        $ad = $service;
+
+        return view('ads.gallery', compact('ad', 'allImages', 'seller', 'categories', 'settings', 'startIndex'));
     }
 }

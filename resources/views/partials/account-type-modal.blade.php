@@ -105,8 +105,9 @@
             window.location.href = "{{ route('register.individual') }}";
         } else if (selectedAccountType === 'company') {
             window.location.href = "{{ route('register.company') }}";
+        } else if (selectedAccountType === 'partner') {
+            window.location.href = "{{ route('register.partner') }}";
         } else {
-            // For partner, you can add its specific route or use generic
             window.location.href = "{{ route('register.type') }}";
         }
     }

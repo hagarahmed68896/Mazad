@@ -30,7 +30,7 @@
             <h1 class="text-3xl md:text-4xl font-black text-[#1E293B] mb-4">اختر نوع حسابك</h1>
             <p class="text-[#64748B] font-semibold mb-12">اختر نوع الحساب الذي ترغب في إنشائه لتبدأ تجربتك معنا</p>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 
                 <!-- Individual Card -->
                 <a href="{{ route('register.individual') }}" class="group relative bg-white p-10 rounded-[2.5rem] border-2 border-transparent hover:border-[#1A73E8] hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 flex flex-col items-center text-center">
@@ -57,6 +57,20 @@
                     <p class="text-sm font-bold text-[#64748B] leading-relaxed mb-8">للشركات والمؤسسات التجارية التي ترغب في عرض خدماتها ومنتجاتها في المنصة.</p>
                     <div class="mt-auto px-8 py-3 bg-[#F1F5F9] text-[#1E293B] group-hover:bg-[#1A73E8] group-hover:text-white rounded-xl font-bold transition-all duration-500">
                         إنشاء حساب شركة
+                    </div>
+                </a>
+
+                <!-- Partner Card -->
+                <a href="{{ route('register.partner') }}" class="group relative bg-white p-10 rounded-[2.5rem] border-2 border-transparent hover:border-[#1A73E8] hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 flex flex-col items-center text-center">
+                    <div class="w-24 h-24 bg-blue-50 rounded-3xl flex items-center justify-center text-[#1A73E8] mb-8 group-hover:scale-110 group-hover:bg-[#1A73E8] group-hover:text-white transition-all duration-500 shadow-inner">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-black text-[#1E293B] mb-4">حساب شريك</h2>
+                    <p class="text-sm font-bold text-[#64748B] leading-relaxed mb-8">للجهات المقدمة لخدمات مرتبطة بالمزادات مثل فحص السيارات وغيرها.</p>
+                    <div class="mt-auto px-8 py-3 bg-[#F1F5F9] text-[#1E293B] group-hover:bg-[#1A73E8] group-hover:text-white rounded-xl font-bold transition-all duration-500">
+                        إنشاء حساب شريك
                     </div>
                 </a>
 

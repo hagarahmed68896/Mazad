@@ -249,6 +249,7 @@ class BidController extends Controller
             'amount' => $amount,
             'type' => 'tender',
             'status' => 'active',
+            'notify_near_limit' => (bool) $request->notify_near_limit,
         ]);
 
         $ad->update([
@@ -366,15 +367,33 @@ class BidController extends Controller
     {
         $user = Auth::user();
         $tab = $request->get('tab', 'offers'); // 'offers' or 'auctions'
+        $role = $request->get('role', 'seller'); // 'seller' (received) or 'buyer' (submitted)
 
-        $query = Bid::whereHas('ad', function($q) use ($user, $tab) {
-            $q->where('user_id', $user->id);
+        $query = Bid::query();
+
+        if ($role === 'buyer') {
+            $query->where('user_id', $user->id);
             if ($tab === 'offers') {
-                $q->where('type', 'direct_purchase');
+                $query->whereHas('ad', function($q) {
+                    $q->where('type', 'direct_purchase');
+                })->where('type', 'offer');
             } else {
-                $q->whereIn('type', ['electronic_auction', 'hybrid_auction', 'tender']);
+                $query->whereHas('ad', function($q) {
+                    $q->whereIn('type', ['electronic_auction', 'hybrid_auction', 'tender']);
+                })->whereIn('type', ['bid', 'tender', 'auto_tender']);
             }
-        })->with(['ad.category', 'ad.city', 'user']);
+        } else {
+            $query->whereHas('ad', function($q) use ($user, $tab) {
+                $q->where('user_id', $user->id);
+                if ($tab === 'offers') {
+                    $q->where('type', 'direct_purchase');
+                } else {
+                    $q->whereIn('type', ['electronic_auction', 'hybrid_auction', 'tender']);
+                }
+            });
+        }
+
+        $query->with(['ad.category', 'ad.city', 'ad.user', 'user']);
 
         // Filter: Status (all, accepted, rejected, active)
         $status = $request->get('status', 'all');
@@ -518,6 +537,7 @@ class BidController extends Controller
     {
         $request->validate([
             'amount' => 'required|numeric|min:1',
+            'validity_days' => 'nullable|integer|min:1',
         ]);
 
         $bid = Bid::with('ad')->findOrFail($bidId);
@@ -545,6 +565,7 @@ class BidController extends Controller
         $oldAmount = $bid->amount;
         $bid->update([
             'amount' => $request->amount,
+            'validity_days' => $request->has('validity_days') ? $request->validity_days : $bid->validity_days,
             'status' => 'active'
         ]);
 
@@ -564,6 +585,7 @@ class BidController extends Controller
             'message' => 'تم إرسال العرض المضاد بنجاح.',
             'data' => [
                 'new_amount' => (float) $request->amount,
+                'validity_days' => $bid->validity_days,
                 'remaining' => $remaining
             ]
         ]);

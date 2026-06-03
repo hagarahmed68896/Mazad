@@ -42,7 +42,8 @@ class HomeController extends Controller
                 $blockedUserIds = \App\Models\BlockedUser::where('user_id', $user->id)->pluck('blocked_user_id')
                     ->merge(\App\Models\BlockedUser::where('blocked_user_id', $user->id)->pluck('user_id'))
                     ->toArray();
-                $query->whereNotIn('user_id', $blockedUserIds);
+                $query->whereNotIn('user_id', $blockedUserIds)
+                      ->where('user_id', '!=', $user->id);
 
                 if ($interestIdsStr) {
                     return $query->orderByRaw("CASE WHEN category_id IN ($interestIdsStr) THEN 0 ELSE 1 END")
@@ -98,9 +99,15 @@ class HomeController extends Controller
             // 2. Recommended Ads (الموصى بها)
             $recommendedAds = [];
             if ($interestIdsStr) {
+                $blockedUserIds = \App\Models\BlockedUser::where('user_id', $user->id)->pluck('blocked_user_id')
+                    ->merge(\App\Models\BlockedUser::where('blocked_user_id', $user->id)->pluck('user_id'))
+                    ->toArray();
+
                 $recommendedAds = Ad::with(['category', 'user', 'city'])
                     ->where('status', 'active')
                     ->whereIn('category_id', $interestIds)
+                    ->whereNotIn('user_id', $blockedUserIds)
+                    ->where('user_id', '!=', $user->id)
                     ->orderBy('created_at', 'desc')
                     ->limit(10)
                     ->get();

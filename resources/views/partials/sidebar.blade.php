@@ -30,7 +30,7 @@
             </a>
             <a href="{{ route('profile.interests.index') }}" class="sidebar-link">
                 <i class="fa-solid fa-shapes"></i>
-                <span>اهتماماتي</span>
+                <span>{{ Auth::user()->account_type === 'partner' ? 'الفئات' : 'اهتماماتي' }}</span>
             </a>
             @auth
                 @if(Auth::user()->account_type === 'company')
@@ -40,6 +40,7 @@
                     </a>
                 @endif
             @endauth
+            @if(Auth::user()->account_type !== 'partner')
             <a href="{{ route('chats.index') }}" class="sidebar-link">
                 <i class="fa-regular fa-comment-dots"></i>
                 <span>الدردشات</span>
@@ -52,6 +53,7 @@
                 <i class="fa-regular fa-bell"></i>
                 <span>إعدادات الإشعارات</span>
             </a>
+            @endif
         </div>
 
         <div class="sidebar-divider"></div>
@@ -59,6 +61,7 @@
         <!-- Ads Section -->
         <div class="sidebar-section">
             <h4 class="section-title">الاعلانات</h4>
+            @if(Auth::user()->account_type !== 'partner')
             <a href="{{ route('ads.my') }}" class="sidebar-link">
                 <i class="fa-regular fa-rectangle-list"></i>
                 <span>إعلاناتي</span>
@@ -79,10 +82,12 @@
                 <i class="fa-regular fa-calendar-check"></i>
                 <span>مبيعاتي</span>
             </a>
+            @endif
             <a href="{{ route('reports.index') }}" class="sidebar-link">
                 <i class="fa-solid fa-chart-column"></i>
                 <span>تقاريري</span>
             </a>
+            @if(Auth::user()->account_type !== 'partner')
             <a href="{{ route('purchases.my') }}" class="sidebar-link">
                 <i class="fa-solid fa-cart-shopping"></i>
                 <span>مشترياتي</span>
@@ -91,6 +96,7 @@
                 <i class="fa-solid fa-gavel"></i>
                 <span>للمزادات والعروض</span>
             </a>
+            @endif
         </div>
 
         <div class="sidebar-divider"></div>

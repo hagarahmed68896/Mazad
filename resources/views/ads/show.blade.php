@@ -22,7 +22,7 @@
                 $is_look_later = Auth::check() && Auth::user()->lookLaters()->where('ad_id', $ad->id)->exists();
             @endphp
             <div class="flex gap-2">
-                @if(!Auth::check() || Auth::id() != $ad->user_id)
+                @if((!Auth::check() || Auth::id() != $ad->user_id) && (!Auth::check() || Auth::user()->account_type !== 'partner'))
                 <button onclick="requireAuth(() => toggleGlobalWishlist(event, {{ $ad->id }}))" id="wishlistBtn" class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-2xl border border-gray-100 hover:shadow-md transition-all text-sm font-bold text-gray-700">
                     <i class="{{ $is_favorited ? 'fa-solid' : 'fa-regular' }} fa-heart wishlist-icon-{{ $ad->id }}" style="{{ $is_favorited ? 'color: #EF4444 !important;' : 'color: #1A73E8;' }}"></i> 
                     <span id="wishlistText">{{ $is_favorited ? 'في المفضلة' : 'أضف للمفضلة' }}</span>

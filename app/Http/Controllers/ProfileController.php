@@ -134,12 +134,14 @@ class ProfileController extends Controller
             'bank_account_number' => ['nullable', 'string', 'regex:/^[0-9]{10,20}$/'],
             'bank_iban' => ['nullable', 'string', 'regex:/^SA[0-9]{22}$/'],
             'bank_address' => 'nullable|string|max:500',
+            'bank_swift_code' => ['nullable', 'string', 'regex:/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/'],
         ], [
             'bank_account_number.regex' => 'رقم الحساب يجب أن يحتوي على أرقام فقط وبطول بين 10 و 20 رقماً.',
             'bank_iban.regex' => 'رقم الآيبان غير صحيح. يجب أن يبدأ بـ SA ويليه 22 رقماً (مثال: SA801234...).',
+            'bank_swift_code.regex' => 'السويفت كود (Swift Code) غير صحيح. يجب أن يتكون من 8 أو 11 حرفاً ورقماً بالصيغة الصحيحة.',
         ]);
 
-        $user->update($request->only(['bank_name', 'bank_account_name', 'bank_account_number', 'bank_iban', 'bank_address']));
+        $user->update($request->only(['bank_name', 'bank_account_name', 'bank_account_number', 'bank_iban', 'bank_address', 'bank_swift_code']));
 
         return redirect()->back()->with('success', 'تم حفظ الحساب البنكي بنجاح.');
     }

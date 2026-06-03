@@ -130,6 +130,7 @@ Route::get('verification-success', [AuthController::class, 'showVerificationSucc
 Route::get('register', [AuthController::class, 'showRegisterTypeForm'])->name('register.type');
 Route::get('register/individual', [AuthController::class, 'showRegisterIndividualForm'])->name('register.individual');
 Route::get('register/company', [AuthController::class, 'showRegisterCompanyForm'])->name('register.company');
+Route::get('register/partner', [AuthController::class, 'showRegisterPartnerForm'])->name('register.partner');
 Route::post('register', [AuthController::class, 'register'])->name('register.post');
 
 Route::get('forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('forgot-password');
@@ -138,6 +139,11 @@ Route::get('reset-password', [AuthController::class, 'showResetPasswordForm'])->
 Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('post-reset-password');
 Route::get('reset-success', [AuthController::class, 'showResetSuccess'])->name('reset-success');
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+Route::post('save-services', [AuthController::class, 'saveServices'])->name('save-services.web')->middleware('auth');
+Route::get('register/partner/interests', [AuthController::class, 'showPartnerInterestsForm'])->name('register.partner.interests')->middleware('auth');
+Route::post('register/partner/interests', [AuthController::class, 'savePartnerInterests'])->name('register.partner.interests.post')->middleware('auth');
+Route::get('register/partner/services', [AuthController::class, 'showPartnerServicesForm'])->name('register.partner.services')->middleware('auth');
+Route::post('register/partner/services', [AuthController::class, 'savePartnerServices'])->name('register.partner.services.post')->middleware('auth');
 
 // Admin Auth & Dashboard Routes
 Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {

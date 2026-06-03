@@ -15,6 +15,10 @@ class AdController extends Controller
 {
     public function create(Request $request)
     {
+        if (Auth::check() && Auth::user()->account_type === 'partner') {
+            return view('ads.partner-create');
+        }
+
         $type = $request->query('type', 'direct_purchase');
         $categories = Category::whereNull('parent_id')->with('subCategories')->get();
         
@@ -41,13 +45,84 @@ class AdController extends Controller
 
     public function store(Request $request)
     {
+        if (Auth::check() && Auth::user()->account_type === 'partner') {
+            $request->validate([
+                'title'       => 'required|string|max:255',
+                'description' => 'required|string',
+                'price'       => 'required|numeric|min:0',
+                'phone'       => 'required|string',
+                'email'       => 'required|email|max:255',
+                'image'       => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
+            ], [
+                'title.required'       => 'عنوان الإعلان مطلوب.',
+                'description.required' => 'وصف الإعلان مطلوب.',
+                'price.required'       => 'سعر الخدمة مطلوب.',
+                'price.numeric'        => 'يجب أن يكون السعر رقماً صالحاً.',
+                'phone.required'       => 'رقم الجوال مطلوب.',
+                'email.required'       => 'البريد الإلكتروني مطلوب.',
+                'email.email'          => 'البريد الإلكتروني غير صالح.',
+                'image.required'       => 'صورة الإعلان مطلوبة.',
+                'image.image'          => 'يجب أن يكون الملف صورة صالحة.',
+                'image.max'            => 'يجب ألا يتجاوز حجم الصورة 20 ميجابايت.',
+            ]);
+
+            $user = Auth::user();
+            $mainImage = null;
+
+            if ($request->hasFile('image')) {
+                $file = $request->file('image');
+                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('uploads/ads'), $filename);
+                $mainImage = 'uploads/ads/' . $filename;
+            }
+
+            DB::beginTransaction();
+            try {
+                $ad = Ad::create([
+                    'user_id'     => $user->id,
+                    'category_id' => 4, // Services / الخدمات
+                    'city_id'     => $user->city_id ?? 1,
+                    'title'       => $request->title,
+                    'description' => $request->description,
+                    'type'        => 'direct_purchase',
+                    'price'       => $request->price,
+                    'quantity'    => 1,
+                    'status'      => 'active',
+                    'end_date'    => now()->addYear(),
+                    'image'       => $mainImage,
+                ]);
+
+                if ($mainImage) {
+                    AdImage::create([
+                        'ad_id' => $ad->id,
+                        'image' => $mainImage,
+                    ]);
+                }
+
+                // Update contact details on user model if changed
+                $user->update([
+                    'phone' => $request->phone,
+                    'email' => $request->email,
+                ]);
+
+                DB::commit();
+
+                return redirect()->route('ads.my')
+                    ->with('success', 'تم إضافة إعلان الخدمة بنجاح! 🎉');
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return back()->withInput()->with('error', 'حدث خطأ أثناء حفظ الإعلان: ' . $e->getMessage());
+            }
+        }
+
         $rules = [
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'category_id' => 'required|exists:categories,id',
             'address'     => 'required_without_all:lat,lng|nullable|string',
-            'lat'         => 'required_without:address|nullable|numeric',
-            'lng'         => 'required_without:address|nullable|numeric',
+            'lat'         => 'required_without:address|nullable|numeric|between:-90,90',
+            'lng'         => 'required_without:address|nullable|numeric|between:-180,180',
             'images.*'    => 'nullable|image|mimes:jpeg,png,jpg|max:20480',
             'start_date'  => 'nullable|date',
         ];
@@ -162,13 +237,13 @@ class AdController extends Controller
                 'lat'            => $request->lat,
                 'lng'            => $request->lng,
                 'inspection_info'     => $request->inspection_info,
-                'inspection_date'     => $request->inspection_date,
-                'inspection_end_date' => $request->inspection_end_date ?: null,
+                'inspection_date'     => $this->parseSafeDate($request->inspection_date, 'Y-m-d'),
+                'inspection_end_date' => $this->parseSafeDate($request->inspection_end_date, 'Y-m-d'),
                 'deposit_amount' => $depositAmount,
                 'price'          => $price,
-                'status'         => $request->status === 'incomplete' ? 'incomplete' : (($request->start_date && \Carbon\Carbon::parse($request->start_date)->isFuture()) ? 'upcoming' : 'active'),
-                'start_date'     => $request->start_date,
-                'end_date'       => $request->end_date ?? now()->addDays(7),
+                'status'         => $request->status === 'incomplete' ? 'incomplete' : (($request->start_date && $this->parseSafeDate($request->start_date, 'Y-m-d H:i:s') && \Carbon\Carbon::parse($this->parseSafeDate($request->start_date, 'Y-m-d H:i:s'))->isFuture()) ? 'upcoming' : 'active'),
+                'start_date'     => $this->parseSafeDate($request->start_date, 'Y-m-d H:i:s'),
+                'end_date'       => $request->end_date ? $this->parseSafeDate($request->end_date, 'Y-m-d H:i:s') : now()->addDays(7),
                 'image'          => $mainImage,
                 'is_featured'    => $request->input('is_featured', 0),
                 'is_enfaz'       => $request->is_enfaz ?? 0,
@@ -176,7 +251,7 @@ class AdController extends Controller
                 'shipping_price' => $request->shipping_price ?? 0,
                 'shipping_type'  => $request->shipping_type,
                 'youtube_link'   => $request->youtube_link,
-                'start_date'     => $request->start_date,
+                'start_date'     => $this->parseSafeDate($request->start_date, 'Y-m-d H:i:s'),
                 'award_duration' => $request->award_duration,
                 'quantity'       => $request->quantity ?? 1,
                 'min_sale_price' => $request->min_sale_price ?? 0,
@@ -203,11 +278,13 @@ class AdController extends Controller
                         $value = 'uploads/ads/properties/' . $filename;
                     }
                     if ($value !== null && $value !== '') {
-                        AdProperty::create([
-                            'ad_id'       => $ad->id,
-                            'property_id' => $propertyId,
-                            'value'       => $value,
-                        ]);
+                        if (\App\Models\Property::where('id', $propertyId)->exists()) {
+                            AdProperty::create([
+                                'ad_id'       => $ad->id,
+                                'property_id' => $propertyId,
+                                'value'       => $value,
+                            ]);
+                        }
                     }
                 }
             }
@@ -284,6 +361,10 @@ class AdController extends Controller
             abort(403);
         }
 
+        if (Auth::check() && Auth::user()->account_type === 'partner') {
+            return view('ads.partner-edit', compact('ad'));
+        }
+
         $category = Category::with(['pages' => function($q) {
             $q->with('properties');
         }, 'properties' => function($q) {
@@ -304,12 +385,84 @@ class AdController extends Controller
             abort(403);
         }
 
+        if (Auth::check() && Auth::user()->account_type === 'partner') {
+            $request->validate([
+                'title'       => 'required|string|max:255',
+                'description' => 'required|string',
+                'price'       => 'required|numeric|min:0',
+                'phone'       => 'required|string',
+                'email'       => 'required|email|max:255',
+                'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
+            ], [
+                'title.required'       => 'عنوان الإعلان مطلوب.',
+                'description.required' => 'وصف الإعلان مطلوب.',
+                'price.required'       => 'سعر الخدمة مطلوب.',
+                'price.numeric'        => 'يجب أن يكون السعر رقماً صالحاً.',
+                'phone.required'       => 'رقم الجوال مطلوب.',
+                'email.required'       => 'البريد الإلكتروني مطلوب.',
+                'email.email'          => 'البريد الإلكتروني غير صالح.',
+                'image.image'          => 'يجب أن يكون الملف صورة صالحة.',
+                'image.max'            => 'يجب ألا يتجاوز حجم الصورة 20 ميجابايت.',
+            ]);
+
+            $user = Auth::user();
+            $mainImage = $ad->image;
+
+            if ($request->hasFile('image')) {
+                // Delete old image if it exists
+                if ($ad->image && !str_starts_with($ad->image, 'http')) {
+                    @unlink(public_path($ad->image));
+                }
+                
+                $file = $request->file('image');
+                $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('uploads/ads'), $filename);
+                $mainImage = 'uploads/ads/' . $filename;
+            }
+
+            DB::beginTransaction();
+            try {
+                $ad->update([
+                    'title'       => $request->title,
+                    'description' => $request->description,
+                    'price'       => $request->price,
+                    'image'       => $mainImage,
+                ]);
+
+                // Update in AdImage if there is a main image
+                if ($request->hasFile('image')) {
+                    // Delete old gallery images linked to this service
+                    $ad->images()->delete();
+
+                    AdImage::create([
+                        'ad_id' => $ad->id,
+                        'image' => $mainImage,
+                    ]);
+                }
+
+                // Update contact details on user model if changed
+                $user->update([
+                    'phone' => $request->phone,
+                    'email' => $request->email,
+                ]);
+
+                DB::commit();
+
+                return redirect()->route('ads.my')
+                    ->with('success', 'تم تعديل الخدمة بنجاح! 🎉');
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return back()->withInput()->with('error', 'حدث خطأ أثناء حفظ التعديلات: ' . $e->getMessage());
+            }
+        }
+
         $rules = [
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'address'     => 'required_without_all:lat,lng|nullable|string',
-            'lat'         => 'sometimes|required_without:address|nullable|numeric',
-            'lng'         => 'sometimes|required_without:address|nullable|numeric',
+            'lat'         => 'sometimes|required_without:address|nullable|numeric|between:-90,90',
+            'lng'         => 'sometimes|required_without:address|nullable|numeric|between:-180,180',
             'images.*'    => 'nullable|image|mimes:jpeg,png,jpg|max:20480',
             'start_date'  => 'nullable|date',
         ];
@@ -421,19 +574,19 @@ class AdController extends Controller
                 'lat'            => $request->lat,
                 'lng'            => $request->lng,
                 'inspection_info'     => $request->inspection_info,
-                'inspection_date'     => $request->inspection_date,
-                'inspection_end_date' => $request->inspection_end_date ?: null,
+                'inspection_date'     => $this->parseSafeDate($request->inspection_date, 'Y-m-d'),
+                'inspection_end_date' => $this->parseSafeDate($request->inspection_end_date, 'Y-m-d'),
                 'deposit_amount' => $depositAmount,
                 'price'          => $price,
                 'bid_increment'  => $bidIncrement,
-                'status'         => $request->status === 'incomplete' ? 'incomplete' : (($request->start_date && \Carbon\Carbon::parse($request->start_date)->isFuture()) ? 'upcoming' : 'active'),
-                'end_date'       => $request->end_date ?? $ad->end_date,
+                'status'         => $request->status === 'incomplete' ? 'incomplete' : (($request->start_date && $this->parseSafeDate($request->start_date, 'Y-m-d H:i:s') && \Carbon\Carbon::parse($this->parseSafeDate($request->start_date, 'Y-m-d H:i:s'))->isFuture()) ? 'upcoming' : 'active'),
+                'end_date'       => $request->end_date ? $this->parseSafeDate($request->end_date, 'Y-m-d H:i:s') : $ad->end_date,
                 'is_featured'    => $request->has('is_featured') ? 1 : 0,
                 'auction_type'   => $request->auction_type,
                 'shipping_price' => $request->shipping_price ?? 0,
                 'shipping_type'  => $request->shipping_type,
                 'youtube_link'   => $request->youtube_link,
-                'start_date'     => $request->start_date,
+                'start_date'     => $this->parseSafeDate($request->start_date, 'Y-m-d H:i:s'),
                 'award_duration' => $request->award_duration,
                 'quantity'       => $request->quantity ?? 1,
                 'min_sale_price' => $request->min_sale_price ?? 0,
@@ -453,10 +606,12 @@ class AdController extends Controller
                     }
                     
                     if ($value !== null && $value !== '') {
-                        AdProperty::updateOrCreate(
-                            ['ad_id' => $ad->id, 'property_id' => $propertyId],
-                            ['value' => $value]
-                        );
+                        if (\App\Models\Property::where('id', $propertyId)->exists()) {
+                            AdProperty::updateOrCreate(
+                                ['ad_id' => $ad->id, 'property_id' => $propertyId],
+                                ['value' => $value]
+                            );
+                        }
                     }
                 }
             }
@@ -516,6 +671,26 @@ class AdController extends Controller
                   ->orWhere('description', 'like', '%' . $request->q . '%');
             });
         }
+
+        // 2.1 Selected Services Filter (For Partners)
+        if ($request->has('services') && is_array($request->services) && !empty($request->services)) {
+            $query->where(function($q) use ($request) {
+                foreach ($request->services as $service) {
+                    if ($service === 'خدمة الفحص') {
+                        $q->orWhere('title', 'like', '%فحص%')
+                          ->orWhere('description', 'like', '%فحص%');
+                    } elseif ($service === 'خدمة الشحن') {
+                        $q->orWhere('title', 'like', '%شحن%')
+                          ->orWhere('description', 'like', '%شحن%');
+                    } elseif ($service === 'خدمة الشراء') {
+                        $q->orWhere('title', 'like', '%شراء%')
+                          ->orWhere('description', 'like', '%شراء%');
+                    } else {
+                        $q->orWhere('title', 'like', '%' . $service . '%');
+                    }
+                }
+            });
+        }
         
         // 3. City Filter
         if ($request->has('city') && !empty($request->city)) {
@@ -570,6 +745,10 @@ class AdController extends Controller
         
         $cities = \App\Models\City::orderBy('name')->get();
         $categories = \App\Models\Category::whereNull('parent_id')->with('subCategories')->get();
+        
+        if ($user->account_type === 'partner') {
+            return view('ads.partner-ads', compact('ads', 'status', 'cities', 'categories', 'activeCategory'));
+        }
         
         return view('ads.my-ads', compact('ads', 'status', 'cities', 'categories', 'activeCategory'));
     }
@@ -729,5 +908,32 @@ class AdController extends Controller
         ]);
         
         return redirect()->route('ads.my')->with('success', 'تم تمييز الإعلانات المحددة بنجاح! 🚀');
+    }
+
+    /**
+     * Safely parse a date string from the request into a specific format for database insertion.
+     */
+    private function parseSafeDate($dateString, $format = 'Y-m-d')
+    {
+        if (empty($dateString)) {
+            return null;
+        }
+
+        try {
+            // First, try standard parsing
+            return \Carbon\Carbon::parse($dateString)->format($format);
+        } catch (\Exception $e) {
+            // If standard parsing fails, try specific common formats
+            $formats = ['d-m-Y', 'd/m/Y', 'Y-m-d', 'Y/m/d', 'd-m-Y H:i:s', 'd/m/Y H:i:s', 'Y-m-d H:i:s'];
+            foreach ($formats as $f) {
+                try {
+                    return \Carbon\Carbon::createFromFormat($f, $dateString)->format($format);
+                } catch (\Exception $ex) {
+                    continue;
+                }
+            }
+        }
+
+        return null;
     }
 }

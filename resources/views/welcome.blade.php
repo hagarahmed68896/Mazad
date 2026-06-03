@@ -791,6 +791,7 @@
     @include('partials.account-type-modal')
     @include('partials.interests-modal')
 
+
     <!-- Auth Required Modal (Global) -->
     <div id="authRequiredModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
         <div class="bg-white w-full max-w-sm rounded-[28px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.25)] animate-in fade-in zoom-in duration-300" dir="rtl">

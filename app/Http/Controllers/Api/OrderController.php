@@ -86,6 +86,11 @@ class OrderController extends Controller
         // Mark ad as finished
         $ad->update(['status' => 'finished']);
 
+        // Remove item from buyer's cart if it exists
+        \App\Models\Cart::where('user_id', Auth::id())
+            ->where('ad_id', $ad->id)
+            ->delete();
+
         return response()->json([
             'success' => true,
             'message' => 'تم تقديم طلب الشراء بنجاح! رقم الطلب: #' . $order->order_number,
@@ -574,6 +579,43 @@ class OrderController extends Controller
                 } else {
                     $q->where('type', $request->type);
                 }
+            });
+        }
+        
+        // 5b. Auction Type Filter
+        if ($request->has('auction_type') && !empty($request->auction_type)) {
+            $query->whereHas('ad', function($q) use ($request) {
+                $q->where('auction_type', $request->auction_type);
+            });
+        }
+
+        // 5c. Enfaz Filter
+        if ($request->has('is_enfaz')) {
+            $query->whereHas('ad', function($q) use ($request) {
+                $q->where('is_enfaz', $request->is_enfaz);
+            });
+        }
+
+        // 5d. Ad Status Filter
+        if ($request->has('ad_status') && !empty($request->ad_status)) {
+            $query->whereHas('ad', function($q) use ($request) {
+                if ($request->ad_status === 'is_featured') {
+                    $q->where('is_featured', true);
+                } else {
+                    $q->where('status', $request->ad_status);
+                }
+            });
+        }
+
+        // 5e. Order / Purchase Status Filter
+        if ($request->has('order_status') && !empty($request->order_status)) {
+            $query->where('status', $request->order_status);
+        }
+
+        // 5f. Publisher / User Type Filter
+        if ($request->has('user_type') && !empty($request->user_type)) {
+            $query->whereHas('seller', function($q) use ($request) {
+                $q->where('account_type', $request->user_type);
             });
         }
         

@@ -19,7 +19,7 @@
             </div>
         @endif
 
-        @if(!Auth::check() || Auth::id() != $ad->user_id)
+        @if((!Auth::check() || Auth::id() != $ad->user_id) && (!Auth::check() || Auth::user()->account_type !== 'partner'))
             <div class="p-wishlist cursor-pointer" onclick="event.preventDefault(); event.stopPropagation(); requireAuth(() => toggleGlobalWishlist(null, {{ $ad->id }}))" title="أضف للمفضلة">
                 @php
                     $is_favorited_card = Auth::check() && Auth::user()->favorites()->where('ad_id', $ad->id)->exists();

@@ -100,8 +100,8 @@ class AdController extends Controller
             'type' => 'required|in:auction,direct_purchase,standard,tender',
             'description' => 'nullable|string',
             'address' => 'required_without_all:lat,lng|nullable|string',
-            'lat' => 'required_without:address|nullable|numeric',
-            'lng' => 'required_without:address|nullable|numeric',
+            'lat' => 'required_without:address|nullable|numeric|between:-90,90',
+            'lng' => 'required_without:address|nullable|numeric|between:-180,180',
             'images.*' => 'image|mimes:jpeg,png,jpg|max:20480',
             'start_date' => 'nullable|date',
         ];
@@ -211,13 +211,13 @@ class AdController extends Controller
                 'lat'            => $request->lat,
                 'lng'            => $request->lng,
                 'inspection_info'=> $request->inspection_info,
-                'inspection_date'=> $request->inspection_date,
-                'inspection_end_date'=> $request->inspection_end_date ?: null,
+                'inspection_date'=> $this->parseSafeDate($request->inspection_date, 'Y-m-d'),
+                'inspection_end_date'=> $this->parseSafeDate($request->inspection_end_date, 'Y-m-d'),
                 'deposit_amount' => $depositAmount,
                 'price'          => $price,
                 'bid_increment'  => $bidIncrement,
                 'status'         => 'active',
-                'end_date'       => $request->end_date ?? now()->addDays(7),
+                'end_date'       => $request->end_date ? $this->parseSafeDate($request->end_date, 'Y-m-d H:i:s') : now()->addDays(7),
                 'image'          => $mainImage,
                 'is_featured'    => $request->is_featured ? 1 : 0,
                 'is_enfaz'       => $request->is_enfaz ?? 0,
@@ -225,7 +225,7 @@ class AdController extends Controller
                 'shipping_price' => $request->shipping_price ?? 0,
                 'shipping_type'  => $request->shipping_type,
                 'youtube_link'   => $request->youtube_link,
-                'start_date'     => $request->start_date,
+                'start_date'     => $this->parseSafeDate($request->start_date, 'Y-m-d H:i:s'),
                 'award_duration' => $request->award_duration,
                 'quantity'       => $request->quantity ?? 1,
                 'min_sale_price' => $request->min_sale_price ?? 0,
@@ -247,7 +247,9 @@ class AdController extends Controller
                         $value = 'uploads/ads/properties/' . $filename;
                     }
                     if ($value !== null && $value !== '') {
-                        AdProperty::create(['ad_id' => $ad->id, 'property_id' => $propertyId, 'value' => $value]);
+                        if (\App\Models\Property::where('id', $propertyId)->exists()) {
+                            AdProperty::create(['ad_id' => $ad->id, 'property_id' => $propertyId, 'value' => $value]);
+                        }
                     }
                 }
             }
@@ -269,8 +271,8 @@ class AdController extends Controller
 
         $request->validate([
             'address' => 'sometimes|required_without_all:lat,lng|nullable|string',
-            'lat' => 'sometimes|required_without:address|nullable|numeric',
-            'lng' => 'sometimes|required_without:address|nullable|numeric',
+            'lat' => 'sometimes|required_without:address|nullable|numeric|between:-90,90',
+            'lng' => 'sometimes|required_without:address|nullable|numeric|between:-180,180',
             'title' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|nullable|string',
             'end_date' => 'sometimes|required|date|after:now',
@@ -367,18 +369,18 @@ class AdController extends Controller
                 'lat'            => $request->lat ?? $ad->lat,
                 'lng'            => $request->lng ?? $ad->lng,
                 'inspection_info'=> $request->inspection_info ?? $ad->inspection_info,
-                'inspection_date'=> $request->inspection_date ?? $ad->inspection_date,
-                'inspection_end_date'=> $request->inspection_end_date ?? $ad->inspection_end_date,
+                'inspection_date'=> $request->has('inspection_date') ? $this->parseSafeDate($request->inspection_date, 'Y-m-d') : $ad->inspection_date,
+                'inspection_end_date'=> $request->has('inspection_end_date') ? $this->parseSafeDate($request->inspection_end_date, 'Y-m-d') : $ad->inspection_end_date,
                 'deposit_amount' => $depositAmount,
                 'price'          => $price,
                 'bid_increment'  => $bidIncrement,
-                'end_date'       => $request->end_date ?? $ad->end_date,
+                'end_date'       => $request->end_date ? $this->parseSafeDate($request->end_date, 'Y-m-d H:i:s') : $ad->end_date,
                 'is_featured'    => $request->has('is_featured') ? ($request->is_featured ? 1 : 0) : $ad->is_featured,
                 'auction_type'   => $request->auction_type ?? $ad->auction_type,
                 'shipping_price' => $request->shipping_price ?? $ad->shipping_price,
                 'shipping_type'  => $request->shipping_type ?? $ad->shipping_type,
                 'youtube_link'   => $request->youtube_link ?? $ad->youtube_link,
-                'start_date'     => $request->start_date ?? $ad->start_date,
+                'start_date'     => $request->has('start_date') ? $this->parseSafeDate($request->start_date, 'Y-m-d H:i:s') : $ad->start_date,
                 'award_duration' => $request->award_duration ?? $ad->award_duration,
                 'quantity'       => $request->quantity ?? $ad->quantity,
                 'min_sale_price' => $request->min_sale_price ?? $ad->min_sale_price,
@@ -396,7 +398,9 @@ class AdController extends Controller
                         $value = 'uploads/ads/properties/' . $filename;
                     }
                     if ($value !== null && $value !== '') {
-                        AdProperty::updateOrCreate(['ad_id' => $ad->id, 'property_id' => $propertyId], ['value' => $value]);
+                        if (\App\Models\Property::where('id', $propertyId)->exists()) {
+                            AdProperty::updateOrCreate(['ad_id' => $ad->id, 'property_id' => $propertyId], ['value' => $value]);
+                        }
                     }
                 }
             }
@@ -532,6 +536,66 @@ class AdController extends Controller
         ]);
     }
 
+    public function repostBulk(Request $request)
+    {
+        $user = auth('sanctum')->user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح'
+            ], 401);
+        }
+
+        $query = Ad::where('user_id', $user->id);
+
+        if ($request->has('ad_ids') && is_array($request->ad_ids) && count($request->ad_ids) > 0) {
+            // Ensure all specified ads belong to this user
+            $query->whereIn('id', $request->ad_ids);
+        } else {
+            // Repost all finished/expired ads of this user
+            $query->where(function($q) {
+                $q->where('status', 'finished')
+                  ->orWhere('end_date', '<', now());
+            });
+        }
+
+        $adsToRepost = $query->get();
+
+        if ($adsToRepost->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على أي إعلانات منتهية لإعادة نشرها.'
+            ], 400);
+        }
+
+        $count = 0;
+        foreach ($adsToRepost as $ad) {
+            // Determine duration
+            $duration = 7; // Default 7 days
+            if ($ad->start_date && $ad->end_date) {
+                $diff = \Carbon\Carbon::parse($ad->start_date)->diffInDays(\Carbon\Carbon::parse($ad->end_date));
+                if ($diff > 0) {
+                    $duration = $diff;
+                }
+            }
+
+            $ad->update([
+                'start_date' => now(),
+                'end_date'   => now()->addDays($duration),
+                'status'     => 'active',
+            ]);
+            $count++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "تم إعادة نشر {$count} إعلان بنجاح! 🎉",
+            'data' => [
+                'reposted_count' => $count
+            ]
+        ]);
+    }
+
     /**
      * Process simulated payment for a featured ad via API.
      */
@@ -599,5 +663,32 @@ class AdController extends Controller
             'success' => true,
             'message' => 'تم تمييز الإعلانات المحددة بنجاح! 🚀'
         ]);
+    }
+
+    /**
+     * Safely parse a date string from the request into a specific format for database insertion.
+     */
+    private function parseSafeDate($dateString, $format = 'Y-m-d')
+    {
+        if (empty($dateString)) {
+            return null;
+        }
+
+        try {
+            // First, try standard parsing
+            return \Carbon\Carbon::parse($dateString)->format($format);
+        } catch (\Exception $e) {
+            // If standard parsing fails, try specific common formats
+            $formats = ['d-m-Y', 'd/m/Y', 'Y-m-d', 'Y/m/d', 'd-m-Y H:i:s', 'd/m/Y H:i:s', 'Y-m-d H:i:s'];
+            foreach ($formats as $f) {
+                try {
+                    return \Carbon\Carbon::createFromFormat($f, $dateString)->format($format);
+                } catch (\Exception $ex) {
+                    continue;
+                }
+            }
+        }
+
+        return null;
     }
 }

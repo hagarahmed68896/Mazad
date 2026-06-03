@@ -126,7 +126,7 @@ class AuthController extends Controller
             'email' => 'required|email|unique:users,email',
             'phone' => ['required', 'regex:/^5[0-9]{8}$/', 'unique:users,phone'],
             'password' => 'required|string|min:8',
-            'account_type' => 'required|in:individual,company',
+            'account_type' => 'required|in:individual,company,partner',
             'terms' => 'required|accepted',
             'company_name' => 'required_if:account_type,company|string|max:255',
             'commercial_register' => 'required_if:account_type,company|string|max:255',
@@ -496,16 +496,18 @@ class AuthController extends Controller
             'bank_account_number' => ['nullable', 'string', 'regex:/^[0-9]{10,20}$/'],
             'bank_iban' => ['nullable', 'string', 'regex:/^SA[0-9]{22}$/'],
             'bank_address' => 'nullable|string|max:500',
+            'bank_swift_code' => ['nullable', 'string', 'regex:/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/'],
         ], [
             'bank_account_number.regex' => 'رقم الحساب يجب أن يحتوي على أرقام فقط وبطول بين 10 و 20 رقماً.',
             'bank_iban.regex' => 'رقم الآيبان غير صحيح. يجب أن يبدأ بـ SA ويليه 22 رقماً.',
+            'bank_swift_code.regex' => 'السويفت كود (Swift Code) غير صحيح. يجب أن يتكون من 8 أو 11 حرفاً ورقماً بالصيغة الصحيحة.',
         ]);
 
         if ($validator->fails()) {
             return $this->apiResponse(false, 'فشل التحقق من البيانات', $validator->errors(), 422);
         }
 
-        $user->update($request->only(['bank_name', 'bank_account_name', 'bank_account_number', 'bank_iban', 'bank_address']));
+        $user->update($request->only(['bank_name', 'bank_account_name', 'bank_account_number', 'bank_iban', 'bank_address', 'bank_swift_code']));
 
         return $this->apiResponse(true, 'تم تحديث البيانات البنكية بنجاح', [
             'bank_name' => $user->bank_name,
@@ -513,6 +515,7 @@ class AuthController extends Controller
             'bank_account_number' => $user->bank_account_number,
             'bank_iban' => $user->bank_iban,
             'bank_address' => $user->bank_address,
+            'bank_swift_code' => $user->bank_swift_code,
         ]);
     }
 

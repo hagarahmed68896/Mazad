@@ -70,6 +70,10 @@
             showAuthModal();
             return;
         }
+        @if(auth()->check() && auth()->user()->account_type === 'partner')
+            window.location.href = "{{ route('ads.create') }}";
+            return;
+        @endif
         document.getElementById('addAdModal').style.display = 'flex';
     }
 

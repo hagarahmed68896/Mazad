@@ -1819,6 +1819,8 @@ ul {
     gap: 0.75rem;
     font-size: 0.875rem;
     font-weight: 600;
+    font-family: 'Courier New', Courier, monospace;
+    font-variant-numeric: tabular-nums;
 }
 
 .p-card-body {
@@ -3078,4 +3080,154 @@ ul {
     transform: translateY(-2px);
     box-shadow: 0 6px 15px rgba(180, 140, 69, 0.3);
     color: white !important;
+}
+
+/* ==========================================================================
+   Premium Responsive Mobile Navbar Overrides (Fixes overlaps, wraps, overflows)
+   ========================================================================== */
+@media (max-width: 991px) {
+    /* Hide the huge desktop location picker from the main navbar */
+    .lg-location {
+        display: none !important;
+    }
+    
+    /* Ensure the mobile location picker row is visible, clean, and centered */
+    .mobile-location-row {
+        display: block !important;
+        background: #F8FAFC;
+        border-bottom: 1px solid #E2E8F0;
+        padding: 0.65rem 1.25rem !important;
+    }
+    
+    .mobile-location-row .location-picker {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        font-weight: 700;
+        color: #475569;
+        font-size: 0.85rem;
+    }
+
+    /* Standard container margins to prevent wrapping */
+    .navbar .container {
+        padding: 0.5rem 1.25rem !important;
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        gap: 0 !important;
+    }
+
+    /* Visual parts structure */
+    .nav-right-visual {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.75rem !important;
+    }
+
+    .burger-btn {
+        font-size: 1.35rem !important;
+        padding: 0.25rem !important;
+        margin: 0 !important;
+    }
+
+    .logo {
+        font-size: 1.5rem !important;
+        font-weight: 900 !important;
+    }
+
+    .nav-center-visual {
+        display: none !important;
+    }
+
+    .nav-left-visual {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+    }
+
+    /* Sleek compact Circular Add Ad button on Mobile */
+    .add-ad-btn {
+        display: flex !important;
+        width: 38px !important;
+        height: 38px !important;
+        padding: 0 !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 50% !important;
+        font-size: 0 !important; /* Hide Arabic text */
+        color: transparent !important;
+        min-width: 0 !important;
+        box-shadow: 0 4px 10px rgba(26, 115, 232, 0.25) !important;
+        position: relative !important;
+    }
+
+    .add-ad-btn::before {
+        content: "\f067" !important; /* FontAwesome plus icon */
+        font-family: "Font Awesome 6 Free" !important;
+        font-weight: 900 !important;
+        font-size: 1.1rem !important;
+        color: white !important;
+        display: inline-block !important;
+        line-height: 1 !important;
+    }
+
+    /* Auth actions compact row */
+    .auth-actions {
+        gap: 0.5rem !important;
+    }
+
+    .guest-actions {
+        gap: 0.5rem !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .guest-actions .btn-outline {
+        padding: 0.5rem 0.85rem !important;
+        font-size: 0.8rem !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        white-space: nowrap !important;
+    }
+
+    .nav-icons {
+        gap: 0.25rem !important;
+    }
+
+    .nav-icon-link {
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 1.1rem !important;
+        border-radius: 10px !important;
+        background: #F8FAFC !important;
+        border: 1px solid #E2E8F0 !important;
+    }
+
+    .user-profile {
+        padding: 0.25rem !important;
+        gap: 0 !important;
+    }
+
+    .user-avatar {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 0.9rem !important;
+        border: 2px solid white !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
+    }
+
+    /* Badges */
+    .nav-badge {
+        top: -3px !important;
+        right: -3px !important;
+        width: 16px !important;
+        height: 16px !important;
+        font-size: 0.6rem !important;
+        border-width: 1.5px !important;
+    }
 }

@@ -72,6 +72,11 @@ class OrderController extends Controller
         // Mark ad as finished so no one else can buy it
         $ad->update(['status' => 'finished']);
 
+        // Remove item from buyer's cart if it exists
+        \App\Models\Cart::where('user_id', Auth::id())
+            ->where('ad_id', $ad->id)
+            ->delete();
+
         return back()->with('success', 'تم تقديم طلب الشراء بنجاح! رقم الطلب: #' . $order->order_number . '. سيتم التواصل معك قريباً لإتمام الدفع.');
     }
 

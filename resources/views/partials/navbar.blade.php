@@ -64,11 +64,13 @@
                 <div class="auth-actions" style="display: flex; align-items: center; gap: 1.25rem;">
                     <!-- Icons section -->
                     <div class="nav-icons" style="display: flex; align-items: center; gap: 0.2rem;">
+                        @if(Auth::user()->account_type !== 'partner')
                         <a href="{{ route('cart.index') }}" class="nav-icon-link" id="cartBtn">
                             <i class="fa-solid fa-cart-shopping"></i>
                             @php $cartCount = Auth::user()->cartItems->count(); @endphp
                             <span class="nav-badge" id="cartCount" style="display: {{ $cartCount > 0 ? 'flex' : 'none' }}">{{ $cartCount }}</span>
                         </a>
+                        @endif
                         <a href="{{ route('chats.index') }}" class="nav-icon-link">
                             <i class="fa-regular fa-comment-dots"></i>
                             @php $unreadMessages = Auth::user()->unreadMessagesCount(); @endphp

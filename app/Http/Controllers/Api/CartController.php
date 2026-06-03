@@ -140,7 +140,14 @@ class CartController extends Controller
         $totalAmount = 0;
 
         foreach ($cartItems as $item) {
-            $shippingPrice = $item->ad->shipping_price ?? 0;
+            $ad = $item->ad;
+
+            // Skip own ads or finished ads
+            if ($ad->user_id === Auth::id() || $ad->status === 'finished') {
+                continue;
+            }
+
+            $shippingPrice = $ad->shipping_price ?? 0;
             $finalPrice = ($item->price * $item->quantity) + $shippingPrice;
             $totalAmount += $finalPrice;
 
@@ -148,10 +155,20 @@ class CartController extends Controller
                 'order_number' => 'ORD-' . strtoupper(\Illuminate\Support\Str::random(8)),
                 'ad_id' => $item->ad_id,
                 'buyer_id' => Auth::id(),
-                'seller_id' => $item->ad->user_id,
+                'seller_id' => $ad->user_id,
                 'final_price' => $finalPrice,
-                'status' => 'pending' // Or 'paid' depending on logic
+                'status' => 'pending_payment' // Or 'paid' depending on logic
             ]);
+
+            // Update ad quantity and status
+            if ($ad->quantity > $item->quantity) {
+                $ad->decrement('quantity', $item->quantity);
+            } else {
+                $ad->update([
+                    'quantity' => 0,
+                    'status' => 'finished'
+                ]);
+            }
         }
 
         // Create transaction

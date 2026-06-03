@@ -108,10 +108,12 @@
                 $is_favorited = Auth::check() && Auth::user()->favorites()->where('ad_id', $ad->id)->exists();
             @endphp
             <div class="hidden md:flex gap-3">
+                @if(!Auth::check() || Auth::user()->account_type !== 'partner')
                 <button onclick="requireAuth(() => toggleGlobalWishlist(event, {{ $ad->id }}))" class="bg-white border border-gray-100 px-6 py-3 rounded-2xl text-sm font-bold text-gray-700 flex items-center gap-2 hover:bg-gray-50 transition-all shadow-sm">
                     <i class="{{ $is_favorited ? 'fa-solid' : 'fa-regular' }} fa-heart wishlist-icon-{{ $ad->id }}" style="{{ $is_favorited ? 'color: #EF4444 !important;' : '' }}"></i> 
                     <span class="wishlist-text-{{ $ad->id }}">{{ $is_favorited ? 'في المفضلة' : 'أضف إلى مفضلتي' }}</span>
                 </button>
+                @endif
                 <button onclick="shareAd()" class="bg-white border border-gray-100 px-6 py-3 rounded-2xl text-sm font-bold text-gray-700 flex items-center gap-2 hover:bg-gray-50 transition-all shadow-sm">
                     <i class="fa-solid fa-share-nodes text-primary"></i> مشاركة
                 </button>

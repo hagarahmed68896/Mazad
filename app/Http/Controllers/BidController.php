@@ -117,6 +117,7 @@ class BidController extends Controller
                     'max_limit' => $newMaxLimit,
                     'type' => 'bid',
                     'status' => 'active',
+                    'notify_near_limit' => (bool) request('notify_near_limit', false),
                 ]);
 
                 $ad->update([
@@ -150,6 +151,7 @@ class BidController extends Controller
                     'max_limit' => $newMaxLimit,
                     'type' => 'bid',
                     'status' => 'active',
+                    'notify_near_limit' => (bool) request('notify_near_limit', false),
                 ]);
 
                 $ad->update([
@@ -181,6 +183,7 @@ class BidController extends Controller
                 'max_limit' => $newMaxLimit,
                 'type' => 'bid',
                 'status' => 'outbid',
+                'notify_near_limit' => (bool) request('notify_near_limit', false),
             ]);
 
             // System auto-counters for existing leader
@@ -193,6 +196,7 @@ class BidController extends Controller
                 'is_auto' => true,
                 'type' => 'bid',
                 'status' => 'active',
+                'notify_near_limit' => (bool) ($currentTopBid->notify_near_limit ?? false),
             ]);
 
             $ad->update([
@@ -294,6 +298,7 @@ class BidController extends Controller
                 'amount' => $amount,
                 'type' => 'tender',
                 'status' => 'active',
+                'notify_near_limit' => (bool) request('notify_near_limit', false),
             ]);
             $ad->update([
                 'price' => $amount,
@@ -330,6 +335,7 @@ class BidController extends Controller
                 Bid::create([
                     'ad_id' => $ad->id, 'user_id' => $userId, 'amount' => $maxAllowed,
                     'min_limit' => $newMinLimit, 'type' => 'auto_tender', 'status' => 'active',
+                    'notify_near_limit' => (bool) request('notify_near_limit', false),
                 ]);
                 $ad->update(['price' => $maxAllowed, 'bids_count' => $ad->bids_count + 1]);
                 return ['outbid' => false, 'message' => 'أنت صاحب أقل عرض حالياً بمبلغ ' . number_format($maxAllowed), 'current_price' => $maxAllowed];
@@ -344,6 +350,7 @@ class BidController extends Controller
                 Bid::create([
                     'ad_id' => $ad->id, 'user_id' => $userId, 'amount' => $settledPrice,
                     'min_limit' => $newMinLimit, 'type' => 'auto_tender', 'status' => 'active',
+                    'notify_near_limit' => (bool) request('notify_near_limit', false),
                 ]);
                 $ad->update(['price' => $settledPrice, 'bids_count' => $ad->bids_count + 1]);
                 return ['outbid' => false, 'message' => 'تم قبول عرضك كأقل سعر حالياً: ' . number_format($settledPrice), 'current_price' => $settledPrice];
@@ -354,11 +361,13 @@ class BidController extends Controller
             Bid::create([
                 'ad_id' => $ad->id, 'user_id' => $userId, 'amount' => $maxAllowed,
                 'min_limit' => $newMinLimit, 'type' => 'auto_tender', 'status' => 'outbid',
+                'notify_near_limit' => (bool) request('notify_near_limit', false),
             ]);
             $currentTopTender->update(['status' => 'replaced']);
             Bid::create([
                 'ad_id' => $ad->id, 'user_id' => $currentTopTender->user_id, 'amount' => $autoPrice,
                 'min_limit' => $existingMinLimit, 'is_auto' => true, 'type' => 'auto_tender', 'status' => 'active',
+                'notify_near_limit' => (bool) ($currentTopTender->notify_near_limit ?? false),
             ]);
             $ad->update(['price' => $autoPrice, 'bids_count' => $ad->bids_count + 2]);
             return ['outbid' => true, 'message' => 'يوجد عرض منافس أقل من حدك الأدنى! السعر الحالي ' . number_format($autoPrice), 'current_price' => $autoPrice];
@@ -446,27 +455,63 @@ class BidController extends Controller
 
         $user = Auth::user();
         $tab = $request->get('tab', 'offers'); // 'offers' or 'auctions'
+        $role = $request->get('role', 'seller'); // 'seller' (received) or 'buyer' (submitted)
 
-        $query = Bid::whereHas('ad', function($q) use ($user, $tab, $request) {
-            $q->where('user_id', $user->id);
+        $query = Bid::query();
+
+        if ($role === 'buyer') {
+            $query->where('user_id', $user->id);
             if ($tab === 'offers') {
-                $q->where('type', 'direct_purchase');
+                $query->whereHas('ad', function($q) {
+                    $q->where('type', 'direct_purchase');
+                })->where('type', 'offer');
             } else {
-                if ($request->filled('type')) {
-                    if ($request->type === 'auction') {
-                        $q->whereIn('type', ['electronic_auction', 'hybrid_auction']);
-                    } else {
-                        $q->where('type', $request->type);
-                    }
-                } else {
+                $query->whereHas('ad', function($q) {
                     $q->whereIn('type', ['electronic_auction', 'hybrid_auction', 'tender']);
+                });
+                
+                if ($request->filled('type')) {
+                    $query->whereHas('ad', function($q) use ($request) {
+                        if ($request->type === 'auction') {
+                            $q->whereIn('type', ['electronic_auction', 'hybrid_auction']);
+                        } else {
+                            $q->where('type', $request->type);
+                        }
+                    });
                 }
 
                 if ($request->filled('is_enfaz')) {
-                    $q->where('is_enfaz', 1);
+                    $query->whereHas('ad', function($q) {
+                        $q->where('is_enfaz', 1);
+                    });
                 }
+                
+                $query->whereIn('type', ['bid', 'tender', 'auto_tender']);
             }
-        })->with(['ad.category', 'ad.city', 'user']);
+        } else {
+            $query->whereHas('ad', function($q) use ($user, $tab, $request) {
+                $q->where('user_id', $user->id);
+                if ($tab === 'offers') {
+                    $q->where('type', 'direct_purchase');
+                } else {
+                    if ($request->filled('type')) {
+                        if ($request->type === 'auction') {
+                            $q->whereIn('type', ['electronic_auction', 'hybrid_auction']);
+                        } else {
+                            $q->where('type', $request->type);
+                        }
+                    } else {
+                        $q->whereIn('type', ['electronic_auction', 'hybrid_auction', 'tender']);
+                    }
+
+                    if ($request->filled('is_enfaz')) {
+                        $q->where('is_enfaz', 1);
+                    }
+                }
+            });
+        }
+
+        $query->with(['ad.category', 'ad.city', 'ad.user', 'user']);
 
         // Filter: Status (all, accepted, rejected, active, upcoming)
         $status = $request->get('status', 'all');

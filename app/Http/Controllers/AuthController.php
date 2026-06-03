@@ -37,6 +37,12 @@ class AuthController extends Controller
         return view('auth.register-company');
     }
 
+    public function showRegisterPartnerForm()
+    {
+        $categories = \App\Models\Category::whereNull('parent_id')->get();
+        return view('auth.register-partner', compact('categories'));
+    }
+
     public function register(Request $request)
     {
         if ($request->has('phone')) {
@@ -70,15 +76,23 @@ class AuthController extends Controller
 
         $validated = $request->validate($rules);
 
+        $accountType = 'individual';
+        if ($request->input('account_type') === 'partner') {
+            $accountType = 'partner';
+        } elseif ($request->has('company_name')) {
+            $accountType = 'company';
+        }
+
         $user = User::create([
             'name' => $validated['name'],
             'phone' => $validated['phone'],
             'email' => $validated['email'],
             'password' => bcrypt($validated['password']),
-            'type' => $request->has('company_name') ? 'company' : 'individual',
+            'account_type' => $accountType,
             'company_name' => $validated['company_name'] ?? null,
             'cr_number' => $validated['cr_number'] ?? null,
         ]);
+
 
         session()->put('pending_user_id', $user->id);
         session(['is_registering' => true]);
@@ -158,7 +172,7 @@ class AuthController extends Controller
                 Auth::login($user, $remember);
                 $request->session()->regenerate();
 
-                if (session('is_registering')) {
+                if (session('is_registering') && $user->account_type !== 'partner') {
                     session(['show_interests' => true]);
                 }
                 session()->forget('is_registering');
@@ -288,5 +302,91 @@ class AuthController extends Controller
     {
         session()->forget('show_interests');
         return response()->json(['success' => true]);
+    }
+    public function saveServices(Request $request)
+    {
+        $request->validate([
+            'services' => 'required|array',
+            'services.*' => 'string|in:خدمة الفحص,خدمة الشحن,خدمة الشراء',
+        ]);
+
+        foreach ($request->services as $serviceTitle) {
+            $exists = \App\Models\Service::where('user_id', Auth::id())
+                ->where('title', $serviceTitle)
+                ->exists();
+
+            if (!$exists) {
+                $categoryId = 4; // Default "الخدمات"
+                if ($serviceTitle === 'خدمة الفحص') {
+                    $categoryId = 1; // "السيارات"
+                }
+
+                \App\Models\Service::create([
+                    'user_id' => Auth::id(),
+                    'category_id' => $categoryId,
+                    'title' => $serviceTitle,
+                    'description' => 'خدمة احترافية مقدمة من الشريك كجزء من منصة مزاد.',
+                    'price' => 0.00,
+                ]);
+            }
+        }
+
+        return redirect()->route('home')->with('success', 'تم تفعيل وتحديد خدمات الشريك بنجاح! 🎉');
+    }
+
+    public function showPartnerInterestsForm()
+    {
+        $categories = \App\Models\Category::whereNull('parent_id')->get();
+        return view('auth.register-partner-interests', compact('categories'));
+    }
+
+    public function savePartnerInterests(Request $request)
+    {
+        $request->validate([
+            'category_ids' => 'required|array',
+            'category_ids.*' => 'exists:categories,id',
+        ]);
+
+        $user = Auth::user();
+        $user->interests()->sync($request->category_ids);
+
+        return redirect()->route('register.partner.services');
+    }
+
+    public function showPartnerServicesForm()
+    {
+        return view('auth.register-partner-services');
+    }
+
+    public function savePartnerServices(Request $request)
+    {
+        $request->validate([
+            'services' => 'required|array',
+            'services.*' => 'string|in:خدمة الفحص,خدمة الشحن,خدمة الشراء',
+        ]);
+
+        $user = Auth::user();
+
+        // Delete old services to avoid duplication
+        \App\Models\Service::where('user_id', $user->id)->delete();
+
+        // Save selected services
+        foreach ($request->services as $serviceTitle) {
+            $categoryId = 4; // Default "الخدمات"
+            if ($serviceTitle === 'خدمة الفحص') {
+                $categoryId = 1; // "السيارات"
+            }
+
+            \App\Models\Service::create([
+                'user_id' => $user->id,
+                'category_id' => $categoryId,
+                'title' => $serviceTitle,
+                'description' => 'خدمة احترافية مقدمة من الشريك كجزء من منصة مزاد.',
+                'price' => 0.00,
+            ]);
+        }
+
+        session()->forget('show_interests');
+        return redirect()->route('home')->with('success', 'تم تفعيل وتحديد خدمات الشريك بنجاح! 🎉');
     }
 }

@@ -40,6 +40,7 @@ Route::post('/update-location', [LocationController::class, 'updateLocation']);
 Route::get('/faqs', [\App\Http\Controllers\Api\SupportController::class, 'faqs']);
 Route::get('/privacy-policy', [\App\Http\Controllers\Api\SupportController::class, 'privacy']);
 Route::get('/terms-conditions', [\App\Http\Controllers\Api\SupportController::class, 'terms']);
+Route::get('/contact-info', [\App\Http\Controllers\Api\SupportController::class, 'contactInfo']);
 Route::post('/contact-us', [\App\Http\Controllers\Api\SupportController::class, 'storeTicket']);
 
 // Protected Routes
@@ -73,6 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/ads/{id}', [\App\Http\Controllers\Api\AdController::class, 'destroy']);
     Route::post('/ads/{id}/delete', [\App\Http\Controllers\Api\AdController::class, 'destroy']);
     Route::post('/ads/{id}/repost', [\App\Http\Controllers\Api\AdController::class, 'repost']);
+    Route::post('/ads/repost/bulk', [\App\Http\Controllers\Api\AdController::class, 'repostBulk']);
 
     // Bidding
     Route::post('/ads/{id}/bids', [BidController::class, 'store']);
@@ -106,7 +108,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/cart', [\App\Http\Controllers\Api\CartController::class, 'index']);
     Route::post('/cart/add', [\App\Http\Controllers\Api\CartController::class, 'store']);
     Route::patch('/cart/update/{id}', [\App\Http\Controllers\Api\CartController::class, 'update']);
-    Route::delete('/cart/remove/{id}', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
+    Route::match(['delete', 'post'], '/cart/remove/{id}', [\App\Http\Controllers\Api\CartController::class, 'destroy']);
     Route::post('/cart/clear', [\App\Http\Controllers\Api\CartController::class, 'clear']);
     Route::post('/cart/checkout', [\App\Http\Controllers\Api\CartController::class, 'checkout']);
 
@@ -130,6 +132,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'store']);
     Route::post('/reviews/{id}/reply', [\App\Http\Controllers\Api\ReviewController::class, 'reply']);
     Route::post('/reviews/{id}/toggle-visibility', [\App\Http\Controllers\Api\ReviewController::class, 'toggleVisibility']);
+    Route::get('/my-reviews', [\App\Http\Controllers\Api\ReviewController::class, 'myReviews']);
     // Inquiries Route
     Route::get('/my-inquiries', [\App\Http\Controllers\Api\SupportController::class, 'myInquiries']);
 

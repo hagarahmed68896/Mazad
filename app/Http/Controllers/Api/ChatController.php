@@ -24,14 +24,46 @@ class ChatController extends Controller
             ->get()
             ->map(function($conv) use ($user) {
                 $otherUser = $conv->user_one_id == $user->id ? $conv->userTwo : $conv->userOne;
+                
+                $slimOtherUser = $otherUser ? [
+                    'id' => $otherUser->id,
+                    'name' => $otherUser->name,
+                    'avatar' => $otherUser->avatar ? asset($otherUser->avatar) : null,
+                    'account_type' => $otherUser->account_type,
+                    'company_name' => $otherUser->company_name,
+                ] : null;
+
+                $lastMsg = $conv->messages->first();
+                $slimLastMessage = $lastMsg ? [
+                    'id' => $lastMsg->id,
+                    'content' => $lastMsg->content,
+                    'is_read' => (int) $lastMsg->is_read,
+                    'type' => $lastMsg->type,
+                    'attachment' => $lastMsg->attachment ? asset($lastMsg->attachment) : null,
+                    'created_at' => $lastMsg->created_at,
+                ] : null;
+
+                $slimAd = $conv->ad ? [
+                    'id' => $conv->ad->id,
+                    'title' => $conv->ad->title,
+                    'price' => (float) $conv->ad->price,
+                    'image' => $conv->ad->image ? asset($conv->ad->image) : null,
+                ] : null;
+
+                $iBlockedThem = $otherUser ? \App\Models\BlockedUser::where('user_id', $user->id)->where('blocked_user_id', $otherUser->id)->exists() : false;
+                $theyBlockedMe = $otherUser ? \App\Models\BlockedUser::where('user_id', $otherUser->id)->where('blocked_user_id', $user->id)->exists() : false;
+
                 return [
                     'id' => $conv->id,
-                    'other_user' => $otherUser,
-                    'last_message' => $conv->messages->first(),
-                    'ad' => $conv->ad,
+                    'other_user' => $slimOtherUser,
+                    'last_message' => $slimLastMessage,
+                    'ad' => $slimAd,
                     'unread_count' => $conv->messages()->where('is_read', false)->where('sender_id', '!=', $user->id)->count(),
                     'is_pinned' => ($conv->user_one_id == $user->id ? $conv->user_one_pinned : $conv->user_two_pinned) == 1,
                     'is_muted' => ($conv->user_one_id == $user->id ? $conv->user_one_muted : $conv->user_two_muted) == 1,
+                    'is_blocked' => $iBlockedThem || $theyBlockedMe,
+                    'i_blocked_them' => $iBlockedThem,
+                    'they_blocked_me' => $theyBlockedMe,
                 ];
             });
 
@@ -55,9 +87,51 @@ class ChatController extends Controller
             ->where('sender_id', '!=', $user->id)
             ->update(['is_read' => true]);
 
+        $otherUser = $conversation->user_one_id == $user->id ? $conversation->userTwo : $conversation->userOne;
+        
+        $slimOtherUser = $otherUser ? [
+            'id' => $otherUser->id,
+            'name' => $otherUser->name,
+            'avatar' => $otherUser->avatar ? asset($otherUser->avatar) : null,
+            'account_type' => $otherUser->account_type,
+            'company_name' => $otherUser->company_name,
+        ] : null;
+
+        $slimAd = $conversation->ad ? [
+            'id' => $conversation->ad->id,
+            'title' => $conversation->ad->title,
+            'price' => (float) $conversation->ad->price,
+            'image' => $conversation->ad->image ? asset($conversation->ad->image) : null,
+        ] : null;
+
+        $slimMessages = $conversation->messages->map(function($msg) {
+            return [
+                'id' => $msg->id,
+                'sender_id' => $msg->sender_id,
+                'sender_name' => $msg->sender->name ?? '',
+                'sender_avatar' => ($msg->sender && $msg->sender->avatar) ? asset($msg->sender->avatar) : null,
+                'content' => $msg->content,
+                'attachment' => $msg->attachment ? asset($msg->attachment) : null,
+                'type' => $msg->type,
+                'is_read' => (int) $msg->is_read,
+                'created_at' => $msg->created_at,
+            ];
+        });
+
+        $iBlockedThem = $otherUser ? \App\Models\BlockedUser::where('user_id', $user->id)->where('blocked_user_id', $otherUser->id)->exists() : false;
+        $theyBlockedMe = $otherUser ? \App\Models\BlockedUser::where('user_id', $otherUser->id)->where('blocked_user_id', $user->id)->exists() : false;
+
         return response()->json([
             'success' => true,
-            'data' => $conversation
+            'data' => [
+                'id' => $conversation->id,
+                'other_user' => $slimOtherUser,
+                'ad' => $slimAd,
+                'messages' => $slimMessages,
+                'is_blocked' => $iBlockedThem || $theyBlockedMe,
+                'i_blocked_them' => $iBlockedThem,
+                'they_blocked_me' => $theyBlockedMe,
+            ]
         ]);
     }
 
@@ -108,6 +182,15 @@ class ChatController extends Controller
         ]);
 
         $conversation->update(['last_message_at' => now()]);
+
+        // Load the sender relation to make sure it is populated in the broadcast payload
+        $message->load('sender');
+
+        try {
+            broadcast(new \App\Events\MessageSent($message))->toOthers();
+        } catch (\Exception $e) {
+            // Log or ignore broadcasting errors to prevent blocking the message save response
+        }
 
         return response()->json([
             'success' => true,

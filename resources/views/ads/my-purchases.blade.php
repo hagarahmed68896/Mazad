@@ -408,6 +408,8 @@
         display: flex;
         align-items: center;
         gap: 0.4rem;
+        font-family: 'Courier New', Courier, monospace;
+        font-variant-numeric: tabular-nums;
     }
 
     .p-card-body {

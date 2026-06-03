@@ -408,6 +408,8 @@
         display: flex;
         align-items: center;
         gap: 0.4rem;
+        font-family: 'Courier New', Courier, monospace;
+        font-variant-numeric: tabular-nums;
     }
 
     .p-card-body {
@@ -1058,17 +1060,24 @@
                                             @endif
                                         @else
                                             <div style="display: flex; gap: 0.5rem; width: 100%;">
-                                                <a href="{{ route('ads.edit', $ad->id) }}" class="btn btn-p-outline" style="flex: 1; border-color: #1A73E8; color: #1A73E8; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 40px; font-weight: bold;">
-                                                    <i class="fa-solid fa-pen-to-square"></i>
-                                                    <span>تعديل</span>
-                                                </a>
-                                                <form action="{{ route('ads.repost', $ad->id) }}" method="POST" style="flex: 1; display: flex;">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-p-primary" style="width: 100%; background-color: #1A73E8; border-color: #1A73E8; color: white; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 40px; cursor: pointer; text-decoration: none; font-weight: bold;">
-                                                        <i class="fa-solid fa-rotate text-sm"></i>
-                                                        <span>إعادة البيع</span>
-                                                    </button>
-                                                </form>
+                                                @if($ad->status == 'finished')
+                                                    <a href="{{ route('ads.edit', $ad->id) }}" class="btn btn-p-outline" style="flex: 1; border-color: #1A73E8; color: #1A73E8; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 40px; font-weight: bold;">
+                                                        <i class="fa-solid fa-pen-to-square"></i>
+                                                        <span>تعديل</span>
+                                                    </a>
+                                                    <form action="{{ route('ads.repost', $ad->id) }}" method="POST" style="flex: 1; display: flex;">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-p-primary" style="width: 100%; background-color: #1A73E8; border-color: #1A73E8; color: white; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 40px; cursor: pointer; text-decoration: none; font-weight: bold;">
+                                                            <i class="fa-solid fa-rotate text-sm"></i>
+                                                            <span>إعادة البيع</span>
+                                                        </button>
+                                                    </form>
+                                                @else
+                                                    <a href="{{ route('ads.edit', $ad->id) }}" class="btn btn-p-outline" style="width: 100%; border-color: #1A73E8; color: #1A73E8; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 40px; font-weight: bold;">
+                                                        <i class="fa-solid fa-pen-to-square"></i>
+                                                        <span>تعديل</span>
+                                                    </a>
+                                                @endif
                                             </div>
                                         @endif
                                     </div>

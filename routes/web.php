@@ -5,6 +5,8 @@ use App\Http\Controllers\AuthController;
 
 Route::get('/', [\App\Http\Controllers\HomeController::class, 'index'])->name('home');
 Route::get('/search', [\App\Http\Controllers\HomeController::class, 'search'])->name('search');
+Route::get('/categories', [\App\Http\Controllers\HomeController::class, 'showAllCategories'])->name('categories.all');
+Route::get('/categories/{id}', [\App\Http\Controllers\HomeController::class, 'showCategoryAds'])->name('categories.show');
 
 // Ad Creation
 Route::middleware('auth')->group(function() {
@@ -108,6 +110,10 @@ Route::middleware('auth')->group(function() {
     Route::put('/settings/team/{id}', [\App\Http\Controllers\TeamController::class, 'update'])->name('team.update');
 });
 
+
+// Overriding default broadcasting auth route to support API/Sanctum authentication for mobile clients without CSRF
+Route::post('/broadcasting/auth', [\Illuminate\Broadcasting\BroadcastController::class, 'authenticate'])
+    ->middleware(['api', 'auth:sanctum']);
 
 // Support and Policies Pages
 Route::get('/faqs', [\App\Http\Controllers\SupportController::class, 'faqs'])->name('faqs');
@@ -560,3 +566,4 @@ Route::get('/seed-sales-data', function() {
             <p>الآن يمكنك استعراض الصفحات، تجربة الفلترة، التنقل بين التبويبات، والتبديل بين الشبكة والقائمة بأريحية كاملة.</p>
             <p><a href='" . route('sales.my') . "'>اضغط هنا للذهاب لصفحة مبيعاتي لمشاهدة البيانات الغنية</a></p>";
 });
+

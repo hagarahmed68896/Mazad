@@ -43,7 +43,7 @@
         </div>
 
         <div style="text-align: center;">
-            <p style="font-size: 0.85rem; color: #94A3B8;">بنشرك للإعلان، أنت توافق على <a href="#" style="color: #1A73E8; font-weight: 700; text-decoration: none;">شروط وأحكام</a> المنصة.</p>
+            <p style="font-size: 0.85rem; color: #94A3B8;">بنشرك للإعلان، أنت توافق على <a href="{{ route('terms') }}" target="_blank" style="color: #1A73E8; font-weight: 700; text-decoration: none;">شروط وأحكام</a> المنصة.</p>
         </div>
     </div>
 </div>

@@ -10,27 +10,45 @@ use Illuminate\Support\Facades\Auth;
 class ReviewController extends Controller
 {
     /**
-     * Rate/Review a user.
+     * Rate/Review a user or an ad.
      */
     public function store(Request $request)
     {
         $request->validate([
-            'rated_user_id' => 'required|exists:users,id',
+            'ad_id' => 'nullable|exists:ads,id',
+            'rated_user_id' => 'required_without:ad_id|exists:users,id',
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string|max:1000',
         ]);
 
-        // Prevent rating oneself
-        if ((int) $request->rated_user_id === auth('sanctum')->id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'لا يمكنك تقييم نفسك.'
-            ], 400);
+        $adId = $request->ad_id;
+        $ratedUserId = $request->rated_user_id;
+
+        if ($adId) {
+            $ad = \App\Models\Ad::findOrFail($adId);
+            $ratedUserId = $ad->user_id;
+
+            // Prevent rating own ad
+            if ($ad->user_id === auth('sanctum')->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكنك تقييم إعلانك الخاص.'
+                ], 400);
+            }
+        } else {
+            // Prevent rating oneself
+            if ((int) $ratedUserId === auth('sanctum')->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكنك تقييم نفسك.'
+                ], 400);
+            }
         }
 
         $review = Review::create([
             'reviewer_id' => auth('sanctum')->id(),
-            'rated_user_id' => $request->rated_user_id,
+            'rated_user_id' => $ratedUserId,
+            'ad_id' => $adId,
             'rating' => $request->rating,
             'comment' => $request->comment,
             'status' => $request->rating >= 4 ? 'positive' : 'negative',
@@ -115,6 +133,130 @@ class ReviewController extends Controller
             'success' => true,
             'message' => 'تم جلب التقييمات بنجاح.',
             'data' => $this->formatPagination($reviews)
+        ]);
+    }
+
+    /**
+     * Get reviews and rating breakdown for a specific user ID.
+     */
+    public function userReviews(Request $request, $id)
+    {
+        $user = \App\Models\User::findOrFail($id);
+
+        // Calculate distribution and average based on all visible reviews
+        $allReviews = Review::where('rated_user_id', $user->id)
+            ->where('is_visible', true)
+            ->get();
+
+        $totalReviews = $allReviews->count();
+        $avgRating = $totalReviews > 0 ? round($allReviews->avg('rating'), 1) : 0.0;
+
+        $ratingDistribution = [];
+        for ($i = 5; $i >= 1; $i--) {
+            $count = $allReviews->where('rating', $i)->count();
+            $percentage = $totalReviews > 0 ? round(($count / $totalReviews) * 100) : 0;
+            $ratingDistribution[] = [
+                'rating' => $i,
+                'count' => $count,
+                'percentage' => $percentage
+            ];
+        }
+
+        // Fetch paginated reviews
+        $reviews = Review::with('reviewer:id,name,avatar')
+            ->where('rated_user_id', $user->id)
+            ->where('is_visible', true)
+            ->latest()
+            ->paginate(10);
+
+        // Add human-readable timestamps and clean avatar URLs
+        $reviews->getCollection()->transform(function ($review) {
+            return [
+                'id' => $review->id,
+                'rating' => $review->rating,
+                'comment' => $review->comment,
+                'reply' => $review->reply,
+                'created_at' => $review->created_at,
+                'created_at_human' => $review->created_at ? $review->created_at->diffForHumans() : null,
+                'reviewer' => $review->reviewer ? [
+                    'id' => $review->reviewer->id,
+                    'name' => $review->reviewer->name,
+                    'avatar_url' => $review->reviewer->avatar ? (\Illuminate\Support\Str::startsWith($review->reviewer->avatar, 'http') ? $review->reviewer->avatar : url('/' . ltrim($review->reviewer->avatar, '/'))) : null,
+                ] : null
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب التقييمات بنجاح.',
+            'data' => [
+                'average_rating' => $avgRating,
+                'total_reviews' => $totalReviews,
+                'rating_distribution' => $ratingDistribution,
+                'reviews_info' => $this->formatPagination($reviews)
+            ]
+        ]);
+    }
+
+    /**
+     * Get reviews and rating breakdown for a specific ad ID.
+     */
+    public function adReviews(Request $request, $id)
+    {
+        $ad = \App\Models\Ad::findOrFail($id);
+
+        // Calculate distribution and average based on all visible reviews for this ad
+        $allReviews = Review::where('ad_id', $ad->id)
+            ->where('is_visible', true)
+            ->get();
+
+        $totalReviews = $allReviews->count();
+        $avgRating = $totalReviews > 0 ? round($allReviews->avg('rating'), 1) : 0.0;
+
+        $ratingDistribution = [];
+        for ($i = 5; $i >= 1; $i--) {
+            $count = $allReviews->where('rating', $i)->count();
+            $percentage = $totalReviews > 0 ? round(($count / $totalReviews) * 100) : 0;
+            $ratingDistribution[] = [
+                'rating' => $i,
+                'count' => $count,
+                'percentage' => $percentage
+            ];
+        }
+
+        // Fetch paginated reviews
+        $reviews = Review::with('reviewer:id,name,avatar')
+            ->where('ad_id', $ad->id)
+            ->where('is_visible', true)
+            ->latest()
+            ->paginate(10);
+
+        // Add human-readable timestamps and clean avatar URLs
+        $reviews->getCollection()->transform(function ($review) {
+            return [
+                'id' => $review->id,
+                'rating' => $review->rating,
+                'comment' => $review->comment,
+                'reply' => $review->reply,
+                'created_at' => $review->created_at,
+                'created_at_human' => $review->created_at ? $review->created_at->diffForHumans() : null,
+                'reviewer' => $review->reviewer ? [
+                    'id' => $review->reviewer->id,
+                    'name' => $review->reviewer->name,
+                    'avatar_url' => $review->reviewer->avatar ? (\Illuminate\Support\Str::startsWith($review->reviewer->avatar, 'http') ? $review->reviewer->avatar : url('/' . ltrim($review->reviewer->avatar, '/'))) : null,
+                ] : null
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم جلب تقييمات الإعلان بنجاح.',
+            'data' => [
+                'average_rating' => $avgRating,
+                'total_reviews' => $totalReviews,
+                'rating_distribution' => $ratingDistribution,
+                'reviews_info' => $this->formatPagination($reviews)
+            ]
         ]);
     }
 }

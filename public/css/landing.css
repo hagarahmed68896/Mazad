@@ -555,6 +555,75 @@ ul {
     display: block;
 }
 
+/* Dropdown Notification Action Buttons */
+.notification-item {
+    position: relative;
+}
+.notif-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    opacity: 0.5;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    margin-right: auto; /* Push to the opposite end (left) in RTL */
+    align-self: center;
+}
+.notification-item:hover .notif-actions {
+    opacity: 1;
+}
+.notif-action-btn {
+    background: none;
+    border: none;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #64748B;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    width: 28px;
+    height: 28px;
+}
+.notif-action-btn:hover {
+    background-color: #E2E8F0;
+}
+.notif-action-btn.mark-read-btn:hover {
+    color: var(--primary-color, #1A73E8);
+    background-color: #EBF4FF;
+}
+.notif-action-btn.delete-btn:hover {
+    color: #EF4444;
+    background-color: #FEF2F2;
+}
+
+/* Collapse/Expand states for dropdown notification body */
+.notification-item .notif-content p,
+.notification-item .notif-content .notif-time {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    margin: 0;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, margin 0.3s ease;
+}
+
+.notification-item.expanded .notif-content p {
+    max-height: 200px;
+    opacity: 1;
+    margin-top: 0.5rem;
+}
+
+.notification-item.expanded .notif-content .notif-time {
+    max-height: 50px;
+    opacity: 1;
+    margin-top: 0.5rem;
+}
+
+.notification-item.expanded .notif-chevron {
+    transform: rotate(180deg);
+}
+
 .empty-notifications,
 .empty-cart-container {
     padding: 4rem 2rem;
@@ -1104,7 +1173,6 @@ ul {
     justify-content: center;
     align-items: center;
     z-index: 5;
-    transform: rotate(10deg);
 }
 
 .hero-image img {
@@ -1246,6 +1314,8 @@ ul {
 .categories-carousel {
     overflow: hidden;
     flex: 1;
+    position: relative;
+    z-index: 5;
 }
 
 .category-track {
@@ -1263,6 +1333,9 @@ ul {
     align-items: center;
     gap: 1.5rem;
     transition: all 0.3s;
+    position: relative;
+    z-index: 6;
+    cursor: pointer;
 }
 
 .discovery-categories .category-icon {
@@ -1568,6 +1641,8 @@ ul {
 
     .p-ad-card {
         flex: 0 0 280px;
+        height: auto !important;
+        min-height: 460px !important;
         border-radius: 1.5rem;
     }
 
@@ -1577,6 +1652,54 @@ ul {
 
     .p-ad-title {
         font-size: 1.1rem;
+        height: 3.1rem;
+        margin-bottom: 1rem;
+    }
+
+    .p-card-footer .btn {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+        border-radius: 10px;
+    }
+
+    /* Carousel overlay arrows for mobile to maximize visible track width */
+    .ads-carousel-outer,
+    .categories-carousel-container {
+        display: block !important;
+        position: relative !important;
+        padding: 0 !important;
+    }
+
+    .ads-track {
+        width: 100% !important;
+        min-height: 500px !important;
+        padding-bottom: 1.5rem !important;
+    }
+
+    .categories-carousel {
+        width: 100% !important;
+    }
+
+    .carousel-arrow {
+        position: absolute !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        background: rgba(255, 255, 255, 0.75) !important;
+        backdrop-filter: blur(4px) !important;
+        -webkit-backdrop-filter: blur(4px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        z-index: 20 !important;
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+    .carousel-arrow.next {
+        right: 0px !important;
+    }
+
+    .carousel-arrow.prev {
+        left: 0px !important;
     }
 
     .section {
@@ -1843,6 +1966,11 @@ ul {
     font-weight: 800;
     color: #1E293B;
     margin-bottom: 1.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 3.4rem;
 }
 
 .p-price-row {
@@ -2702,6 +2830,16 @@ ul {
     .search-page-header .page-title {
         font-size: 1.8rem;
     }
+
+    /* List View Responsive Override */
+    .ads-results-grid.list-view .p-ad-card {
+        flex-direction: column;
+        height: auto;
+    }
+    .ads-results-grid.list-view .p-card-image {
+        width: 100%;
+        height: 200px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -3230,4 +3368,48 @@ ul {
         font-size: 0.6rem !important;
         border-width: 1.5px !important;
     }
+}
+
+/* Scrollable sidebar filter card across all views */
+.filter-card {
+    max-height: calc(100vh - 150px) !important;
+    overflow-y: auto !important;
+    scrollbar-width: thin !important; /* Firefox standard */
+}
+
+/* On desktop, make the filter card sticky to the page viewport as you scroll */
+@media (min-width: 992px) {
+    .filter-card {
+        position: sticky !important;
+        top: 130px !important;
+    }
+}
+
+/* Make filter header sticky inside the scrollable card */
+.filter-header {
+    position: sticky !important;
+    top: 0 !important;
+    background: inherit !important;
+    z-index: 10 !important;
+    margin: -1.5rem -1.5rem 1.5rem -1.5rem !important;
+    padding: 1.5rem 1.5rem 1rem 1.5rem !important;
+    border-top-left-radius: inherit !important;
+    border-top-right-radius: inherit !important;
+    border-bottom: 1.5px solid #E2E8F0 !important;
+}
+
+/* Custom scrollbar for filter card for webkit browsers */
+.filter-card::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+}
+.filter-card::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+.filter-card::-webkit-scrollbar-thumb {
+    background: #CBD5E1 !important;
+    border-radius: 10px !important;
+}
+.filter-card::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8 !important;
 }

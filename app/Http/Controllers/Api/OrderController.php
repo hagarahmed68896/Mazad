@@ -57,8 +57,8 @@ class OrderController extends Controller
         }
 
         // Calculate fees
-        $admin_fees = (float) (Setting::where('key', 'admin_fees')->first()->value ?? 19);
-        $transfer_fees = (float) (Setting::where('key', 'transfer_fees')->first()->value ?? 500);
+        $admin_fees = (float) (Setting::where('key', 'admin_fees')->value('value') ?? 19);
+        $transfer_fees = (float) (Setting::where('key', 'transfer_fees')->value('value') ?? 500);
         
         $total_price = $ad->price + $admin_fees + $transfer_fees;
 

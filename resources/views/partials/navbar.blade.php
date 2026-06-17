@@ -83,7 +83,7 @@
                                 <i class="fa-regular fa-bell"></i>
                                 @php $unreadCount = Auth::user()->unreadNotifications->count(); @endphp
                                 @if($unreadCount > 0)
-                                    <span class="nav-badge">{{ $unreadCount }}</span>
+                                    <span class="nav-badge notif-badge" id="unreadNotifBadge">{{ $unreadCount }}</span>
                                 @endif
                             </a>
                             <!-- Notification Dropdown -->
@@ -92,17 +92,30 @@
                                     <h3>التنبيهات</h3>
                                 </div>
                                 <div class="notif-body">
-                                    @forelse(Auth::user()->notifications as $notification)
-                                        <a href="#" class="notification-item {{ !$notification->read_at ? 'unread' : '' }}">
+                                    @forelse(Auth::user()->notifications()->latest()->get() as $notification)
+                                        <div class="notification-item {{ !$notification->read_at ? 'unread' : '' }}" id="dropdown-notif-{{ $notification->id }}" onclick="toggleDropdownNotifExpand(this)">
                                             <div class="notif-avatar">
                                                 <i class="fa-regular fa-bell"></i>
                                             </div>
-                                            <div class="notif-content">
-                                                <h4>{{ $notification->title ?? 'تنبيه جديد' }}</h4>
+                                            <div class="notif-content" style="flex: 1; min-width: 0;">
+                                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;">
+                                                    <h4 style="margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">{{ $notification->title ?? 'تنبيه جديد' }}</h4>
+                                                    <i class="fa-solid fa-chevron-down notif-chevron" style="font-size: 0.75rem; color: #94A3B8; transition: transform 0.2s ease; margin-left: 8px;"></i>
+                                                </div>
                                                 <p>{{ $notification->content ?? 'لديك إشعار جديد' }}</p>
                                                 <span class="notif-time">{{ $notification->created_at->diffForHumans() }}</span>
                                             </div>
-                                        </a>
+                                            <div class="notif-actions">
+                                                @if(!$notification->read_at)
+                                                    <button class="notif-action-btn mark-read-btn" onclick="markDropdownNotifRead(event, '{{ $notification->id }}')" title="تحديد كمقروء">
+                                                        <i class="fa-regular fa-check-circle"></i>
+                                                    </button>
+                                                @endif
+                                                <button class="notif-action-btn delete-btn" onclick="deleteDropdownNotif(event, '{{ $notification->id }}')" title="حذف الإشعار">
+                                                    <i class="fa-regular fa-trash-can"></i>
+                                                </button>
+                                            </div>
+                                        </div>
                                     @empty
                                         <div class="empty-notifications">
                                             <i class="fa-regular fa-bell" style="font-size: 3rem; color: #E2E8F0;"></i>
@@ -150,3 +163,152 @@
         </div>
     </div>
 </nav>
+
+@push('scripts')
+<script>
+    async function markDropdownNotifRead(event, id) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        try {
+            const response = await fetch(`/notifications/${id}/mark-read`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                // Update UI: remove unread class
+                const item = document.getElementById(`dropdown-notif-${id}`);
+                if (item && item.classList.contains('unread')) {
+                    item.classList.remove('unread');
+                    updateDropdownBadgeCount(-1);
+                }
+                
+                // Remove the mark-as-read button
+                const markBtn = item.querySelector('.mark-read-btn');
+                if (markBtn) markBtn.remove();
+
+                // Also update the index page card if it exists on screen
+                const indexCard = document.getElementById(`notif-${id}`);
+                if (indexCard && indexCard.classList.contains('unread')) {
+                    indexCard.classList.remove('unread');
+                    const indexMarkBtn = indexCard.querySelector('.action-item:not(.delete)');
+                    if (indexMarkBtn) indexMarkBtn.remove();
+                }
+            }
+        } catch (error) {
+            console.error('Error marking notification as read:', error);
+        }
+    }
+
+    async function deleteDropdownNotif(event, id) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        try {
+            const response = await fetch(`/notifications/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const item = document.getElementById(`dropdown-notif-${id}`);
+                if (item) {
+                    const wasUnread = item.classList.contains('unread');
+                    
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateX(20px)';
+                    
+                    if (wasUnread) {
+                        updateDropdownBadgeCount(-1);
+                    }
+
+                    setTimeout(() => {
+                        item.remove();
+                        // If no notifications left in dropdown, show empty message
+                        const body = document.querySelector('.notification-dropdown .notif-body');
+                        if (body && body.querySelectorAll('.notification-item').length === 0) {
+                            body.innerHTML = `
+                                <div class="empty-notifications">
+                                    <i class="fa-regular fa-bell" style="font-size: 3rem; color: #E2E8F0;"></i>
+                                    <p>لا توجد تنبيهات حالياً</p>
+                                </div>
+                            `;
+                        }
+                    }, 300);
+                }
+
+                // Also update the index page card if it exists on screen
+                const indexCard = document.getElementById(`notif-${id}`);
+                if (indexCard) {
+                    indexCard.style.opacity = '0';
+                    indexCard.style.transform = 'translateX(20px)';
+                    setTimeout(() => {
+                        indexCard.remove();
+                        if (document.querySelectorAll('.notif-card-item').length === 0) {
+                            location.reload();
+                        }
+                    }, 300);
+                }
+            }
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+        }
+    }
+
+    function updateDropdownBadgeCount(change) {
+        const badge = document.getElementById('unreadNotifBadge');
+        if (badge) {
+            let currentCount = parseInt(badge.textContent) || 0;
+            let newCount = currentCount + change;
+            
+            if (newCount <= 0) {
+                badge.style.display = 'none';
+                badge.textContent = '0';
+            } else {
+                badge.style.display = 'flex';
+                badge.textContent = newCount;
+            }
+        }
+    }
+
+    function toggleDropdownNotifExpand(element) {
+        element.classList.toggle('expanded');
+    }
+</script>
+@endpush
+
+<style>
+    /* Collapse/Expand states for dropdown notification body */
+    .notification-dropdown .notification-item .notif-content p,
+    .notification-dropdown .notification-item .notif-content .notif-time {
+        max-height: 0 !important;
+        opacity: 0 !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, margin 0.3s ease;
+    }
+
+    .notification-dropdown .notification-item.expanded .notif-content p {
+        max-height: 200px !important;
+        opacity: 1 !important;
+        margin-top: 0.5rem !important;
+    }
+
+    .notification-dropdown .notification-item.expanded .notif-content .notif-time {
+        max-height: 50px !important;
+        opacity: 1 !important;
+        margin-top: 0.5rem !important;
+    }
+
+    .notification-dropdown .notification-item.expanded .notif-chevron {
+        transform: rotate(180deg) !important;
+    }
+</style>

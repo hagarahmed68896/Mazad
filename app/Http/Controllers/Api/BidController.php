@@ -366,31 +366,37 @@ class BidController extends Controller
     public function myBidsOffers(Request $request)
     {
         $user = Auth::user();
-        $tab = $request->get('tab', 'offers'); // 'offers' or 'auctions'
-        $role = $request->get('role', 'seller'); // 'seller' (received) or 'buyer' (submitted)
+        $tab = $request->get('tab', 'all'); // 'offers', 'auctions', or 'all'
+        $role = $request->get('role', 'all'); // 'seller' (received), 'buyer' (submitted), or 'all'
 
         $query = Bid::query();
 
+        // Filter by Role
         if ($role === 'buyer') {
             $query->where('user_id', $user->id);
-            if ($tab === 'offers') {
-                $query->whereHas('ad', function($q) {
-                    $q->where('type', 'direct_purchase');
-                })->where('type', 'offer');
-            } else {
-                $query->whereHas('ad', function($q) {
-                    $q->whereIn('type', ['electronic_auction', 'hybrid_auction', 'tender']);
-                })->whereIn('type', ['bid', 'tender', 'auto_tender']);
-            }
-        } else {
-            $query->whereHas('ad', function($q) use ($user, $tab) {
+        } elseif ($role === 'seller') {
+            $query->whereHas('ad', function($q) use ($user) {
                 $q->where('user_id', $user->id);
-                if ($tab === 'offers') {
-                    $q->where('type', 'direct_purchase');
-                } else {
-                    $q->whereIn('type', ['electronic_auction', 'hybrid_auction', 'tender']);
-                }
             });
+        } else {
+            // 'all' - User is either the buyer or the seller
+            $query->where(function($q) use ($user) {
+                $q->where('user_id', $user->id)
+                  ->orWhereHas('ad', function($aq) use ($user) {
+                      $aq->where('user_id', $user->id);
+                  });
+            });
+        }
+
+        // Filter by Tab (if not 'all')
+        if ($tab === 'offers') {
+            $query->whereHas('ad', function($q) {
+                $q->where('type', 'direct_purchase');
+            })->where('type', 'offer');
+        } elseif ($tab === 'auctions') {
+            $query->whereHas('ad', function($q) {
+                $q->whereIn('type', ['electronic_auction', 'hybrid_auction', 'tender']);
+            })->whereIn('type', ['bid', 'tender', 'auto_tender']);
         }
 
         $query->with(['ad.category', 'ad.city', 'ad.user', 'user']);
@@ -444,9 +450,20 @@ class BidController extends Controller
 
         $bids = $query->paginate($request->get('per_page', 10));
 
+        $bids->getCollection()->each(function ($bid) {
+            $bid->append('role');
+        });
+
+        $message = 'قائمة المزايدات والعروض المشتركة';
+        if ($role === 'buyer') {
+            $message = 'قائمة المزايدات والعروض المرسلة';
+        } elseif ($role === 'seller') {
+            $message = 'قائمة المزايدات والعروض الواردة';
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'قائمة المزايدات والعروض الواردة',
+            'message' => $message,
             'data' => $this->formatPagination($bids)
         ]);
     }

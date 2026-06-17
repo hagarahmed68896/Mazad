@@ -3,7 +3,53 @@
 @section('title', 'إضافة خصائص')
 
 @section('content')
-<div class="container-fluid mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl" x-data="propertiesBuilder()">
+<!-- Delete Confirmation Modal -->
+<div x-data="{ show: false, targetIndex: null }"
+     x-on:open-delete-modal.window="show = true; targetIndex = $event.detail.index"
+     x-show="show"
+     x-cloak
+     class="fixed inset-0 z-50 flex items-center justify-center"
+     style="display:none">
+
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="show = false"></div>
+
+    <!-- Modal Box -->
+    <div class="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm mx-4 text-center"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 scale-100"
+         x-transition:leave-end="opacity-0 scale-95">
+
+        <!-- Icon -->
+        <div class="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mx-auto mb-4">
+            <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+        </div>
+
+        <h3 class="text-lg font-black text-[#1C1C1C] mb-2">حذف الخاصية</h3>
+        <p class="text-sm text-slate-500 font-medium mb-6">هل أنت متأكد من حذف هذه الخاصية؟<br>لا يمكن التراجع عن هذا الإجراء.</p>
+
+        <div class="flex gap-3 justify-center" dir="rtl">
+            <button type="button"
+                    @click="show = false"
+                    class="flex-1 px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-black hover:bg-slate-200 transition-all">
+                إلغاء
+            </button>
+            <button type="button"
+                    @click="$dispatch('confirm-delete', { index: targetIndex }); show = false"
+                    class="flex-1 px-5 py-2.5 bg-red-500 text-white rounded-xl text-sm font-black hover:bg-red-600 transition-all">
+                نعم، احذف
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl" x-data="propertiesBuilder()" x-on:confirm-delete.window="removeProperty($event.detail.index)">
 
     <!-- Header -->
     <div class="flex items-center gap-4 mb-8">
@@ -78,7 +124,7 @@
                             <span class="text-sm font-black text-[#1C1C1C]" x-text="prop.label || 'عنوان حقل الادخال'"></span>
 
                             <!-- Trash -->
-                            <button type="button" @click.stop="removeProperty(index)"
+                            <button type="button" @click.stop="$dispatch('open-delete-modal', { index: index })"
                                     class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-all">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -147,6 +193,10 @@
                                         <label class="flex items-center gap-3 cursor-pointer">
                                             <input type="radio" :name="`properties[${index}][input_type]`" value="radio" x-model="prop.input_type" @change="openType = false" class="w-4 h-4 text-[#1A73E8] border-slate-300 focus:ring-[#1A73E8]">
                                             <span class="text-sm font-bold text-[#1C1C1C]">اختيار واحد</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="radio" :name="`properties[${index}][input_type]`" value="select" x-model="prop.input_type" @change="openType = false" class="w-4 h-4 text-[#1A73E8] border-slate-300 focus:ring-[#1A73E8]">
+                                            <span class="text-sm font-bold text-[#1C1C1C]">قائمة منسدلة</span>
                                         </label>
                                         <label class="flex items-center gap-3 cursor-pointer">
                                             <input type="radio" :name="`properties[${index}][input_type]`" value="checkbox" x-model="prop.input_type" @change="openType = false" class="w-4 h-4 text-[#1A73E8] border-slate-300 focus:ring-[#1A73E8]">
@@ -219,6 +269,7 @@
                                     إلغاء
                                 </button>
                                 <button type="button"
+                                        @click="if (prop.label.trim()) { prop.isExpanded = false; } else { $el.closest('.rounded-2xl').querySelector('input[required]').reportValidity(); }"
                                         class="px-8 py-2.5 bg-[#1A73E8] text-white rounded-xl text-sm font-black hover:bg-blue-700 transition-all">
                                     حفظ
                                 </button>
@@ -281,6 +332,7 @@
                     'number': 'الأرقام',
                     'price': 'الأسعار',
                     'radio': 'اختيار واحد',
+                    'select': 'قائمة منسدلة',
                     'checkbox': 'اختيار متعدد',
                     'date': 'التواريخ والأوقات',
                     'file': 'الملفات والصور',

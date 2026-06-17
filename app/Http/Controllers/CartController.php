@@ -103,8 +103,8 @@ class CartController extends Controller
         }
 
         // Calculate admin fees etc (similar to OrderController)
-        $admin_fees = (float) (\App\Models\Setting::where('key', 'admin_fees')->first()->value ?? 19);
-        $transfer_fees = (float) (\App\Models\Setting::where('key', 'transfer_fees')->first()->value ?? 500);
+        $admin_fees = (float) (\App\Models\Setting::where('key', 'admin_fees')->value('value') ?? 19);
+        $transfer_fees = (float) (\App\Models\Setting::where('key', 'transfer_fees')->value('value') ?? 500);
 
         // We can split/apportion fees across orders or just charge them on the checkout.
         // Let's create orders for each ad in the cart.

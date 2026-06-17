@@ -20,6 +20,19 @@
             @php
                 $is_favorited = Auth::check() && Auth::user()->favorites()->where('ad_id', $ad->id)->exists();
                 $is_look_later = Auth::check() && Auth::user()->lookLaters()->where('ad_id', $ad->id)->exists();
+
+                // Global Price & Fee Calculations (Safe lookup to prevent 500 errors)
+                $comm_rate = (float) (\App\Models\Setting::where('key', 'commission_rate')->value('value') ?? 2.5);
+                if($comm_rate > 50) $comm_rate = 2.5; 
+                
+                $vat_rate = 15; 
+                $admin_fees = (float) (\App\Models\Setting::where('key', 'admin_fees')->value('value') ?? 19);
+                $transfer_fees = (float) (\App\Models\Setting::where('key', 'transfer_fees')->value('value') ?? 500);
+
+                $saai_val = $ad->price * ($comm_rate / 100);
+                $vat_val = $saai_val * ($vat_rate / 100);
+                $total_price = $ad->price + $saai_val + $vat_val + $admin_fees + $transfer_fees;
+                $total_purchase_price = $ad->price + $admin_fees + $transfer_fees;
             @endphp
             <div class="flex gap-2">
                 @if((!Auth::check() || Auth::id() != $ad->user_id) && (!Auth::check() || Auth::user()->account_type !== 'partner'))
@@ -756,19 +769,6 @@
                                         }
                                     }
 
-                                    // Price Calculations
-                                    $comm_setting = \App\Models\Setting::where('key', 'commission_rate')->first();
-                                    $comm_rate = (float) ($comm_setting ? $comm_setting->value : 2.5);
-                                    if($comm_rate > 50) $comm_rate = 2.5; 
-                                    
-                                    $vat_rate = 15; 
-                                    $admin_fees = (float) (\App\Models\Setting::where('key', 'admin_fees')->first()->value ?? 19);
-                                    $transfer_fees = (float) (\App\Models\Setting::where('key', 'transfer_fees')->first()->value ?? 500);
-
-                                    $saai_val = $ad->price * ($comm_rate / 100);
-                                    $vat_val = $saai_val * ($vat_rate / 100);
-                                    $total_price = $ad->price + $saai_val + $vat_val + $admin_fees + $transfer_fees;
-                                    $total_purchase_price = $ad->price + $admin_fees + $transfer_fees;
                                 @endphp
 
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
@@ -1484,7 +1484,41 @@
             </div>
         </div>
 
+            @if($services && $services->count() > 0)
+            <!-- Suggested Services Section -->
+            <div class="mt-32 mb-20">
+                <div class="flex items-center justify-between mb-12">
+                    <div class="flex items-center gap-4">
+                        <span class="w-2 h-10 bg-primary rounded-full"></span>
+                        <h2 class="text-3xl md:text-4xl font-black text-gray-900">خدمات مقترحة لهذا المنتج</h2>
+                    </div>
+                    <a href="{{ route('ads.services', $ad->id) }}" class="text-primary font-black flex items-center gap-2 hover:gap-4 transition-all">
+                        عرض الكل <i class="fa-solid fa-arrow-left"></i>
+                    </a>
+                </div>
 
+                <!-- Swiped Container -->
+                <div class="relative group">
+                    <div id="servicesSlider" class="flex gap-6 overflow-x-auto no-scrollbar scroll-smooth pb-8">
+                        @foreach($services as $service)
+                            <div class="min-w-[280px] md:min-w-[320px] lg:min-w-[350px] flex-shrink-0">
+                                @include('partials.service-card', ['service' => $service])
+                            </div>
+                        @endforeach
+                    </div>
+                    
+                    <!-- Navigation -->
+                    <button onclick="document.getElementById('servicesSlider').scrollLeft += 400" class="absolute -right-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white shadow-xl rounded-full hidden lg:flex items-center justify-center text-gray-400 hover:text-primary hover:scale-110 transition-all z-10 border border-gray-100">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                    <button onclick="document.getElementById('servicesSlider').scrollLeft -= 400" class="absolute -left-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white shadow-xl rounded-full hidden lg:flex items-center justify-center text-gray-400 hover:text-primary hover:scale-110 transition-all z-10 border border-gray-100">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                </div>
+            </div>
+            @endif
+
+            @if($relatedAds && $relatedAds->count() > 0)
             <!-- You May Also Like Section -->
             <div class="mt-32 mb-20">
                 <div class="flex items-center justify-between mb-12">
@@ -1516,6 +1550,7 @@
                     </button>
                 </div>
             </div>
+            @endif
         </div> <!-- End Main Content Container -->
     </div> <!-- End Page -->
 

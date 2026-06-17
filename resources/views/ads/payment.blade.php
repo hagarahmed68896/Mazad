@@ -178,8 +178,8 @@
     <footer class="custom-login-footer">
         <div class="container flex flex-col md:flex-row justify-between items-center text-white/80 font-bold text-sm">
             <div class="flex gap-8 mb-4 md:mb-0">
-                <a href="#" class="hover:text-white transition-colors">سياسة الخصوصية</a>
-                <a href="#" class="hover:text-white transition-colors">الشروط و الاحكام</a>
+                <a href="{{ route('privacy') }}" class="hover:text-white transition-colors">سياسة الخصوصية</a>
+                <a href="{{ route('terms') }}" class="hover:text-white transition-colors">الشروط و الاحكام</a>
             </div>
             <div dir="ltr">
                 {{ $settings['copyright'] ?? '©2025 copyright' }}

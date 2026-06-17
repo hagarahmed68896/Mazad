@@ -25,6 +25,14 @@ class AdController extends Controller
             ], 404);
         }
 
+        // Filter questions: ad owner sees all, others only see visible questions or their own
+        $currentUser = auth('sanctum')->user();
+        if (!$currentUser || $currentUser->id !== $ad->user_id) {
+            $ad->setRelation('questions', $ad->questions->filter(function ($q) use ($currentUser) {
+                return $q->is_visible || ($currentUser && $q->user_id === $currentUser->id);
+            })->values());
+        }
+
         // Draft privacy check: If the ad is incomplete, only the owner can view it
         $currentUser = auth('sanctum')->user();
         if ($ad->status === 'incomplete' && (!$currentUser || $currentUser->id !== $ad->user_id)) {
@@ -246,6 +254,9 @@ class AdController extends Controller
                         $file->move(public_path('uploads/ads/properties'), $filename);
                         $value = 'uploads/ads/properties/' . $filename;
                     }
+                    if (is_array($value)) {
+                        $value = implode(', ', array_filter($value, fn($v) => $v !== null && $v !== ''));
+                    }
                     if ($value !== null && $value !== '') {
                         if (\App\Models\Property::where('id', $propertyId)->exists()) {
                             AdProperty::create(['ad_id' => $ad->id, 'property_id' => $propertyId, 'value' => $value]);
@@ -396,6 +407,9 @@ class AdController extends Controller
                         $filename = time() . '_edit_prop_' . $propertyId . '.' . $file->getClientOriginalExtension();
                         $file->move(public_path('uploads/ads/properties'), $filename);
                         $value = 'uploads/ads/properties/' . $filename;
+                    }
+                    if (is_array($value)) {
+                        $value = implode(', ', array_filter($value, fn($v) => $v !== null && $v !== ''));
                     }
                     if ($value !== null && $value !== '') {
                         if (\App\Models\Property::where('id', $propertyId)->exists()) {

@@ -135,7 +135,7 @@
                                 <div class="interest-item" onclick="toggleInterest(this)">
                                     <input type="checkbox" name="category_ids[]" value="{{ $category->id }}" style="display: none;" onchange="updateStep1Button()">
                                     <div class="interest-icon" style="height: 60px; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
-                                        <img src="{{ $category->image ? (Str::startsWith($category->image, 'uploads/') ? asset($category->image) : asset('uploads/' . $category->image)) : 'https://mazad-admin.com/uploads/categories/placeholder.png' }}" alt="{{ $category->name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                        <img src="{{ $category->image }}" alt="{{ $category->name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
                                     </div>
                                     <span style="font-size: 0.85rem; font-weight: 800; color: #475569;">{{ $category->name }}</span>
                                     <div class="check-badge" style="position: absolute; top: 0.5rem; left: 0.5rem; color: #1A73E8; opacity: 0; transition: opacity 0.2s;">

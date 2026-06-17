@@ -370,6 +370,61 @@
             icon.classList.add('text-gray-400');
         }
 
+        function appendMessage(data) {
+            const container = document.getElementById('messagesContainer');
+            if (!container) return;
+
+            const msg = data.message;
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex justify-start flex-row-reverse gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300`;
+
+            let attachmentHtml = '';
+            if (msg.attachment) {
+                const ext = msg.attachment.split('.').pop().toLowerCase();
+                const assetUrl = `/${msg.attachment}`;
+                const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+
+                if (isImage) {
+                    attachmentHtml = `
+                        <div class="mb-2">
+                            <a href="${assetUrl}" target="_blank">
+                                <img src="${assetUrl}" class="rounded-xl max-w-full h-auto shadow-sm hover:opacity-90 transition-all mb-2">
+                            </a>
+                        </div>`;
+                } else {
+                    const baseName = msg.attachment.split('/').pop();
+                    attachmentHtml = `
+                        <div class="mb-2">
+                            <a href="${assetUrl}" target="_blank" class="flex items-center gap-3 p-3 bg-white/20 rounded-xl hover:opacity-80 transition-all mb-2">
+                                <i class="fa-solid fa-file-lines text-xl"></i>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-[10px] opacity-70 mb-0.5">مرفق</div>
+                                    <div class="text-xs truncate">${baseName}</div>
+                                </div>
+                                <i class="fa-solid fa-download text-xs opacity-50"></i>
+                            </a>
+                        </div>`;
+                }
+            }
+
+            messageDiv.innerHTML = `
+                <img src="${data.sender_avatar}" class="w-10 h-10 rounded-full shrink-0 shadow-sm border border-gray-100">
+                <div class="max-w-[70%]">
+                    <div class="flex items-center gap-2 mb-1 flex-row-reverse">
+                        <span class="text-xs font-black text-gray-900">أنت</span>
+                        <span class="text-[10px] text-gray-400 font-bold">${data.time} م</span>
+                    </div>
+                    <div class="p-4 rounded-2xl font-bold text-sm leading-relaxed bg-primary text-white rounded-tl-none">
+                        ${attachmentHtml}
+                        ${msg.content || ''}
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
         if (form) {
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -399,7 +454,27 @@
                 })
                 .then(data => {
                     if (data.success) {
-                        location.reload();
+                        appendMessage(data);
+                        input.value = '';
+                        clearAttachment();
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalHtml;
+
+                        // Update sidebar preview dynamically
+                        @if(isset($activeConversation))
+                        const activeItem = document.querySelector('a[href*="id={{ $activeConversation->id }}"]');
+                        if (activeItem) {
+                            const textEl = activeItem.querySelector('p.text-xs');
+                            if (textEl) {
+                                textEl.textContent = `أنت: ${data.message.content || 'مرفق'}`;
+                                textEl.className = 'text-xs text-gray-500 truncate opacity-70';
+                            }
+                            const timeEl = activeItem.querySelector('span.text-\\[10px\\]');
+                            if (timeEl) {
+                                timeEl.textContent = data.time;
+                            }
+                        }
+                        @endif
                     } else {
                         throw new Error(data.message || 'فشل الإرسال');
                     }

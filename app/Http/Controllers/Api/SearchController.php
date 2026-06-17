@@ -17,22 +17,52 @@ class SearchController extends Controller
         $query = Ad::with(['category', 'user', 'city']);
 
         // 1. Keywords (Title, Description, Category Name, City Name)
-        if ($request->has('q') && !empty($request->q)) {
-            $query->where(function($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->q . '%')
-                  ->orWhere('description', 'like', '%' . $request->q . '%')
-                  ->orWhereHas('category', function($cq) use ($request) {
-                      $cq->where('name', 'like', '%' . $request->q . '%');
-                  })
-                  ->orWhereHas('city', function($cq) use ($request) {
-                      $cq->where('name', 'like', '%' . $request->q . '%');
-                  });
+        $q = $request->get('q') ?: ($request->get('search') ?: ($request->get('keyword') ?: $request->get('query')));
+        if (!empty($q)) {
+            // تسجيل الكلمة في الكاش ديناميكياً بدون قاعدة بيانات
+            $cleanQ = trim($q);
+            if (mb_strlen($cleanQ) >= 2) {
+                // Global search trends (all users)
+                $searchTrends = \Illuminate\Support\Facades\Cache::get('search_trends', []);
+                $searchTrends[$cleanQ] = ($searchTrends[$cleanQ] ?? 0) + 1;
+                arsort($searchTrends);
+                $searchTrends = array_slice($searchTrends, 0, 30, true);
+                \Illuminate\Support\Facades\Cache::put('search_trends', $searchTrends, now()->addDays(30));
+
+                // Personal search history (authenticated user)
+                $user = auth('sanctum')->user();
+                if ($user) {
+                    $userId = $user->id;
+                    $historyKey = 'user_search_history_' . $userId;
+                    $userHistory = \Illuminate\Support\Facades\Cache::get($historyKey, []);
+                    if (($key = array_search($cleanQ, $userHistory)) !== false) {
+                        unset($userHistory[$key]);
+                    }
+                    array_unshift($userHistory, $cleanQ);
+                    $userHistory = array_slice($userHistory, 0, 10);
+                    \Illuminate\Support\Facades\Cache::put($historyKey, $userHistory, now()->addDays(30));
+                }
+            }
+
+            $query->where(function($query) use ($q) {
+                $query->where('title', 'like', '%' . $q . '%')
+                      ->orWhere('description', 'like', '%' . $q . '%')
+                      ->orWhereHas('category', function($cq) use ($q) {
+                          $cq->where('name', 'like', '%' . $q . '%');
+                      })
+                      ->orWhereHas('city', function($cq) use ($q) {
+                          $cq->where('name', 'like', '%' . $q . '%');
+                      });
             });
         }
 
         // 2. Category Filter
         if ($request->has('category_id') && !empty($request->category_id)) {
-            $query->where('category_id', $request->category_id);
+            $category = Category::with('subCategories')->find($request->category_id);
+            if ($category) {
+                $categoryIds = $category->subCategories->pluck('id')->push($category->id)->toArray();
+                $query->whereIn('category_id', $categoryIds);
+            }
         }
 
         // 3. City Filter
@@ -180,6 +210,22 @@ class SearchController extends Controller
             ['key' => 'hybrid_auction', 'label' => 'مزاد هجين'],
         ];
 
+        $userTypes = [
+            ['key' => 'individual', 'label' => 'فرد'],
+            ['key' => 'company', 'label' => 'شركة'],
+            ['key' => 'representative', 'label' => 'مندوب'],
+            ['key' => 'partner', 'label' => 'شريك'],
+        ];
+
+        $cachedTrends = \Illuminate\Support\Facades\Cache::get('search_trends', []);
+        $mostSearched = !empty($cachedTrends) ? array_keys(array_slice($cachedTrends, 0, 6)) : [];
+
+        $recentSearches = [];
+        $user = auth('sanctum')->user();
+        if ($user) {
+            $recentSearches = \Illuminate\Support\Facades\Cache::get('user_search_history_' . $user->id, []);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'فلاتر البحث المتاحة',
@@ -188,9 +234,25 @@ class SearchController extends Controller
                 'regions' => $regions,
                 'cities' => $cities,
                 'types' => $types,
+                'user_types' => $userTypes,
+                'most_searched' => $mostSearched,
+                'recent_searches' => $recentSearches,
                 'min_price' => $minPrice,
                 'max_price' => $maxPrice,
             ]
+        ]);
+    }
+
+    public function clearHistory()
+    {
+        $user = auth('sanctum')->user();
+        if ($user) {
+            \Illuminate\Support\Facades\Cache::forget('user_search_history_' . $user->id);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم مسح سجل البحث بنجاح'
         ]);
     }
 }

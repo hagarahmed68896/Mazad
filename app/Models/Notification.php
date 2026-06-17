@@ -28,8 +28,8 @@ class Notification extends Model
             // Load user relation if not already loaded
             $user = $notification->user;
             if ($user && $user->fcm_token) {
-                // Check if user has enabled notifications
-                if ($user->all_notifications) {
+                // Check if user has enabled notifications OR if it is a critical alert (security warning)
+                if ($user->all_notifications || $notification->type === 'alert') {
                     try {
                         // Prepare custom data depending on notification type to enable interactive buttons in the mobile UI
                         $customData = [

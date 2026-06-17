@@ -46,7 +46,7 @@
                         <div class="w-full h-full flex flex-col items-center justify-center space-y-4">
                             @if($category->image)
                                 <div class="relative flex flex-col items-center justify-center">
-                                    <img src="{{ asset($category->image) }}" 
+                                    <img src="{{ $category->image }}" 
                                          style="max-height: 140px; width: auto; display: block;" 
                                          class="rounded-xl shadow-sm border border-slate-100" alt="Existing Image">
                                     <button type="button" @click="document.getElementById('category_image').click()" 

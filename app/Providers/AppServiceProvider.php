@@ -25,5 +25,7 @@ class AppServiceProvider extends ServiceProvider
         view()->composer(['layouts.main', 'welcome', 'partials.interests-modal', 'partials.categories-bar', 'users.settings.profile'], function ($view) {
             $view->with('categories', \App\Models\Category::whereNull('parent_id')->get());
         });
+
+        require base_path('routes/channels.php');
     }
 }

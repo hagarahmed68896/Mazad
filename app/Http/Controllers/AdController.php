@@ -277,6 +277,9 @@ class AdController extends Controller
                         $file->move(public_path('uploads/ads/properties'), $filename);
                         $value = 'uploads/ads/properties/' . $filename;
                     }
+                    if (is_array($value)) {
+                        $value = implode(', ', array_filter($value, fn($v) => $v !== null && $v !== ''));
+                    }
                     if ($value !== null && $value !== '') {
                         if (\App\Models\Property::where('id', $propertyId)->exists()) {
                             AdProperty::create([
@@ -604,7 +607,9 @@ class AdController extends Controller
                         $file->move(public_path('uploads/ads/properties'), $filename);
                         $value = 'uploads/ads/properties/' . $filename;
                     }
-                    
+                    if (is_array($value)) {
+                        $value = implode(', ', array_filter($value, fn($v) => $v !== null && $v !== ''));
+                    }
                     if ($value !== null && $value !== '') {
                         if (\App\Models\Property::where('id', $propertyId)->exists()) {
                             AdProperty::updateOrCreate(
@@ -747,7 +752,8 @@ class AdController extends Controller
         $categories = \App\Models\Category::whereNull('parent_id')->with('subCategories')->get();
         
         if ($user->account_type === 'partner') {
-            return view('ads.partner-ads', compact('ads', 'status', 'cities', 'categories', 'activeCategory'));
+            $banners = \App\Models\Banner::where('status', true)->where('for_user_type', 'partner')->get();
+            return view('ads.partner-ads', compact('ads', 'status', 'cities', 'categories', 'activeCategory', 'banners'));
         }
         
         return view('ads.my-ads', compact('ads', 'status', 'cities', 'categories', 'activeCategory'));

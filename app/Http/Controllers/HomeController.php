@@ -30,7 +30,7 @@ class HomeController extends Controller
             })
             ->update(['status' => 'active']);
 
-        $banners = Banner::where('status', true)->get();
+        $banners = Banner::where('status', true)->where('for_user_type', 'normal')->get();
         $discoveryCategories = Category::whereNull('parent_id')->get();
         
         // Handle User Interests for personalization (Web)
@@ -194,6 +194,29 @@ class HomeController extends Controller
 
         // Keywords
         if ($request->has('q') && !empty($request->q)) {
+            $cleanQ = trim($request->q);
+            if (mb_strlen($cleanQ) >= 2) {
+                // Global search trends (all users)
+                $searchTrends = \Illuminate\Support\Facades\Cache::get('search_trends', []);
+                $searchTrends[$cleanQ] = ($searchTrends[$cleanQ] ?? 0) + 1;
+                arsort($searchTrends);
+                $searchTrends = array_slice($searchTrends, 0, 30, true);
+                \Illuminate\Support\Facades\Cache::put('search_trends', $searchTrends, now()->addDays(30));
+
+                // Personal search history (authenticated web user)
+                if (auth()->check()) {
+                    $userId = auth()->id();
+                    $historyKey = 'user_search_history_' . $userId;
+                    $userHistory = \Illuminate\Support\Facades\Cache::get($historyKey, []);
+                    if (($key = array_search($cleanQ, $userHistory)) !== false) {
+                        unset($userHistory[$key]);
+                    }
+                    array_unshift($userHistory, $cleanQ);
+                    $userHistory = array_slice($userHistory, 0, 10);
+                    \Illuminate\Support\Facades\Cache::put($historyKey, $userHistory, now()->addDays(30));
+                }
+            }
+
             $matchedCat = Category::where('name', 'like', '%' . $request->q . '%')->first();
             if ($matchedCat && !$request->has('category') && strlen($request->q) >= 3) {
                 $params = $request->all();
@@ -216,8 +239,11 @@ class HomeController extends Controller
         // Category
         $activeCategory = null;
         if ($request->has('category') && !empty($request->category)) {
-            $activeCategory = Category::with('properties')->find($request->category);
-            $query->where('category_id', $request->category);
+            $activeCategory = Category::with(['properties', 'subCategories'])->find($request->category);
+            if ($activeCategory) {
+                $categoryIds = $activeCategory->subCategories->pluck('id')->push($activeCategory->id)->toArray();
+                $query->whereIn('category_id', $categoryIds);
+            }
         }
 
         // Dynamic Properties Filter
@@ -334,10 +360,12 @@ class HomeController extends Controller
             ->limit(4)
             ->get();
 
+        $services = \App\Models\Service::where('category_id', $ad->category_id)->get();
+
         $categories = Category::whereNull('parent_id')->get();
         $settings = Setting::pluck('value', 'key')->toArray();
 
-        return view('ads.show', compact('ad', 'relatedAds', 'settings', 'categories'));
+        return view('ads.show', compact('ad', 'relatedAds', 'settings', 'categories', 'services'));
     }
 
     public function showGallery($id, $index = 0)
@@ -384,7 +412,7 @@ class HomeController extends Controller
         // Stats for the profile card
         $adsCount = $user->ads()->count();
         $soldCount = $user->sales()->where('status', 'delivered')->count();
-        $rating = $user->reviewsReceived()->avg('rating') ?: 5.0;
+        $rating = $user->reviewsReceived()->avg('rating') ?: 0.0;
         $reviewsCount = $user->reviewsReceived()->count();
 
         // Filtering ads for the Products tab
@@ -403,8 +431,11 @@ class HomeController extends Controller
         
         $activeCategory = null;
         if ($request->filled('category')) {
-            $activeCategory = Category::with('properties')->find($request->category);
-            $query->where('category_id', $request->category);
+            $activeCategory = Category::with(['properties', 'subCategories'])->find($request->category);
+            if ($activeCategory) {
+                $categoryIds = $activeCategory->subCategories->pluck('id')->push($activeCategory->id)->toArray();
+                $query->whereIn('category_id', $categoryIds);
+            }
         }
 
         // Dynamic Properties Filter
@@ -490,13 +521,13 @@ class HomeController extends Controller
             ->get();
 
         $totalReviews = $reviews->count();
-        $avgRating = $totalReviews > 0 ? round($reviews->avg('rating'), 1) : 4.8; // Fallback to 4.8 premium default if no reviews
+        $avgRating = $totalReviews > 0 ? round($reviews->avg('rating'), 1) : 0.0;
 
         // 2. Fetch rating distribution (5 down to 1 stars)
         $ratingDistribution = [];
         for ($i = 5; $i >= 1; $i--) {
             $count = $reviews->where('rating', $i)->count();
-            $percentage = $totalReviews > 0 ? round(($count / $totalReviews) * 100) : 20; // Default 20% distribution as visually pictured in placeholder
+            $percentage = $totalReviews > 0 ? round(($count / $totalReviews) * 100) : 0; // Default 20% distribution as visually pictured in placeholder
             $ratingDistribution[$i] = [
                 'count' => $count,
                 'percentage' => $percentage
@@ -558,5 +589,28 @@ class HomeController extends Controller
         $ad = $service;
 
         return view('ads.gallery', compact('ad', 'allImages', 'seller', 'categories', 'settings', 'startIndex'));
+    }
+
+    public function showAllCategories()
+    {
+        $categories = Category::whereNull('parent_id')->with('subCategories')->get();
+        $settings = Setting::pluck('value', 'key')->toArray();
+        return view('categories', compact('categories', 'settings'));
+    }
+
+    public function showCategoryAds(Request $request, $id)
+    {
+        if ($request->has('category')) {
+            $catId = $request->category;
+            if (empty($catId)) {
+                return redirect()->route('search', $request->except('category'));
+            }
+            if ($catId != $id) {
+                return redirect()->route('categories.show', array_merge(['id' => $catId], $request->except('category')));
+            }
+        }
+
+        $request->merge(['category' => $id]);
+        return $this->search($request);
     }
 }

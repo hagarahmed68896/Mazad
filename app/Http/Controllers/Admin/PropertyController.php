@@ -11,8 +11,17 @@ class PropertyController extends Controller
 {
     public function index(Category $category)
     {
-        $properties = $category->properties()->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
-        return view('admin.properties.index', compact('category', 'properties'));
+        // Properties NOT assigned to any page
+        $properties = $category->properties()
+            ->whereNull('category_page_id')
+            ->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
+
+        // Pages with their assigned properties
+        $pages = $category->pages()->with(['properties' => function($q) {
+            $q->orderBy('sort_order', 'asc')->orderBy('id', 'asc');
+        }])->get();
+
+        return view('admin.properties.index', compact('category', 'properties', 'pages'));
     }
 
     public function create(Category $category)
@@ -76,9 +85,14 @@ class PropertyController extends Controller
             'is_required'=> 'nullable|in:0,1',
         ]);
 
-        $options = null;
-        if ($request->options) {
-            $options = array_filter(array_map('trim', explode(',', $request->options)));
+        // If options were submitted as a comma-separated string, parse them.
+        // If the submitted string is empty, keep the existing options (user didn't touch them).
+        if ($request->filled('options')) {
+            $parsed = array_values(array_filter(array_map('trim', explode(',', $request->options))));
+            $options = !empty($parsed) ? $parsed : $property->options;
+        } else {
+            // options field missing or blank → preserve existing
+            $options = $property->options;
         }
 
         $property->update([
@@ -86,7 +100,7 @@ class PropertyController extends Controller
             'placeholder' => $request->placeholder,
             'help_text'   => $request->help_text,
             'input_type'  => $request->input_type,
-            'options'     => $options ?: null,
+            'options'     => $options,
             'is_required' => $request->boolean('is_required'),
         ]);
 

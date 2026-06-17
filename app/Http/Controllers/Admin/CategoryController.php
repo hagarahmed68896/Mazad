@@ -155,8 +155,16 @@ class CategoryController extends Controller
             $categoryData['ad_types'] = $request->has('ad_type') ? [$request->ad_type] : [];
             
             if ($request->hasFile('image')) {
-                if ($category->image && file_exists(public_path($category->image))) {
-                    unlink(public_path($category->image));
+                $rawImage = $category->getRawOriginal('image');
+                if ($rawImage) {
+                    if (\Illuminate\Support\Str::startsWith($rawImage, 'uploads/')) {
+                        $filePath = public_path($rawImage);
+                        if (file_exists($filePath)) {
+                            unlink($filePath);
+                        }
+                    } elseif (\Illuminate\Support\Str::startsWith($rawImage, 'categories/')) {
+                        \Illuminate\Support\Facades\Storage::disk('public')->delete($rawImage);
+                    }
                 }
                 $image = $request->file('image');
                 $filename = time() . '_' . $image->getClientOriginalName();
@@ -223,8 +231,16 @@ class CategoryController extends Controller
     public function destroy(Category $category)
     {
         try {
-            if ($category->image) {
-                Storage::disk('public')->delete($category->image);
+            $rawImage = $category->getRawOriginal('image');
+            if ($rawImage) {
+                if (\Illuminate\Support\Str::startsWith($rawImage, 'uploads/')) {
+                    $filePath = public_path($rawImage);
+                    if (file_exists($filePath)) {
+                        unlink($filePath);
+                    }
+                } elseif (\Illuminate\Support\Str::startsWith($rawImage, 'categories/')) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($rawImage);
+                }
             }
             $category->delete();
             return back()->with('success', 'تم حذف الفئة بنجاح');

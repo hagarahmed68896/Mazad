@@ -125,10 +125,15 @@
                         <h2 class="text-2xl font-black text-gray-900 mb-6">{{ $page->name }}</h2>
                         @foreach($page->properties as $prop)
                             <div class="property-field">
-                                <label class="block text-gray-700 font-black mb-3">
+                                <label class="block text-gray-700 font-black mb-1">
                                     {{ $prop->label }}
                                     @if($prop->is_required) <span class="text-red-500">*</span> @endif
                                 </label>
+                                @if($prop->help_text)
+                                    <p class="mb-3 text-sm text-gray-400 font-bold">{{ $prop->help_text }}</p>
+                                @elseif($prop->placeholder && ($prop->input_type == 'checkbox' || $prop->input_type == 'radio'))
+                                    <p class="mb-3 text-sm text-gray-400 font-bold">{{ $prop->placeholder }}</p>
+                                @endif
                                 @php $currentVal = $adProperties[$prop->id] ?? ''; @endphp
 
                                 @if($prop->input_type == 'text')
@@ -163,9 +168,29 @@
                                         <p class="text-sm font-bold text-gray-500" id="prop_file_text_{{ $prop->id }}">{{ $currentVal ? 'تم رفع ملف سابق' : '0 من 1 ملف' }}</p>
                                         <input type="file" id="prop_file_{{ $prop->id }}" name="properties[{{ $prop->id }}]" class="hidden" accept="image/*" onchange="handlePropFileChange(this, {{ $prop->id }})">
                                     </div>
-                                @endif
-                                @if($prop->help_text)
-                                    <p class="mt-2 text-sm text-gray-400 font-bold">{{ $prop->help_text }}</p>
+                                @elseif($prop->input_type == 'checkbox')
+                                    @php 
+                                        $selectedValues = array_map('trim', explode(',', $currentVal ?? ''));
+                                    @endphp
+                                    <div class="grid grid-cols-2 gap-4">
+                                        @foreach($prop->options ?? [] as $option)
+                                            <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
+                                                <input type="checkbox" name="properties[{{ $prop->id }}][]" value="{{ $option }}" {{ in_array($option, $selectedValues) ? 'checked' : '' }} class="w-5 h-5 accent-primary rounded">
+                                                <span class="font-bold text-gray-700">{{ $option }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @elseif($prop->input_type == 'textarea')
+                                    <textarea name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" rows="4" class="form-input">{{ $currentVal }}</textarea>
+                                @elseif($prop->input_type == 'date')
+                                    <input type="date" name="properties[{{ $prop->id }}]" value="{{ $currentVal }}" {{ $prop->is_required ? 'required' : '' }} class="form-input">
+                                @elseif($prop->input_type == 'price')
+                                    <div class="relative">
+                                        <input type="number" name="properties[{{ $prop->id }}]" value="{{ $currentVal }}" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" class="form-input">
+                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
+                                            <span class="text-gray-400 font-bold">ر.س</span>
+                                        </div>
+                                    </div>
                                 @endif
                             </div>
                         @endforeach
@@ -678,8 +703,8 @@
     <footer class="custom-login-footer mt-auto">
         <div class="container flex flex-col md:flex-row justify-between items-center text-white/80 font-bold text-sm">
             <div class="flex gap-8 mb-4 md:mb-0">
-                <a href="#" class="hover:text-white transition-colors">الشروط و الاحكام</a>
-                <a href="#" class="hover:text-white transition-colors">سياسة الخصوصية</a>
+                <a href="{{ route('terms') }}" class="hover:text-white transition-colors">الشروط و الاحكام</a>
+                <a href="{{ route('privacy') }}" class="hover:text-white transition-colors">سياسة الخصوصية</a>
             </div>
             <div dir="ltr">
                 ©2026 Mazad. All Rights Reserved.

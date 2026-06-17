@@ -149,8 +149,8 @@
     <footer class="custom-partner-footer">
         <div class="container mx-auto flex flex-col md:flex-row justify-between items-center text-white/80 font-bold text-sm px-6 md:px-16">
             <div class="flex gap-8 mb-4 md:mb-0">
-                <a href="#" class="hover:text-white transition-colors duration-200">الشروط و الاحكام</a>
-                <a href="#" class="hover:text-white transition-colors duration-200">سياسة الخصوصية</a>
+                <a href="{{ route('terms') }}" class="hover:text-white transition-colors duration-200">الشروط و الاحكام</a>
+                <a href="{{ route('privacy') }}" class="hover:text-white transition-colors duration-200">سياسة الخصوصية</a>
             </div>
             <div dir="ltr" class="font-outfit text-white/90">
                 {{ \App\Models\Setting::where('key', 'copyright')->first()->value ?? '©2025 copyright' }}

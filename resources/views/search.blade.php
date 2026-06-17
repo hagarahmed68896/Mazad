@@ -3,7 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>البحث | مزاد</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ isset($activeCategory) ? $activeCategory->name . ' | مزاد' : 'البحث | مزاد' }}</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,7 +36,7 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
     <!-- Styles -->
-    <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}">
     <style>
         body { font-family: 'Cairo', 'Outfit', sans-serif; background-color: #F8FAFC; }
         .container {
@@ -442,9 +443,15 @@
             <nav class="breadcrumbs">
                 <a href="{{ route('home') }}">الرئيسية</a>
                 <i class="fa-solid fa-chevron-left"></i>
-                <span>البحث</span>
+                @if(isset($activeCategory))
+                    <a href="{{ route('categories.all') }}">أقسام المنصة</a>
+                    <i class="fa-solid fa-chevron-left"></i>
+                    <span>{{ $activeCategory->name }}</span>
+                @else
+                    <span>البحث</span>
+                @endif
             </nav>
-            <h1 class="page-title">البحث</h1>
+            <h1 class="page-title">{{ isset($activeCategory) ? $activeCategory->name : 'البحث' }}</h1>
         </div>
     </div>
 
@@ -457,7 +464,7 @@
                     <button class="reset-btn" onclick="window.location.href='{{ route('location.clear') }}'">إعادة تعيين</button>
                 </div>
 
-                <form id="filterForm" action="{{ route('search') }}" method="GET">
+                <form id="filterForm" action="{{ Route::currentRouteName() == 'categories.show' ? route('categories.show', $activeCategory->id) : route('search') }}" method="GET">
                     <!-- Search Keyword (Hidden in sidebar, but kept in URL) -->
                     <input type="hidden" name="q" value="{{ request('q') }}">
                     <input type="hidden" name="view" value="{{ request('view', 'grid') }}">
@@ -558,7 +565,7 @@
                                 <span style="display: block; font-size: 0.75rem; color: #64748B; font-weight: 700;">الفئة المختارة</span>
                                 <span style="display: block; font-size: 1rem; color: var(--primary-color); font-weight: 800;">{{ $activeCategory->name }}</span>
                             </div>
-                            <a href="{{ request()->fullUrlWithQuery(['category' => null, 'props' => null]) }}" style="margin-right: auto; color: #EF4444; font-size: 0.9rem;" title="إلغاء الفئة"><i class="fa-solid fa-circle-xmark"></i></a>
+                            <a href="{{ Route::currentRouteName() == 'categories.show' ? route('search', request()->except(['category', 'props'])) : request()->fullUrlWithQuery(['category' => null, 'props' => null]) }}" style="margin-right: auto; color: #EF4444; font-size: 0.9rem;" title="إلغاء الفئة"><i class="fa-solid fa-circle-xmark"></i></a>
                         </div>
 
                         @if($activeCategory->properties->count() > 0)
@@ -676,7 +683,7 @@
             <div class="search-action-bar">
                 <!-- Search Input Side (Right in RTL) -->
                 <div class="flex items-center gap-3 flex-1 max-w-[400px]">
-                    <form action="{{ route('search') }}" method="GET" class="search-input-group" style="flex: 1;">
+                    <form action="{{ Route::currentRouteName() == 'categories.show' ? route('categories.show', $activeCategory->id) : route('search') }}" method="GET" class="search-input-group" style="flex: 1;">
                         @foreach(request()->except('q', 'page', 'category', 'props') as $key => $value)
                             @if(is_array($value))
                                 @foreach($value as $k => $v)
@@ -1368,5 +1375,6 @@
     </script>
     @include('partials.add-ad-modal')
     @include('partials.account-type-modal')
+    @stack('scripts')
 </body>
 </html>

@@ -57,11 +57,19 @@
                     <h3 class="text-xl font-black text-[#1C1C1C]">بيانات البانر</h3>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-3">العنوان</label>
                         <input type="text" name="name" id="global-name" value="{{ old('name', $banner->name) }}" 
                                class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-[#1C1C1C] focus:ring-4 focus:ring-[#1A73E8]/10 focus:border-[#1A73E8] transition-all outline-none placeholder:text-slate-400 placeholder:font-normal shadow-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-3">نوع البانر (الجمهور المستهدف)</label>
+                        <select name="for_user_type" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-[#1C1C1C] focus:ring-4 focus:ring-[#1A73E8]/10 focus:border-[#1A73E8] transition-all outline-none appearance-none shadow-sm">
+                            <option value="normal" {{ old('for_user_type', $banner->for_user_type) == 'normal' ? 'selected' : '' }}>رئيسية المشترين العامة</option>
+                            <option value="partner" {{ old('for_user_type', $banner->for_user_type) == 'partner' ? 'selected' : '' }}>لوحة تحكم الشركاء</option>
+                        </select>
                     </div>
 
                     <div>

@@ -230,4 +230,106 @@ class ChatController extends Controller
 
         return response()->json(['success' => true, 'message' => 'تم حذف المحادثة']);
     }
+
+    public function startConversation(Request $request)
+    {
+        $user = Auth::user();
+
+        $validator = Validator::make($request->all(), [
+            'ad_id' => 'nullable|exists:ads,id',
+            'service_id' => 'nullable|exists:services,id',
+            'user_id' => 'nullable|exists:users,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        $recipientId = null;
+        $adId = null;
+        $initialMessage = null;
+
+        if ($request->filled('ad_id')) {
+            $ad = \App\Models\Ad::findOrFail($request->ad_id);
+            $recipientId = $ad->user_id;
+            $adId = $ad->id;
+            $initialMessage = "مرحباً، أود الاستفسار عن إعلانك: " . $ad->title;
+        } elseif ($request->filled('service_id')) {
+            $service = \App\Models\Service::findOrFail($request->service_id);
+            $recipientId = $service->user_id;
+            $initialMessage = "مرحباً، أود طلب خدمتك: " . $service->title;
+        } elseif ($request->filled('user_id')) {
+            $recipientId = $request->user_id;
+        }
+
+        if (!$recipientId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'يجب تحديد إعلان، خدمة، أو مستخدم لبدء المحادثة.'
+            ], 400);
+        }
+
+        if ($recipientId == $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكنك بدء محادثة مع نفسك.'
+            ], 400);
+        }
+
+        // Check block status
+        $isBlocked = BlockedUser::where(function($q) use ($user, $recipientId) {
+            $q->where('user_id', $user->id)->where('blocked_user_id', $recipientId)
+              ->orWhere('user_id', $recipientId)->where('blocked_user_id', $user->id);
+        })->exists();
+
+        if ($isBlocked) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكنك بدء محادثة مع هذا المستخدم بسبب الحظر.'
+            ], 403);
+        }
+
+        // Retrieve or create conversation
+        $conversationQuery = Conversation::where(function($q) use ($user, $recipientId) {
+            $q->where(function($sq) use ($user, $recipientId) {
+                $sq->where('user_one_id', $user->id)->where('user_two_id', $recipientId);
+            })->orWhere(function($sq) use ($user, $recipientId) {
+                $sq->where('user_one_id', $recipientId)->where('user_two_id', $user->id);
+            });
+        });
+
+        if ($adId) {
+            $conversationQuery->where('ad_id', $adId);
+        }
+
+        $conversation = $conversationQuery->first();
+
+        if (!$conversation) {
+            $conversation = Conversation::create([
+                'user_one_id' => $user->id,
+                'user_two_id' => $recipientId,
+                'ad_id' => $adId,
+                'last_message_at' => now(),
+            ]);
+
+            // Send initial automated message if it's a new conversation
+            if ($initialMessage) {
+                Message::create([
+                    'conversation_id' => $conversation->id,
+                    'sender_id' => $user->id,
+                    'content' => $initialMessage,
+                    'type' => 'text'
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم بدء المحادثة بنجاح',
+            'data' => [
+                'conversation_id' => $conversation->id,
+                'recipient_id' => $recipientId,
+            ]
+        ]);
+    }
 }

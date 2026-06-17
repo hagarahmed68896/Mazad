@@ -106,11 +106,7 @@
                          class="category-card flex flex-col items-center group">
                         <div class="icon-box">
                             @php
-                                if ($category->image) {
-                                    $imgUrl = Str::startsWith($category->image, 'uploads/') ? asset($category->image) : asset('uploads/' . $category->image);
-                                } else {
-                                    $imgUrl = 'https://cdn-icons-png.flaticon.com/512/711/711701.png';
-                                }
+                                $imgUrl = $category->image ?: 'https://cdn-icons-png.flaticon.com/512/711/711701.png';
                             @endphp
                             <img src="{{ $imgUrl }}" alt="{{ $category->name }}" class="w-full h-full object-contain" onerror="this.src='https://cdn-icons-png.flaticon.com/512/711/711701.png'">
                         </div>
@@ -131,8 +127,8 @@
     <footer class="custom-login-footer">
         <div class="container flex flex-col md:flex-row justify-between items-center text-white/80 font-bold text-sm">
             <div class="flex gap-8 mb-4 md:mb-0">
-                <a href="#" class="hover:text-white transition-colors">الشروط و الاحكام</a>
-                <a href="#" class="hover:text-white transition-colors">سياسة الخصوصية</a>
+                <a href="{{ route('terms') }}" class="hover:text-white transition-colors">الشروط و الاحكام</a>
+                <a href="{{ route('privacy') }}" class="hover:text-white transition-colors">سياسة الخصوصية</a>
             </div>
             <div dir="ltr">
                 {{ $settings['copyright'] ?? '©2025 copyright' }}

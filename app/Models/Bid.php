@@ -28,4 +28,18 @@ class Bid extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function getRoleAttribute()
+    {
+        $user = auth('sanctum')->user() ?: (auth()->user() ?: \Illuminate\Support\Facades\Auth::user());
+        if ($user) {
+            if ($this->user_id === $user->id) {
+                return 'buyer';
+            }
+            if ($this->ad && $this->ad->user_id === $user->id) {
+                return 'seller';
+            }
+        }
+        return null;
+    }
 }

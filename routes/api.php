@@ -32,9 +32,13 @@ Route::get('/search/filters', [SearchController::class, 'filters']);
 Route::get('/regions', [LocationController::class, 'regions']);
 Route::get('/regions/{regionId}/cities', [LocationController::class, 'cities']);
 Route::get('/ads/{id}', [\App\Http\Controllers\Api\AdController::class, 'show']);
+Route::get('/ads/{id}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'adReviews']);
+Route::get('/services/{id}', [HomeController::class, 'serviceShow']);
 Route::get('/ads/{id}/bids/info', [BidController::class, 'info']);
 Route::get('/ads/{id}/bids/history', [BidController::class, 'history']);
 Route::post('/update-location', [LocationController::class, 'updateLocation']);
+Route::get('/users/{id}/profile', [HomeController::class, 'userProfile']);
+Route::get('/users/{id}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'userReviews']);
 
 // Support and Help Desk Pages (Public)
 Route::get('/faqs', [\App\Http\Controllers\Api\SupportController::class, 'faqs']);
@@ -114,10 +118,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Chat Routes
     Route::get('/chats', [\App\Http\Controllers\Api\ChatController::class, 'index']);
+    Route::post('/chats/start', [\App\Http\Controllers\Api\ChatController::class, 'startConversation']);
     Route::get('/chats/{id}', [\App\Http\Controllers\Api\ChatController::class, 'show']);
     Route::post('/chats/{id}/send', [\App\Http\Controllers\Api\ChatController::class, 'sendMessage']);
     Route::delete('/chats/{id}', [\App\Http\Controllers\Api\ChatController::class, 'destroy']);
     Route::post('/users/{userId}/block', [\App\Http\Controllers\Api\ChatController::class, 'toggleBlock']);
+    Route::post('/users/{id}/report', [\App\Http\Controllers\Api\HomeController::class, 'reportUser']);
 
     // Payment & Promotion Routes
     Route::post('/ads/{id}/payment', [\App\Http\Controllers\Api\AdController::class, 'processPayment']);
@@ -135,6 +141,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/my-reviews', [\App\Http\Controllers\Api\ReviewController::class, 'myReviews']);
     // Inquiries Route
     Route::get('/my-inquiries', [\App\Http\Controllers\Api\SupportController::class, 'myInquiries']);
+    Route::post('/search/history/clear', [SearchController::class, 'clearHistory']);
 
     // Team Management Routes
     Route::get('/settings/team', [\App\Http\Controllers\Api\TeamController::class, 'index']);
@@ -142,4 +149,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/settings/team/{id}', [\App\Http\Controllers\Api\TeamController::class, 'show']);
     Route::post('/settings/team/{id}/update', [\App\Http\Controllers\Api\TeamController::class, 'update']);
     Route::delete('/settings/team/{id}', [\App\Http\Controllers\Api\TeamController::class, 'destroy']);
+
+    // Broadcasting authentication
+    \Illuminate\Support\Facades\Broadcast::routes(['middleware' => ['auth:sanctum']]);
 });
+

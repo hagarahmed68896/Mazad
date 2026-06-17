@@ -120,7 +120,7 @@
 
                     <!-- Terms Checkbox -->
                     <label class="flex items-center justify-end gap-2 pt-1 cursor-pointer group">
-                        <span class="text-sm font-semibold text-[#475569]">أوافق على <a href="#" class="text-[#1A73E8] hover:underline" onclick="event.stopPropagation()">الشروط والأحكام</a> و <a href="#" class="text-[#1A73E8] hover:underline" onclick="event.stopPropagation()">سياسة الخصوصية</a></span>
+                        <span class="text-sm font-semibold text-[#475569]">أوافق على <a href="{{ route('terms') }}" target="_blank" class="text-[#1A73E8] hover:underline" onclick="event.stopPropagation()">الشروط والأحكام</a> و <a href="{{ route('privacy') }}" target="_blank" class="text-[#1A73E8] hover:underline" onclick="event.stopPropagation()">سياسة الخصوصية</a></span>
                         <div class="relative w-5 h-5 rounded overflow-hidden">
                             <input type="checkbox" name="terms" class="peer sr-only" required>
                             <div class="w-5 h-5 bg-white border-2 border-[#CBD5E1] rounded peer-checked:bg-[#1A73E8] peer-checked:border-[#1A73E8] group-hover:border-[#1A73E8] transition-all flex items-center justify-center">

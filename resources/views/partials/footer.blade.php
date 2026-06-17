@@ -5,7 +5,7 @@
             <!-- Column 1: Logo & Info -->
             <div class="footer-col footer-col-logo" style="text-align: right;">
                 <div class="footer-logo">
-                    Logo
+                    @include('partials.logo')
                 </div>
                 <p>منصة موثوقة للمزادات والشراء الفوري، تجمعك بفرص مميزة على السيارات والعقارات وغيرها.<br>شارك، زايد، أو اشترِ بكل سهولة وأمان.</p>
                 <div class="social-links" style="justify-content: flex-start;">
@@ -31,11 +31,11 @@
             <div class="footer-col">
                 <h4>روابط سريعة</h4>
                 <ul>
-                    <li><a href="#">الرئيسية</a></li>
-                    <li><a href="#">مزادات</a></li>
-                    <li><a href="#">شراء فوري</a></li>
-                    <li><a href="#">مناقصات</a></li>
-                    <li><a href="#">إضافة إعلان</a></li>
+                    <li><a href="{{ route('home') }}">الرئيسية</a></li>
+                    <li><a href="{{ route('search', ['type' => 'auction']) }}">مزادات</a></li>
+                    <li><a href="{{ route('search', ['type' => 'direct_purchase']) }}">شراء فوري</a></li>
+                    <li><a href="{{ route('search', ['type' => 'tender']) }}">مناقصات</a></li>
+                    <li><a href="javascript:void(0)" onclick="openAddAdModal()">إضافة إعلان</a></li>
                 </ul>
             </div>
 
@@ -43,12 +43,16 @@
             <div class="footer-col">
                 <h4>الفئات</h4>
                 <ul>
-                    <li><a href="#">سيارات</a></li>
-                    <li><a href="#">عقارات</a></li>
-                    <li><a href="#">الكترونيات</a></li>
-                    <li><a href="#">كتب</a></li>
-                    <li><a href="#">كاميرات وصور</a></li>
-                    <li><a href="#">ادوات مكتبية</a></li>
+                    @php
+                        $footerCategories = \App\Models\Category::whereNull('parent_id')->take(6)->get();
+                    @endphp
+                    @forelse($footerCategories as $category)
+                        <li><a href="{{ route('search', ['category' => $category->id]) }}">{{ $category->name }}</a></li>
+                    @empty
+                        <li><a href="{{ route('search', ['category' => 1]) }}">سيارات</a></li>
+                        <li><a href="{{ route('search', ['category' => 2]) }}">عقارات</a></li>
+                        <li><a href="{{ route('search', ['category' => 3]) }}">الكترونيات</a></li>
+                    @endforelse
                 </ul>
             </div>
 

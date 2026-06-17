@@ -627,6 +627,36 @@
         background: #CBD5E1;
         transform: translateY(-1px);
     }
+
+    /* Role Tabs Styling */
+    .role-tab-container {
+        display: flex;
+        gap: 0.5rem;
+        background: #F1F5F9;
+        padding: 0.35rem;
+        border-radius: 16px;
+        width: fit-content;
+    }
+
+    .role-tab-btn {
+        padding: 0.75rem 2rem;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 0.95rem;
+        color: #475569;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+        background: transparent;
+        text-decoration: none !important;
+        display: inline-block;
+    }
+
+    .role-tab-btn.active {
+        background: #1A73E8;
+        color: white !important;
+        box-shadow: 0 4px 12px rgba(26, 115, 232, 0.15);
+    }
 </style>
 @endpush
 
@@ -641,13 +671,21 @@
         </a>
 
         <!-- Page Title & Tabs -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-6">
             <h1 class="page-title !mb-0" style="margin-bottom: 0 !important;">المزادات و العروض</h1>
             
-            <!-- Tabs (Auctions vs Offers) -->
-            <div class="tab-container">
-                <a href="{{ request()->fullUrlWithQuery(['tab' => 'auctions']) }}" class="tab-btn {{ $tab === 'auctions' ? 'active' : '' }}">للمزادات</a>
-                <a href="{{ request()->fullUrlWithQuery(['tab' => 'offers']) }}" class="tab-btn {{ $tab === 'offers' ? 'active' : '' }}">العروض</a>
+            <div class="flex flex-wrap gap-4 items-center">
+                <!-- Role Tabs (Received vs Sent) -->
+                <div class="role-tab-container">
+                    <a href="{{ request()->fullUrlWithQuery(['role' => 'seller']) }}" class="role-tab-btn {{ $role === 'seller' ? 'active' : '' }}">الواردة (كبائع)</a>
+                    <a href="{{ request()->fullUrlWithQuery(['role' => 'buyer']) }}" class="role-tab-btn {{ $role === 'buyer' ? 'active' : '' }}">المرسلة (كمشتري)</a>
+                </div>
+
+                <!-- Tabs (Auctions vs Offers) -->
+                <div class="tab-container">
+                    <a href="{{ request()->fullUrlWithQuery(['tab' => 'auctions']) }}" class="tab-btn {{ $tab === 'auctions' ? 'active' : '' }}">للمزادات</a>
+                    <a href="{{ request()->fullUrlWithQuery(['tab' => 'offers']) }}" class="tab-btn {{ $tab === 'offers' ? 'active' : '' }}">العروض</a>
+                </div>
             </div>
         </div>
 
@@ -931,95 +969,124 @@
                     <!-- Grid -->
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         @foreach($bids as $bid)
-                            @php
-                                $firstLetter = mb_substr($bid->user->name ?? 'أ', 0, 1);
-                                $buyerType = $bid->user->account_type == 'company' ? 'شركة' : ($bid->user->account_type == 'partner' ? 'مندوب شركة' : 'فرد');
-                            @endphp
-                            <div class="bo-card" id="bo-card-{{ $bid->id }}">
-                                <div>
-                                    <!-- Header -->
-                                    <div class="bo-header">
-                                        <div class="bo-avatar">{{ $firstLetter }}</div>
-                                        <div class="bo-user-info">
-                                            <h4>{{ $bid->user->name ?? 'مجهول' }}</h4>
-                                            <span>{{ $buyerType }}</span>
+                            @if($role === 'buyer' && $tab === 'auctions')
+                                @if($bid->ad)
+                                    @include('partials.ad-card', ['ad' => $bid->ad])
+                                @endif
+                            @else
+                                @php
+                                    $cardUser = ($role === 'buyer') ? ($bid->ad->user ?? null) : ($bid->user ?? null);
+                                    $firstLetter = mb_substr($cardUser->name ?? 'أ', 0, 1);
+                                    $userType = $cardUser ? ($cardUser->account_type == 'company' ? 'شركة' : ($cardUser->account_type == 'partner' ? 'مندوب شركة' : 'فرد')) : 'مجهول';
+                                @endphp
+                                <div class="bo-card" id="bo-card-{{ $bid->id }}">
+                                    <div>
+                                        <!-- Header -->
+                                        <div class="bo-header">
+                                            <div class="bo-avatar">{{ $firstLetter }}</div>
+                                            <div class="bo-user-info">
+                                                <h4>{{ $cardUser->name ?? 'مجهول' }}</h4>
+                                                <span>{{ $userType }}</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Body -->
+                                        <div class="bo-body">
+                                            <div class="bo-line">
+                                                <span>الاعلان:</span>
+                                                <strong>
+                                                    @if($bid->ad)
+                                                        <a href="{{ route('bids.history-page', $bid->ad->id) }}" class="hover:text-primary transition-all duration-200" style="text-decoration: none; color: inherit;">
+                                                            {{ $bid->ad->title ?? 'إعلان غير معروف' }}
+                                                        </a>
+                                                    @else
+                                                        إعلان غير معروف
+                                                    @endif
+                                                </strong>
+                                            </div>
+                                            <div class="bo-line">
+                                                <span>الفئة:</span>
+                                                <strong>{{ $bid->ad->category->name ?? 'غير مصنف' }}</strong>
+                                            </div>
+                                            
+                                            <!-- Price Pill -->
+                                            <div class="bo-price-pill" id="bo-price-pill-{{ $bid->id }}">
+                                                <span>قيمة السومة</span>
+                                                <strong>{{ number_format($bid->amount) }}</strong>
+                                                <x-riyal-icon class="w-4 h-4" />
+                                            </div>
+
+                                            <!-- Date -->
+                                            @php
+                                                $formattedDate = $bid->created_at->format('Y/m/d - h:i:s a');
+                                                $formattedDate = str_replace(['am', 'pm'], ['ص', 'م'], $formattedDate);
+                                            @endphp
+                                            <div class="bo-date">
+                                                {{ $formattedDate }}
+                                            </div>
+
+                                            <!-- Badge Status if finished -->
+                                            @if($bid->status === 'accepted')
+                                                <div class="bo-badge agreed">
+                                                    <i class="fa-solid fa-circle-check"></i>
+                                                    <span>تم الاتفاق</span>
+                                                </div>
+                                            @elseif($bid->status === 'rejected')
+                                                <div class="bo-badge rejected">
+                                                    <i class="fa-solid fa-circle-xmark"></i>
+                                                    <span>لم يتم الاتفاق</span>
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
 
-                                    <!-- Body -->
-                                    <div class="bo-body">
-                                        <div class="bo-line">
-                                            <span>الاعلان:</span>
-                                            <strong>
-                                                <a href="{{ route('bids.history-page', $bid->ad->id) }}" class="hover:text-primary transition-all duration-200" style="text-decoration: none; color: inherit;">
-                                                    {{ $bid->ad->title ?? 'إعلان غير معروف' }}
-                                                </a>
-                                            </strong>
-                                        </div>
-                                        <div class="bo-line">
-                                            <span>الفئة:</span>
-                                            <strong>{{ $bid->ad->category->name ?? 'غير مصنف' }}</strong>
-                                        </div>
-                                        
-                                        <!-- Price Pill -->
-                                        <div class="bo-price-pill" id="bo-price-pill-{{ $bid->id }}">
-                                            <span>قيمة السومة</span>
-                                            <strong>{{ number_format($bid->amount) }}</strong>
-                                            <x-riyal-icon class="w-4 h-4" />
-                                        </div>
-
-                                        <!-- Date -->
-                                        @php
-                                            $formattedDate = $bid->created_at->format('Y/m/d - h:i:s a');
-                                            $formattedDate = str_replace(['am', 'pm'], ['ص', 'م'], $formattedDate);
-                                        @endphp
-                                        <div class="bo-date">
-                                            {{ $formattedDate }}
-                                        </div>
-
-                                        <!-- Badge Status if finished -->
-                                        @if($bid->status === 'accepted')
-                                            <div class="bo-badge agreed">
-                                                <i class="fa-solid fa-circle-check"></i>
-                                                <span>تم الاتفاق</span>
-                                            </div>
-                                        @elseif($bid->status === 'rejected')
-                                            <div class="bo-badge rejected">
-                                                <i class="fa-solid fa-circle-xmark"></i>
-                                                <span>لم يتم الاتفاق</span>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <!-- Actions -->
-                                <div class="bo-footer mt-4" id="bo-footer-{{ $bid->id }}">
-                                    @if($bid->status === 'active')
-                                        @if($tab === 'offers')
-                                            <!-- Direct Purchase buttons: Accept & Counter Offer -->
-                                            <button class="btn-bo-primary" onclick="acceptBidOffer({{ $bid->id }})">
-                                                <i class="fa-solid fa-circle-check"></i> قبول العرض
-                                            </button>
-                                            <button class="btn-bo-outline" onclick="openCounterOfferModal({{ $bid->id }}, {{ $bid->amount }})">
-                                                <i class="fa-solid fa-handshake"></i> قدم عرض
-                                            </button>
+                                    <!-- Actions -->
+                                    <div class="bo-footer mt-4" id="bo-footer-{{ $bid->id }}">
+                                        @if($role === 'seller')
+                                            @if($bid->status === 'active')
+                                                @if($tab === 'offers')
+                                                    <!-- Direct Purchase buttons: Accept & Counter Offer -->
+                                                    <button class="btn-bo-primary" onclick="acceptBidOffer({{ $bid->id }})">
+                                                        <i class="fa-solid fa-circle-check"></i> قبول العرض
+                                                    </button>
+                                                    <button class="btn-bo-outline" onclick="openCounterOfferModal({{ $bid->id }}, {{ $bid->amount }})">
+                                                        <i class="fa-solid fa-handshake"></i> قدم عرض
+                                                    </button>
+                                                @else
+                                                    <!-- Auction buttons: Accept & Reject -->
+                                                    <button class="btn-bo-primary" onclick="acceptBidOffer({{ $bid->id }})">
+                                                        <i class="fa-solid fa-circle-check"></i> قبول العرض
+                                                    </button>
+                                                    <button class="btn-bo-grey" onclick="rejectBidOffer({{ $bid->id }})">
+                                                        <i class="fa-solid fa-circle-xmark"></i> رفض العرض
+                                                    </button>
+                                                @endif
+                                            @else
+                                                <!-- Finished Bids show Details -->
+                                                <button class="btn-bo-primary w-full" onclick="showDetailsModal({{ $bid->id }})" style="flex: auto;">
+                                                    <i class="fa-solid fa-circle-info"></i> عرض التفاصيل
+                                                </button>
+                                            @endif
                                         @else
-                                            <!-- Auction buttons: Accept & Reject -->
-                                            <button class="btn-bo-primary" onclick="acceptBidOffer({{ $bid->id }})">
-                                                <i class="fa-solid fa-circle-check"></i> قبول العرض
-                                            </button>
-                                            <button class="btn-bo-grey" onclick="rejectBidOffer({{ $bid->id }})">
-                                                <i class="fa-solid fa-circle-xmark"></i> رفض العرض
-                                            </button>
+                                            <!-- Buyer Role Actions -->
+                                            @if($bid->status === 'active')
+                                                <div class="text-center py-2 px-4 rounded-xl text-slate-500 font-bold bg-slate-50 border border-slate-200 w-full" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; height: 42px;">
+                                                    <i class="fa-solid fa-clock-rotate-left"></i>
+                                                    <span>بانتظار رد البائع</span>
+                                                </div>
+                                            @elseif($bid->status === 'accepted')
+                                                <a href="{{ route('purchases.my') }}" class="btn-bo-primary w-full text-center py-2 rounded-xl" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; height: 42px; width: 100%;">
+                                                    <i class="fa-solid fa-credit-card"></i> إتمام الدفع
+                                                </a>
+                                            @else
+                                                <button class="btn-bo-primary w-full" onclick="showDetailsModal({{ $bid->id }})" style="flex: auto;">
+                                                    <i class="fa-solid fa-circle-info"></i> عرض التفاصيل
+                                                </button>
+                                            @endif
                                         @endif
-                                    @else
-                                        <!-- Finished Bids show Details -->
-                                        <button class="btn-bo-primary w-full" onclick="showDetailsModal({{ $bid->id }})" style="flex: auto;">
-                                            <i class="fa-solid fa-circle-info"></i> عرض التفاصيل
-                                        </button>
-                                    @endif
+                                    </div>
                                 </div>
-                            </div>
+                            @endif
                         @endforeach
                     </div>
 

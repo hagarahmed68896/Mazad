@@ -92,7 +92,7 @@
             @csrf
             @php 
                 $stepCounter = 1; 
-                $totalPages = count($category->pages) + 4; // Pages + Inspection + Price + Basic + Images
+                $totalPages = count($category->pages) + ($category->properties->isNotEmpty() ? 1 : 0) + 4; // Category props + Pages + Inspection + Price + Basic + Images
             @endphp
             <input type="hidden" name="type" value="{{ $type }}">
             <input type="hidden" name="category_id" value="{{ $category->id }}">
@@ -118,6 +118,85 @@
                 </div>
             @endif
 
+            <!-- Step: Category-level properties (not assigned to any page) -->
+            @if($category->properties->isNotEmpty())
+                <div class="step-container {{ $stepCounter == 1 ? 'active' : '' }}" data-step="{{ $stepCounter }}" data-title="{{ $category->name }}">
+                    <div class="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 space-y-6">
+                        <h2 class="text-2xl font-black text-gray-900 mb-6">{{ $category->name }}</h2>
+                        @foreach($category->properties as $prop)
+                            <div class="property-field">
+                                <label class="block text-gray-700 font-black mb-1">
+                                    {{ $prop->label }}
+                                    @if($prop->is_required) <span class="text-red-500">*</span> @endif
+                                </label>
+                                @if($prop->help_text)
+                                    <p class="mb-3 text-sm text-gray-400 font-bold">{{ $prop->help_text }}</p>
+                                @elseif($prop->placeholder && ($prop->input_type == 'checkbox' || $prop->input_type == 'radio'))
+                                    <p class="mb-3 text-sm text-gray-400 font-bold">{{ $prop->placeholder }}</p>
+                                @endif
+                                @if($prop->input_type == 'text')
+                                    <input type="text" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" class="form-input">
+                                @elseif($prop->input_type == 'number')
+                                    <input type="number" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" class="form-input">
+                                @elseif($prop->input_type == 'select')
+                                    <select name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} class="form-input">
+                                        <option value="">اختر {{ $prop->placeholder ?? $prop->label }}...</option>
+                                        @foreach($prop->options ?? [] as $option)
+                                            <option value="{{ $option }}">{{ $option }}</option>
+                                        @endforeach
+                                    </select>
+                                @elseif($prop->input_type == 'radio')
+                                    <div class="grid grid-cols-2 gap-4">
+                                        @foreach($prop->options ?? [] as $optIndex => $option)
+                                            <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
+                                                <input type="radio" name="properties[{{ $prop->id }}]" value="{{ $option }}" {{ $prop->is_required && $optIndex == 0 ? 'checked' : '' }} class="w-5 h-5 accent-primary">
+                                                <span class="font-bold text-gray-700">{{ $option }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @elseif($prop->input_type == 'file' || $prop->input_type == 'image')
+                                    <div class="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-primary transition-all cursor-pointer relative bg-gray-50" onclick="document.getElementById('prop_file_{{ $prop->id }}').click()">
+                                        <div class="mb-3 flex justify-center">
+                                            <i class="fa-solid fa-cloud-arrow-up text-4xl text-gray-300"></i>
+                                        </div>
+                                        <p class="text-sm font-bold text-gray-500" id="prop_file_text_{{ $prop->id }}">0 من 1 ملف</p>
+                                        <input type="file" id="prop_file_{{ $prop->id }}" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} class="hidden" accept="image/*" onchange="handlePropFileChange(this, {{ $prop->id }})">
+                                    </div>
+                                    <div id="prop_file_preview_{{ $prop->id }}" class="hidden mt-3 flex items-center justify-between p-3 border-2 border-gray-100 rounded-xl bg-white shadow-sm transition-all">
+                                        <div class="flex items-center gap-2">
+                                            <button type="button" onclick="clearPropFile({{ $prop->id }})" class="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all"><i class="fa-regular fa-trash-can"></i></button>
+                                            <button type="button" onclick="viewPropFile({{ $prop->id }})" class="text-gray-400 hover:text-primary hover:bg-blue-50 p-2 rounded-lg transition-all"><i class="fa-regular fa-eye"></i></button>
+                                        </div>
+                                        <span class="text-sm font-bold text-gray-400 truncate max-w-[200px]" id="prop_file_name_{{ $prop->id }}">صورة.png</span>
+                                    </div>
+                                @elseif($prop->input_type == 'checkbox')
+                                    <div class="grid grid-cols-2 gap-4">
+                                        @foreach($prop->options ?? [] as $option)
+                                            <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
+                                                <input type="checkbox" name="properties[{{ $prop->id }}][]" value="{{ $option }}" class="w-5 h-5 accent-primary rounded">
+                                                <span class="font-bold text-gray-700">{{ $option }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @elseif($prop->input_type == 'textarea')
+                                    <textarea name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" rows="4" class="form-input"></textarea>
+                                @elseif($prop->input_type == 'date')
+                                    <input type="date" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} class="form-input">
+                                @elseif($prop->input_type == 'price')
+                                    <div class="relative">
+                                        <input type="number" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" class="form-input">
+                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
+                                            <span class="text-gray-400 font-bold">ر.س</span>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+                @php $stepCounter++; @endphp
+            @endif
+
             <!-- Step 1+: Dynamic Category Pages -->
             @foreach($category->pages as $index => $page)
                 <div class="step-container {{ $stepCounter == 1 ? 'active' : '' }}" data-step="{{ $stepCounter }}" data-title="{{ $page->name }}">
@@ -125,10 +204,15 @@
                         <h2 class="text-2xl font-black text-gray-900 mb-6">{{ $page->name }}</h2>
                         @foreach($page->properties as $prop)
                             <div class="property-field">
-                                <label class="block text-gray-700 font-black mb-3">
+                                <label class="block text-gray-700 font-black mb-1">
                                     {{ $prop->label }}
                                     @if($prop->is_required) <span class="text-red-500">*</span> @endif
                                 </label>
+                                @if($prop->help_text)
+                                    <p class="mb-3 text-sm text-gray-400 font-bold">{{ $prop->help_text }}</p>
+                                @elseif($prop->placeholder && ($prop->input_type == 'checkbox' || $prop->input_type == 'radio'))
+                                    <p class="mb-3 text-sm text-gray-400 font-bold">{{ $prop->placeholder }}</p>
+                                @endif
                                 @if($prop->input_type == 'text')
                                     <input type="text" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" class="form-input">
                                 @elseif($prop->input_type == 'number')
@@ -136,13 +220,13 @@
                                 @elseif($prop->input_type == 'select')
                                     <select name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} class="form-input">
                                         <option value="">اختر...</option>
-                                        @foreach($prop->options as $option)
+                                        @foreach($prop->options ?? [] as $option)
                                             <option value="{{ $option }}">{{ $option }}</option>
                                         @endforeach
                                     </select>
                                 @elseif($prop->input_type == 'radio')
                                     <div class="grid grid-cols-2 gap-4">
-                                        @foreach($prop->options as $optIndex => $option)
+                                        @foreach($prop->options ?? [] as $optIndex => $option)
                                             <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
                                                 <input type="radio" name="properties[{{ $prop->id }}]" value="{{ $option }}" {{ $prop->is_required && $optIndex == 0 ? 'checked' : '' }} class="w-5 h-5 accent-primary">
                                                 <span class="font-bold text-gray-700">{{ $option }}</span>
@@ -169,9 +253,26 @@
                                         </div>
                                         <span class="text-sm font-bold text-gray-400 truncate max-w-[200px]" id="prop_file_name_{{ $prop->id }}">صورة.png</span>
                                     </div>
-                                @endif
-                                @if($prop->help_text)
-                                    <p class="mt-2 text-sm text-gray-400 font-bold">{{ $prop->help_text }}</p>
+                                @elseif($prop->input_type == 'checkbox')
+                                    <div class="grid grid-cols-2 gap-4">
+                                        @foreach($prop->options ?? [] as $option)
+                                            <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
+                                                <input type="checkbox" name="properties[{{ $prop->id }}][]" value="{{ $option }}" class="w-5 h-5 accent-primary rounded">
+                                                <span class="font-bold text-gray-700">{{ $option }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @elseif($prop->input_type == 'textarea')
+                                    <textarea name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" rows="4" class="form-input"></textarea>
+                                @elseif($prop->input_type == 'date')
+                                    <input type="date" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} class="form-input">
+                                @elseif($prop->input_type == 'price')
+                                    <div class="relative">
+                                        <input type="number" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" class="form-input">
+                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
+                                            <span class="text-gray-400 font-bold">ر.س</span>
+                                        </div>
+                                    </div>
                                 @endif
                             </div>
                         @endforeach
@@ -737,8 +838,8 @@
     <footer class="custom-login-footer mt-auto">
         <div class="container flex flex-col md:flex-row justify-between items-center text-white/80 font-bold text-sm">
             <div class="flex gap-8 mb-4 md:mb-0">
-                <a href="#" class="hover:text-white transition-colors">الشروط و الاحكام</a>
-                <a href="#" class="hover:text-white transition-colors">سياسة الخصوصية</a>
+                <a href="{{ route('terms') }}" class="hover:text-white transition-colors">الشروط و الاحكام</a>
+                <a href="{{ route('privacy') }}" class="hover:text-white transition-colors">سياسة الخصوصية</a>
             </div>
             <div dir="ltr">
                 {{ $settings['copyright'] ?? '©2025 copyright' }}

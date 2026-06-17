@@ -80,9 +80,12 @@
                 
                 <!-- Card Header -->
                 <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-xl font-black text-[#1C1C1C]">{{ $banner->title ?? 'الاسم' }}</h3>
+                    <h3 class="text-xl font-black text-[#1C1C1C]">{{ $banner->name ?? 'الاسم' }}</h3>
                     <div class="flex items-center gap-3">
                         <span class="text-sm text-slate-500 font-bold">{{ $banner->created_at ? $banner->created_at->format('Y/m/d') : '3/12/2025' }}</span>
+                        <span class="px-5 py-1.5 rounded-xl text-xs font-black shadow-sm {{ $banner->for_user_type === 'partner' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-slate-50 text-slate-600 border border-slate-100' }}">
+                            {{ $banner->for_user_type === 'partner' ? 'لوحة الشركاء' : 'رئيسية العامة' }}
+                        </span>
                         @if($banner->status)
                             <span class="status-active px-5 py-1.5 rounded-xl text-xs font-black shadow-sm">نشط</span>
                         @else

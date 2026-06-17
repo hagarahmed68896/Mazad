@@ -596,7 +596,7 @@ class BidController extends Controller
         $cities = \App\Models\City::all();
         $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
 
-        return view('ads.bids-offers', compact('bids', 'categories', 'cities', 'settings', 'tab', 'activeCategory'));
+        return view('ads.bids-offers', compact('bids', 'categories', 'cities', 'settings', 'tab', 'activeCategory', 'role'));
     }
 
     /**
@@ -758,7 +758,7 @@ class BidController extends Controller
     {
         $bid = Bid::with(['ad.category', 'ad.city', 'user'])->findOrFail($bidId);
 
-        if ($bid->ad->user_id !== Auth::id()) {
+        if ($bid->ad->user_id !== Auth::id() && $bid->user_id !== Auth::id()) {
             return response()->json([
                 'success' => false,
                 'message' => 'غير مصرح لك.'

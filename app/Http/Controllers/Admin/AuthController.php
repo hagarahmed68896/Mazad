@@ -98,6 +98,31 @@ class AuthController extends Controller
                 $request->session()->regenerate();
 
                 Auth::login($user);
+
+                // 🔒 New Device Login Detection (Admin)
+                $userAgent = $request->header('X-Device-Id') ?: ($request->input('device_id') ?: $request->userAgent() ?: 'unknown_device');
+                $deviceSignature = md5($userAgent);
+
+                $knownDevices = is_array($user->known_devices) ? $user->known_devices : [];
+
+                if (!in_array($deviceSignature, $knownDevices)) {
+                    if (count($knownDevices) > 0) {
+                        \App\Models\Notification::create([
+                            'user_id' => $user->id,
+                            'type' => 'alert',
+                            'title' => 'تنبيه أمان: تسجيل دخول جديد للوحة التحكم',
+                            'content' => "تم رصد تسجيل دخول جديد لحساب المسؤول الخاص بك من جهاز جديد في تاريخ " . now()->format('Y-m-d H:i') . ". إذا لم تكن أنت، يرجى تغيير كلمة المرور فوراً لتأمين لوحة التحكم.",
+                            'status' => 'sent',
+                            'read_at' => null
+                        ]);
+                    }
+
+                    $knownDevices[] = $deviceSignature;
+                    $user->update([
+                        'known_devices' => $knownDevices
+                    ]);
+                }
+
                 return redirect()->route('admin.dashboard');
             }
         }

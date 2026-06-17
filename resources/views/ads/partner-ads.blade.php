@@ -7,6 +7,18 @@
     .partner-banner {
         background: linear-gradient(135deg, #1A73E8 0%, #1557B0 100%) !important;
     }
+    .partner-slide-item {
+        transition: opacity 0.5s ease-in-out;
+    }
+    .partner-slide-item.active-slide {
+        opacity: 1 !important;
+        pointer-events: auto;
+    }
+    .partner-slide-item.hidden {
+        opacity: 0 !important;
+        pointer-events: none;
+        display: flex !important;
+    }
     .partner-ad-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 15px 30px rgba(0,0,0,0.06) !important;
@@ -110,34 +122,90 @@
 @section('content')
 <div class="container mx-auto px-4 py-10" style="direction: rtl; text-align: right; font-family: 'Cairo', sans-serif;">
     
-    <!-- Partner Welcome Banner -->
-    <div class="partner-banner relative mb-12 overflow-hidden flex flex-col md:flex-row items-center justify-between" style="border-radius: 30px; padding: 3rem 4rem; color: white; min-height: 280px; box-shadow: 0 15px 35px rgba(26, 115, 232, 0.15);">
-        
-        <!-- Right side: Text details -->
-        <div class="w-full md:w-3/5 z-10" style="margin-bottom: 2rem; md:margin-bottom: 0;">
-            <h1 style="font-size: 2.2rem; font-weight: 900; margin-bottom: 1rem; line-height: 1.3;">كن شريكًا ووسع نطاق خدماتك</h1>
-            <p style="font-size: 1rem; opacity: 0.95; line-height: 1.8; font-weight: 600; max-width: 580px;">
-                وصل خدمتك مباشرة للمستخدمين المهتمين بالسلعة. اعرض خدماتك مثل الفحص، الشحن أو أي خدمة متخصصة، وخلي إعلانك يظهر بجانب المنتجات ذات الصلة لفرص أعلى وتحويل أسرع.
-            </p>
-            
-            <!-- Indicators / dots at the bottom -->
-            <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 2rem;">
-                <span style="width: 8px; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%;"></span>
-                <span style="width: 8px; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%;"></span>
-                <span style="width: 24px; height: 8px; background: white; border-radius: 8px;"></span>
-            </div>
+    @php
+        $partnerSlides = [];
+        if (isset($banners) && $banners->count() > 0) {
+            foreach($banners as $b) {
+                if (is_array($b->items) && count($b->items) > 0) {
+                    foreach($b->items as $item) {
+                        $partnerSlides[] = [
+                            'title' => $item['title'] ?? $b->title,
+                            'description' => $item['description'] ?? $b->description,
+                            'image' => $item['image'] ?? $b->image,
+                            'button_text' => $item['button_text'] ?? $b->button_text,
+                            'show_button' => $item['show_button'] ?? true
+                        ];
+                    }
+                } else {
+                    $partnerSlides[] = [
+                        'title' => $b->title,
+                        'description' => $b->description,
+                        'image' => $b->image,
+                        'button_text' => $b->button_text,
+                        'show_button' => true
+                    ];
+                }
+            }
+        }
+
+        // Fallback slide
+        if (empty($partnerSlides)) {
+            $partnerSlides[] = [
+                'title' => 'كن شريكًا ووسع نطاق خدماتك',
+                'description' => 'وصل خدمتك مباشرة للمستخدمين المهتمين بالسلعة. اعرض خدماتك مثل الفحص، الشحن أو أي خدمة متخصصة، وخلي إعلانك يظهر بجانب المنتجات ذات الصلة لفرص أعلى وتحويل أسرع.',
+                'image' => 'images/hero_car.png',
+                'button_text' => '',
+                'show_button' => false
+            ];
+        }
+    @endphp
+
+    <!-- Partner Welcome Banner Slider -->
+    <div class="partner-banner relative mb-12 overflow-hidden flex flex-col md:flex-row items-center justify-between" style="border-radius: 30px; padding: 0; color: white; min-height: 280px; box-shadow: 0 15px 35px rgba(26, 115, 232, 0.15);">
+        <div style="position: absolute; inset: 0; width: 100%; height: 100%;" id="partnerBannerWrapper">
+            @foreach($partnerSlides as $index => $item)
+                <div class="partner-slide-item {{ $index === 0 ? 'active-slide' : 'hidden' }}" data-index="{{ $index }}" style="position: absolute; inset: 0; padding: 3rem 4rem; display: flex; flex-direction: row; align-items: center; justify-content: space-between;">
+                    <!-- Right side: Text details -->
+                    <div class="w-full md:w-3/5 z-10" style="margin-bottom: 2rem; md:margin-bottom: 0; display: flex; flex-direction: column; justify-content: center; height: 100%;">
+                        <h1 style="font-size: 2.2rem; font-weight: 900; margin-bottom: 1rem; line-height: 1.3;">{{ $item['title'] }}</h1>
+                        <p style="font-size: 1rem; opacity: 0.95; line-height: 1.8; font-weight: 600; max-width: 580px;">
+                            {{ $item['description'] }}
+                        </p>
+                        @if(!empty($item['show_button']) && !empty($item['button_text']))
+                            <div style="margin-top: 1.5rem;">
+                                <a href="{{ route('ads.create') }}" style="display: inline-block; padding: 0.75rem 2rem; background: white; color: #1A73E8; border-radius: 12px; font-weight: 800; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">{{ $item['button_text'] }}</a>
+                            </div>
+                        @endif
+                    </div>
+                    
+                    <!-- Left side: Image -->
+                    <div class="relative w-full md:w-2/5 flex items-center justify-center md:justify-end z-10" style="height: 100%;">
+                        @php
+                            $imgPath = $item['image'];
+                            if (!str_starts_with($imgPath, 'http') && !str_starts_with($imgPath, 'images/')) {
+                                $imgPath = asset($imgPath);
+                            } elseif (str_starts_with($imgPath, 'images/')) {
+                                $imgPath = asset($imgPath);
+                            }
+                        @endphp
+                        <img src="{{ $imgPath }}" alt="Partner Banner Image" style="max-height: 240px; {{ $imgPath == asset('images/hero_car.png') ? 'transform: rotate(90deg);' : '' }} object-fit: contain; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.3));" onerror="this.src='{{ asset('images/login-illustration.png') }}'; this.style.transform='none';">
+                    </div>
+                </div>
+            @endforeach
         </div>
-        
-        <!-- Left side: Car Image & Slide Buttons -->
-        <div class="relative w-full md:w-2/5 flex items-center justify-center md:justify-end z-10">
-            <img src="{{ asset('images/hero_car.png') }}" alt="Partner Car" style="max-height: 240px; transform: rotate(90deg); object-fit: contain; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.3));" onerror="this.src='{{ asset('images/login-illustration.png') }}'; this.style.transform='none';">
-            
-            <!-- Slider Arrow Buttons -->
-            <div style="position: absolute; bottom: -2rem; left: 0; display: flex; gap: 0.75rem;">
-                <button type="button" style="width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.6); background: transparent; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fa-solid fa-chevron-left"></i></button>
-                <button type="button" style="width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.6); background: transparent; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fa-solid fa-chevron-right"></i></button>
+
+        @if(count($partnerSlides) > 1)
+            <!-- Slider Indicators & Controls -->
+            <div style="position: absolute; bottom: 2rem; right: 4rem; display: flex; align-items: center; gap: 0.5rem; z-index: 20;">
+                @foreach($partnerSlides as $index => $item)
+                    <span class="partner-dot {{ $index === 0 ? 'active' : '' }}" onclick="goToPartnerSlide({{ $index }})" style="width: {{ $index === 0 ? '24px' : '8px' }}; height: 8px; background: {{ $index === 0 ? 'white' : 'rgba(255,255,255,0.4)' }}; border-radius: 8px; cursor: pointer; transition: all 0.3s;"></span>
+                @endforeach
             </div>
-        </div>
+            <div style="position: absolute; bottom: 2rem; left: 4rem; display: flex; gap: 0.75rem; z-index: 20;">
+                <button type="button" onclick="prevPartnerSlide()" style="width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.6); background: transparent; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fa-solid fa-chevron-left"></i></button>
+                <button type="button" onclick="nextPartnerSlide()" style="width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.6); background: transparent; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        @endif
     </div>
 
     <!-- Section Title -->
@@ -277,10 +345,10 @@
                                 </a>
                                 
                                 <!-- Delete Button -->
-                                <form action="{{ route('ads.destroy', $ad->id) }}" method="POST" style="flex: 1; margin: 0;" onsubmit="return confirm('هل أنت متأكد من رغبتك في حذف هذا الإعلان نهائياً؟');">
+                                <form id="delete-form-{{ $ad->id }}" action="{{ route('ads.destroy', $ad->id) }}" method="POST" style="flex: 1; margin: 0;">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" style="width: 100%; padding: 0.8rem; background-color: #F1F5F9; color: #475569; border: none; border-radius: 14px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s;">
+                                    <button type="button" onclick="confirmDeletePartnerAd({{ $ad->id }})" style="width: 100%; padding: 0.8rem; background-color: #F1F5F9; color: #475569; border: none; border-radius: 14px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s;">
                                         <i class="fa-solid fa-trash-can"></i>
                                         <span>حذف</span>
                                     </button>
@@ -482,5 +550,67 @@
             }
         });
     });
+
+    // Partner Slider Logic
+    let currentPartnerSlide = 0;
+    const partnerSlidesCount = {{ count($partnerSlides) }};
+
+    function showPartnerSlide(n) {
+        if (partnerSlidesCount <= 1) return;
+        const slides = document.querySelectorAll('.partner-slide-item');
+        const dots = document.querySelectorAll('.partner-dot');
+        
+        if (slides[currentPartnerSlide]) {
+            slides[currentPartnerSlide].classList.remove('active-slide');
+            slides[currentPartnerSlide].classList.add('hidden');
+        }
+        if (dots[currentPartnerSlide]) {
+            dots[currentPartnerSlide].style.width = '8px';
+            dots[currentPartnerSlide].style.background = 'rgba(255,255,255,0.4)';
+        }
+
+        currentPartnerSlide = (n + partnerSlidesCount) % partnerSlidesCount;
+
+        if (slides[currentPartnerSlide]) {
+            slides[currentPartnerSlide].classList.add('active-slide');
+            slides[currentPartnerSlide].classList.remove('hidden');
+        }
+        if (dots[currentPartnerSlide]) {
+            dots[currentPartnerSlide].style.width = '24px';
+            dots[currentPartnerSlide].style.background = 'white';
+        }
+    }
+
+    function nextPartnerSlide() { showPartnerSlide(currentPartnerSlide + 1); }
+    function prevPartnerSlide() { showPartnerSlide(currentPartnerSlide - 1); }
+    function goToPartnerSlide(n) { showPartnerSlide(n); }
+
+    // Auto-slide every 5 seconds
+    if (partnerSlidesCount > 1) {
+        setInterval(nextPartnerSlide, 5000);
+    }
+
+    // SweetAlert2 Delete Confirmation
+    function confirmDeletePartnerAd(adId) {
+        Swal.fire({
+            title: 'هل أنت متأكد من الحذف؟',
+            text: 'لن تتمكن من استعادة هذا الإعلان بعد حذفه نهائياً!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#EF4444',
+            cancelButtonColor: '#64748B',
+            confirmButtonText: 'نعم، احذفه',
+            cancelButtonText: 'إلغاء',
+            customClass: {
+                popup: 'rounded-[24px]',
+                confirmButton: 'rounded-xl px-6 py-3 font-bold',
+                cancelButton: 'rounded-xl px-6 py-3 font-bold'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('delete-form-' + adId).submit();
+            }
+        });
+    }
 </script>
 @endsection

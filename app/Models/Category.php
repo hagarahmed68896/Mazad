@@ -17,6 +17,12 @@ class Category extends Model
         'ad_types' => 'array',
     ];
 
+    protected static function booted()
+    {
+        static::saved(fn () => \Illuminate\Support\Facades\Cache::forget('parent_categories_list'));
+        static::deleted(fn () => \Illuminate\Support\Facades\Cache::forget('parent_categories_list'));
+    }
+
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'parent_id');
@@ -50,5 +56,26 @@ class Category extends Model
     public function services(): HasMany
     {
         return $this->hasMany(Service::class);
+    }
+
+    public function getImageAttribute($value)
+    {
+        if (!$value) {
+            return 'https://mazad-admin.com/uploads/categories/placeholder.png';
+        }
+
+        if (\Illuminate\Support\Str::startsWith($value, 'http')) {
+            return $value;
+        }
+
+        if (\Illuminate\Support\Str::startsWith($value, 'uploads/')) {
+            return asset($value);
+        }
+
+        if (\Illuminate\Support\Str::startsWith($value, 'categories/')) {
+            return asset('storage/' . $value);
+        }
+
+        return asset('uploads/' . $value);
     }
 }

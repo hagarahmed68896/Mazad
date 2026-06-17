@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>مزاد | المنصة الأولى للمزادات</title>
 
     <!-- Fonts -->
@@ -32,7 +33,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <!-- Styles -->
-    <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}">
     <style>
         body { font-family: 'Cairo', 'Outfit', sans-serif; }
         h1, h2, h3, h4, h5, h6 { font-family: 'Cairo', sans-serif; font-weight: 700; }
@@ -62,7 +63,7 @@
         <section class="hero">
             <div class="hero-banner" id="heroBanner">
                 <div class="banner-wrapper" id="bannerWrapper">
-                    @php 
+                     @php 
                         $slidesList = [];
                         foreach($banners as $banner) {
                             if (is_array($banner->items) && count($banner->items) > 0) {
@@ -72,7 +73,8 @@
                                         'description' => $item['description'] ?? $banner->description,
                                         'image' => $item['image'] ?? $banner->image,
                                         'button_text' => $item['button_text'] ?? $banner->button_text,
-                                        'show_button' => $item['show_button'] ?? true
+                                        'show_button' => $item['show_button'] ?? true,
+                                        'url' => $item['url'] ?? '#'
                                     ];
                                 }
                             } else {
@@ -81,7 +83,8 @@
                                     'description' => $banner->description,
                                     'image' => $banner->image,
                                     'button_text' => $banner->button_text,
-                                    'show_button' => true
+                                    'show_button' => true,
+                                    'url' => $banner->url ?? '#'
                                 ];
                             }
                         }
@@ -92,7 +95,8 @@
                                 'description' => 'منصة موثوقة تمكّنك من تصفح آلاف الإعلانات أو إضافة إعلانك خلال دقائق.',
                                 'image' => 'images/hero_car.png',
                                 'button_text' => '',
-                                'show_button' => false
+                                'show_button' => false,
+                                'url' => '#'
                             ];
                         }
                     @endphp
@@ -103,7 +107,7 @@
                                 <h1>{{ $item['title'] }}</h1>
                                 <p>{{ $item['description'] }}</p>
                                 @if(!empty($item['show_button']) && !empty($item['button_text']))
-                                    <a href="#" class="btn btn-primary" style="margin-top: 2rem; display: inline-block;">{{ $item['button_text'] }}</a>
+                                    <a href="{{ $item['url'] }}" class="btn btn-primary" style="margin-top: 2rem; display: inline-block;">{{ $item['button_text'] }}</a>
                                 @endif
                             </div>
                             <div class="hero-image">
@@ -216,7 +220,7 @@
         <section class="section discovery-categories">
             <div class="section-header d-flex justify-content-between align-items-center">
                 <h2 class="section-title">اكتشف أبرز الفئات</h2>
-                <a href="#" class="view-all-btn">عرض الكل</a>
+                <a href="{{ route('categories.all') }}" class="view-all-btn">عرض الكل</a>
             </div>
             
             <div class="categories-carousel-container">
@@ -224,9 +228,12 @@
                 <div class="categories-carousel">
                     <div class="category-track" id="catTrack">
                         @foreach($discoveryCategories as $index => $category)
-                            <a href="#" class="category-item">
-                                <div class="category-icon">
-                                    <img src="{{ $category->image ? (Str::startsWith($category->image, 'uploads/') ? asset($category->image) : asset('uploads/' . $category->image)) : 'https://mazad-admin.com/uploads/categories/placeholder.png' }}" alt="{{ $category->name }}">
+                            <a href="{{ route('categories.show', $category->id) }}" 
+                               onclick="window.location.href='{{ route('categories.show', $category->id) }}'"
+                               class="category-item" 
+                               style="position: relative !important; z-index: 999 !important; pointer-events: auto !important;">
+                               <div class="category-icon">
+                                    <img src="{{ $category->image }}" alt="{{ $category->name }}">
                                 </div>
                                 <span class="category-name">{{ $category->name }}</span>
                             </a>
@@ -264,7 +271,7 @@
             <section class="section featured-ads">
                 <div class="section-header d-flex justify-content-between align-items-center">
                     <h2 class="section-title">المزادات الحالية</h2>
-                    <a href="{{ route('search') }}" class="view-all-btn">عرض الكل</a>
+                    <a href="{{ route('search', ['type' => 'auction']) }}" class="view-all-btn">عرض الكل</a>
                 </div>
                 
                 <div class="ads-carousel-outer">
@@ -284,7 +291,7 @@
             <section class="section featured-ads">
                 <div class="section-header d-flex justify-content-between align-items-center">
                     <h2 class="section-title">عروض الشراء الفوري</h2>
-                    <a href="{{ route('search') }}" class="view-all-btn">عرض الكل</a>
+                    <a href="{{ route('search', ['type' => 'direct_purchase']) }}" class="view-all-btn">عرض الكل</a>
                 </div>
                 
                 <div class="ads-carousel-outer">
@@ -346,7 +353,7 @@
             <section class="section featured-ads">
                 <div class="section-header">
                     <h2 class="section-title">الإعلانات قرب الانتهاء</h2>
-                    <a href="{{ route('search') }}" class="view-all-btn">عرض الكل</a>
+                    <a href="{{ route('search', ['sort' => 'ending_soon']) }}" class="view-all-btn">عرض الكل</a>
                 </div>
                 
                 <div class="ads-carousel-outer">
@@ -814,5 +821,6 @@
             </div>
         </div>
     </div>
+    @stack('scripts')
 </body>
 </html>

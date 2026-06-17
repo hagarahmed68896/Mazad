@@ -81,7 +81,7 @@
                         <div class="interest-item {{ $isSelected ? 'selected' : '' }}" onclick="toggleProfileInterest(this)">
                             <input type="checkbox" name="category_ids[]" value="{{ $category->id }}" {{ $isSelected ? 'checked' : '' }} class="hidden">
                             <div class="interest-icon h-20 w-20 flex items-center justify-center mb-4">
-                                <img src="{{ $category->image ? (Str::startsWith($category->image, 'uploads/') ? asset($category->image) : asset('uploads/' . $category->image)) : 'https://mazad-admin.com/uploads/categories/placeholder.png' }}" alt="{{ $category->name }}" class="max-h-full max-w-full object-contain">
+                                <img src="{{ $category->image }}" alt="{{ $category->name }}" class="max-h-full max-w-full object-contain">
                             </div>
                             <span class="text-sm md:text-base font-black text-gray-700 select-none transition-colors" style="color: {{ $isSelected ? '#1A73E8' : '#475569' }}">{{ $category->name }}</span>
                             <div class="check-badge absolute top-4 left-4 text-primary transition-opacity duration-200 {{ $isSelected ? 'opacity-100' : 'opacity-0' }}" style="color: #1A73E8;">

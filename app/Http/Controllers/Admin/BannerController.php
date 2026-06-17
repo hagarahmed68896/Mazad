@@ -42,6 +42,7 @@ class BannerController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'status' => 'required',
+            'for_user_type' => 'nullable|string|in:normal,partner',
             'items' => 'required|array|min:1',
         ]);
 
@@ -58,6 +59,7 @@ class BannerController extends Controller
                 'description' => $itemData['description'] ?? '',
                 'button_text' => $itemData['button_text'] ?? '',
                 'show_button' => $itemData['show_button'] ?? '0',
+                'url'         => '#',
                 'image'       => null,
             ];
 
@@ -75,6 +77,7 @@ class BannerController extends Controller
         Banner::create([
             'name'        => $request->name,
             'status'      => $request->status,
+            'for_user_type'=> $request->for_user_type ?? 'normal',
             'items'       => $items,
             // Fallback for index view (use first item)
             'title'       => $items[0]['title'] ?? $request->name,
@@ -86,9 +89,6 @@ class BannerController extends Controller
         return redirect()->route('admin.banners.index')->with('success', 'تمت إضافة البانر بنجاح');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(Banner $banner)
     {
         return view('admin.banners.edit', compact('banner'));
@@ -102,6 +102,7 @@ class BannerController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'status' => 'required',
+            'for_user_type' => 'nullable|string|in:normal,partner',
             'items' => 'required|array|min:1',
         ]);
 
@@ -118,6 +119,7 @@ class BannerController extends Controller
                 'description' => $itemData['description'] ?? '',
                 'button_text' => $itemData['button_text'] ?? '',
                 'show_button' => $itemData['show_button'] ?? '0',
+                'url'         => '#',
                 'image'       => $itemData['existing_image'] ?? null,
             ];
 
@@ -139,6 +141,7 @@ class BannerController extends Controller
         $banner->update([
             'name'        => $request->name,
             'status'      => $request->status,
+            'for_user_type'=> $request->for_user_type ?? 'normal',
             'items'       => $newItems,
             // Fallback for index view (use first item)
             'title'       => $newItems[0]['title'] ?? $request->name,

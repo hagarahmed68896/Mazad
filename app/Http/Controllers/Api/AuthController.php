@@ -69,20 +69,22 @@ class AuthController extends Controller
         }
 
         // 🔒 New Device Login Detection
-        $userAgent = $request->userAgent() ?: 'unknown_device';
+        $userAgent = $request->header('X-Device-Id') ?: ($request->input('device_id') ?: $request->userAgent() ?: 'unknown_device');
         $deviceSignature = md5($userAgent);
 
         $knownDevices = is_array($user->known_devices) ? $user->known_devices : [];
 
         if (!in_array($deviceSignature, $knownDevices)) {
-            \App\Models\Notification::create([
-                'user_id' => $user->id,
-                'type' => 'alert',
-                'title' => 'تنبيه أمان: تسجيل دخول جديد',
-                'content' => "تم رصد تسجيل دخول جديد لحسابك من جهاز جديد في تاريخ " . now()->format('Y-m-d H:i') . ". إذا لم تكن أنت، يرجى تغيير كلمة المرور فوراً لتأمين حسابك.",
-                'status' => 'sent',
-                'read_at' => null
-            ]);
+            if (count($knownDevices) > 0) {
+                \App\Models\Notification::create([
+                    'user_id' => $user->id,
+                    'type' => 'alert',
+                    'title' => 'تنبيه أمان: تسجيل دخول جديد',
+                    'content' => "تم رصد تسجيل دخول جديد لحسابك من جهاز جديد في تاريخ " . now()->format('Y-m-d H:i') . ". إذا لم تكن أنت، يرجى تغيير كلمة المرور فوراً لتأمين حسابك.",
+                    'status' => 'sent',
+                    'read_at' => null
+                ]);
+            }
 
             $knownDevices[] = $deviceSignature;
             $user->update([
@@ -150,6 +152,9 @@ class AuthController extends Controller
             return $this->apiResponse(false, 'فشل التحقق من البيانات', $validator->errors(), 422);
         }
 
+        $userAgent = $request->header('X-Device-Id') ?: ($request->input('device_id') ?: $request->userAgent() ?: 'unknown_device');
+        $deviceSignature = md5($userAgent);
+
         $userData = [
             'name' => $request->name,
             'email' => $request->email,
@@ -157,6 +162,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'account_type' => $request->account_type,
             'status' => 'active',
+            'known_devices' => [$deviceSignature],
         ];
 
         if ($request->account_type === 'company') {

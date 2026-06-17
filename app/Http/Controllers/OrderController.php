@@ -36,11 +36,11 @@ class OrderController extends Controller
         }
 
         // Calculate fees (same logic as show.blade)
-        $comm_rate = (float) (\App\Models\Setting::where('key', 'commission_rate')->first()->value ?? 2.5);
+        $comm_rate = (float) (\App\Models\Setting::where('key', 'commission_rate')->value('value') ?? 2.5);
         if ($comm_rate > 50) $comm_rate = 2.5;
         $vat_rate = 15;
-        $admin_fees = (float) (\App\Models\Setting::where('key', 'admin_fees')->first()->value ?? 19);
-        $transfer_fees = (float) (\App\Models\Setting::where('key', 'transfer_fees')->first()->value ?? 500);
+        $admin_fees = (float) (\App\Models\Setting::where('key', 'admin_fees')->value('value') ?? 19);
+        $transfer_fees = (float) (\App\Models\Setting::where('key', 'transfer_fees')->value('value') ?? 500);
 
         $saai_val = $ad->price * ($comm_rate / 100);
         $vat_val = $saai_val * ($vat_rate / 100);

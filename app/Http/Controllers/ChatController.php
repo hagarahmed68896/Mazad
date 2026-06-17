@@ -221,33 +221,66 @@ class ChatController extends Controller
     public function startConversation(Request $request)
     {
         $request->validate([
-            'ad_id' => 'required|exists:ads,id',
+            'ad_id' => 'nullable|exists:ads,id',
+            'service_id' => 'nullable|exists:services,id',
         ]);
 
-        $ad = \App\Models\Ad::findOrFail($request->ad_id);
         $user = auth()->user();
+        $recipientId = null;
+        $adId = null;
+        $initialMessage = null;
 
-        if ($ad->user_id == $user->id) {
+        if ($request->filled('ad_id')) {
+            $ad = \App\Models\Ad::findOrFail($request->ad_id);
+            $recipientId = $ad->user_id;
+            $adId = $ad->id;
+            $initialMessage = "مرحباً، أود الاستفسار عن إعلانك: " . $ad->title;
+        } elseif ($request->filled('service_id')) {
+            $service = \App\Models\Service::findOrFail($request->service_id);
+            $recipientId = $service->user_id;
+            $initialMessage = "مرحباً، أود طلب خدمتك: " . $service->title;
+        }
+
+        if (!$recipientId) {
+            return back()->with('error', 'يجب تحديد إعلان أو خدمة لبدء المحادثة.');
+        }
+
+        if ($recipientId == $user->id) {
             return back()->with('error', 'لا يمكنك بدء دردشة مع نفسك.');
         }
 
-        // Check if conversation already exists between these two users for this ad
-        $conversation = Conversation::where('ad_id', $ad->id)
-            ->where(function($q) use ($user, $ad) {
-                $q->where(function($sq) use ($user, $ad) {
-                    $sq->where('user_one_id', $user->id)->where('user_two_id', $ad->user_id);
-                })->orWhere(function($sq) use ($user, $ad) {
-                    $sq->where('user_one_id', $ad->user_id)->where('user_two_id', $user->id);
-                });
-            })->first();
+        // Check if conversation already exists between these two users
+        $conversationQuery = Conversation::where(function($q) use ($user, $recipientId) {
+            $q->where(function($sq) use ($user, $recipientId) {
+                $sq->where('user_one_id', $user->id)->where('user_two_id', $recipientId);
+            })->orWhere(function($sq) use ($user, $recipientId) {
+                $sq->where('user_one_id', $recipientId)->where('user_two_id', $user->id);
+            });
+        });
+
+        if ($adId) {
+            $conversationQuery->where('ad_id', $adId);
+        }
+
+        $conversation = $conversationQuery->first();
 
         if (!$conversation) {
             $conversation = Conversation::create([
                 'user_one_id' => $user->id,
-                'user_two_id' => $ad->user_id,
-                'ad_id' => $ad->id,
+                'user_two_id' => $recipientId,
+                'ad_id' => $adId,
                 'last_message_at' => now(),
             ]);
+
+            // Send initial automated message if it's a new conversation
+            if ($initialMessage) {
+                Message::create([
+                    'conversation_id' => $conversation->id,
+                    'sender_id' => $user->id,
+                    'content' => $initialMessage,
+                    'type' => 'text'
+                ]);
+            }
         }
 
         return redirect()->route('chats.index', ['id' => $conversation->id]);

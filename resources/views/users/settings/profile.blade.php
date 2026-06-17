@@ -136,10 +136,10 @@
                                 <div>
                                     <label class="block text-gray-700 font-bold mb-2 text-right text-sm">رقم الجوال</label>
                                     <div class="relative flex items-center">
-                                        <div class="absolute right-0 top-0 bottom-0 px-4 bg-gray-50 border-l border-gray-200 flex items-center justify-center rounded-r-2xl font-bold text-gray-500" dir="ltr">
+                                        <div class="absolute left-0 top-0 bottom-0 px-4 bg-gray-50 border-r border-gray-200 flex items-center justify-center rounded-l-2xl font-bold text-gray-500" dir="ltr">
                                             +966
                                         </div>
-                                        <input type="text" name="phone" id="phone-input" value="{{ old('phone', Auth::user()->phone) }}" placeholder="5XXXXXXXX" class="w-full bg-white border border-gray-200 rounded-2xl py-3 pr-20 pl-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm" dir="ltr" maxlength="9" inputmode="numeric" pattern="5[0-9]{8}" oninput="let val = this.value.replace(/[^0-9]/g, ''); if(val.startsWith('0')) { val = val.substring(1); } this.value = val.slice(0,9);" required>
+                                        <input type="text" name="phone" id="phone-input" value="{{ old('phone', Auth::user()->phone) }}" placeholder="5XXXXXXXX" class="w-full bg-white border border-gray-200 rounded-2xl py-3 pl-20 pr-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm" dir="ltr" maxlength="9" inputmode="numeric" pattern="5[0-9]{8}" oninput="let val = this.value.replace(/[^0-9]/g, ''); if(val.startsWith('0')) { val = val.substring(1); } this.value = val.slice(0,9);" required>
                                     </div>
                                     @error('phone') <span class="text-red-500 text-xs font-bold mt-1 block text-right">{{ $message }}</span> @enderror
                                 </div>

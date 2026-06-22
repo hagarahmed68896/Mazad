@@ -63,9 +63,9 @@
 
                     <!-- Uploaded File Display Box -->
                     <div id="fileListContainer" class="mt-4 hidden transform translate-y-2 opacity-0 transition-all duration-300">
-                        <div class="border border-slate-200 rounded-2xl p-4 flex justify-between items-center bg-slate-50/30">
+                        <div class="border border-slate-200 rounded-2xl p-4 flex justify-between items-center bg-slate-50/30 gap-3">
                             <!-- Left: Trash & Eye Actions -->
-                            <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-4 flex-shrink-0">
                                 <button type="button" id="deleteFileBtn" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 transition-all duration-200 flex items-center justify-center" title="حذف الملف">
                                     <i class="fa-solid fa-trash-can text-base"></i>
                                 </button>
@@ -73,9 +73,10 @@
                                     <i class="fa-solid fa-eye text-base"></i>
                                 </button>
                             </div>
-                            <!-- Right: Filename and Extension -->
-                            <div class="flex items-center gap-2 text-slate-700 font-bold text-sm">
-                                <span id="fileNameDisplay" class="truncate max-w-[250px] sm:max-w-[450px]">صورة.pdf</span>
+                            <!-- Right: Thumbnail + Filename -->
+                            <div class="flex items-center gap-3 flex-1 min-w-0 justify-end">
+                                <span id="fileNameDisplay" class="truncate max-w-[200px] sm:max-w-[380px] text-slate-700 font-bold text-sm">صورة.png</span>
+                                <img id="fileThumbnail" src="" alt="معاينة" class="w-14 h-14 rounded-xl object-cover border border-slate-200 shadow-sm flex-shrink-0 hidden">
                             </div>
                         </div>
                     </div>
@@ -194,6 +195,7 @@
         const previewImg = document.getElementById("previewImageElement");
         const submitAdBtn = document.getElementById("submitAdBtn");
         const form = document.getElementById("partnerAdForm");
+        const fileThumbnail = document.getElementById("fileThumbnail");
 
         let currentFileObject = null;
 
@@ -274,10 +276,13 @@
                 fileListContainer.classList.remove("translate-y-2", "opacity-0");
             }, 50);
 
-            // Read file for preview
+            // Read file for preview and thumbnail
             const reader = new FileReader();
             reader.onload = function(e) {
                 previewImg.src = e.target.result;
+                // Show thumbnail immediately next to filename
+                fileThumbnail.src = e.target.result;
+                fileThumbnail.classList.remove("hidden");
             }
             reader.readAsDataURL(file);
         }
@@ -288,6 +293,8 @@
             fileInput.value = ""; // Clear file input
             currentFileObject = null;
             previewImg.src = "";
+            fileThumbnail.src = "";
+            fileThumbnail.classList.add("hidden");
 
             // Hide with animation
             fileListContainer.classList.add("translate-y-2", "opacity-0");
@@ -299,7 +306,7 @@
         // Preview selected file in modal
         previewFileBtn.addEventListener("click", function(e) {
             e.stopPropagation();
-            if (previewImg.src) {
+            if (currentFileObject && previewImg.src && previewImg.src !== window.location.href) {
                 previewModal.classList.remove("hidden");
                 previewModal.classList.add("flex");
             }

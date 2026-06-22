@@ -136,9 +136,7 @@ class ReportController extends Controller
                         ->count();
                 }
                 
-                if ($val == 0) {
-                    $val = $tab === 'sales' ? rand(50000, 150000) : rand(3, 12);
-                }
+
                 
                 $chartData[] = (float) $val;
             }

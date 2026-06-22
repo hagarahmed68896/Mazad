@@ -13,7 +13,7 @@ class Order extends Model
 
     protected $fillable = [
         'order_number', 'ad_id', 'buyer_id', 'seller_id', 
-        'final_price', 'award_duration', 'status', 'delivery_code'
+        'final_price', 'quantity', 'award_duration', 'status', 'delivery_code'
     ];
 
     public function ad(): BelongsTo

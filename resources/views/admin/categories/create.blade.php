@@ -13,6 +13,16 @@
         <h1 class="text-2xl font-black text-[#1C1C1C]">إضافة فئة</h1>
     </div>
 
+    @if ($errors->any())
+        <div class="mb-6 p-4 bg-red-50 border-r-4 border-red-500 rounded-xl">
+            <ul class="list-disc list-inside text-sm text-red-600 font-bold">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <form action="{{ route('admin.categories.store') }}" method="POST" enctype="multipart/form-data" class="space-y-8">
         @csrf
 
@@ -48,7 +58,7 @@
 
                     <template x-if="imagePreview">
                         <div class="relative w-full h-full p-4 flex items-center justify-center">
-                            <img :src="imagePreview" class="max-h-[200px] w-auto object-contain rounded-2xl" alt="Preview">
+                            <img :src="imagePreview" style="max-height: 200px; max-width: 100%; object-fit: contain;" class="rounded-2xl" alt="Preview">
                             <button type="button" @click="removeImage()" class="absolute top-4 left-4 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-all">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>

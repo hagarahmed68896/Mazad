@@ -46,36 +46,41 @@ class FcmService
 
             // Standardize dynamic actions for buttons (e.g. key: "click_action", "action_buttons", etc.)
             // The mobile app can capture this payload to draw notification action buttons.
-            $payload = [
-                'message' => [
-                    'token' => $token,
+            $message = [
+                'token' => $token,
+                'notification' => [
+                    'title' => $title,
+                    'body' => $body,
+                ],
+                'android' => [
+                    'priority' => 'high',
                     'notification' => [
-                        'title' => $title,
-                        'body' => $body,
+                        'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                        'sound' => 'default',
+                        'channel_id' => 'high_importance_channel', // For Flutter local notifications
+                    ]
+                ],
+                'apns' => [
+                    'headers' => [
+                        'apns-priority' => '10',
                     ],
-                    'data' => $stringData,
-                    'android' => [
-                        'priority' => 'high',
-                        'notification' => [
-                            'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                    'payload' => [
+                        'aps' => [
                             'sound' => 'default',
-                            'channel_id' => 'high_importance_channel', // For Flutter local notifications
-                        ]
-                    ],
-                    'apns' => [
-                        'headers' => [
-                            'apns-priority' => '10',
-                        ],
-                        'payload' => [
-                            'aps' => [
-                                'sound' => 'default',
-                                'badge' => 1,
-                                'content-available' => 1,
-                            ]
+                            'badge' => 1,
+                            'content-available' => 1,
                         ]
                     ]
                 ]
             ];
+
+            // FCM v1 data field MUST be a key-value map (not an empty list)
+            // Only include data if there are actual string key-value pairs
+            if (!empty($stringData)) {
+                $message['data'] = $stringData;
+            }
+
+            $payload = ['message' => $message];
 
             $response = Http::withToken($accessToken)
                 ->withHeaders(['Content-Type' => 'application/json'])

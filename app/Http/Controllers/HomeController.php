@@ -14,6 +14,48 @@ class HomeController extends Controller
 {
     public function index()
     {
+        // Temporary DB update trigger via query param to bypass route caching
+        if (request()->has('run_updates')) {
+            try {
+                // Run migrations
+                \Illuminate\Support\Facades\Artisan::call('migrate');
+                $migOutput = \Illuminate\Support\Facades\Artisan::output();
+                
+                // Require and run seeder directly to bypass composer autoload caching
+                $seederPath = base_path('database/seeders/PartnerBannerSeeder.php');
+                if (file_exists($seederPath)) {
+                    require_once $seederPath;
+                    $seeder = new \Database\Seeders\PartnerBannerSeeder();
+                    $seeder->run();
+                    $seedOutput = "PartnerBannerSeeder executed successfully via direct file require!";
+                } else {
+                    $seedOutput = "Seeder file not found at: " . $seederPath;
+                }
+                
+                return "Migration output: <pre>$migOutput</pre><br>Seeder status: <b>$seedOutput</b><br>Done! 🎉";
+            } catch (\Exception $e) {
+                return "Error: " . $e->getMessage() . "<br>Line: " . $e->getLine() . "<br>File: " . $e->getFile();
+            }
+        }
+        // Temporary Banner diagnostics
+        if (request()->has('check_banners')) {
+            try {
+                $banners = \App\Models\Banner::where('for_user_type', 'partner')->get();
+                $info = [];
+                foreach ($banners as $b) {
+                    $info[] = [
+                        'id' => $b->id,
+                        'name' => $b->name,
+                        'status' => $b->status,
+                        'items_count' => is_array($b->items) ? count($b->items) : 'not array/empty',
+                        'items' => $b->items
+                    ];
+                }
+                return response()->json($info);
+            } catch (\Exception $e) {
+                return "Error: " . $e->getMessage();
+            }
+        }
         if (Auth::check()) {
             if (Auth::user()->email === 'admin@mazad.com') {
                 return redirect()->route('admin.dashboard');
@@ -347,7 +389,9 @@ class HomeController extends Controller
         }
         
         // Increment views
-        $ad->increment('views_count');
+        if (!Auth::check() || Auth::id() !== $ad->user_id) {
+            $ad->increment('views_count');
+        }
 
         // Related Ads (Same category, only active and not expired)
         $relatedAds = Ad::with(['category', 'user', 'city'])
@@ -489,10 +533,31 @@ class HomeController extends Controller
         return back()->with('success', 'تم إرسال البلاغ بنجاح');
     }
 
-    public function adServices($id)
+    public function adServices(Request $request, $id)
     {
         $ad = Ad::findOrFail($id);
-        $services = \App\Models\Service::where('category_id', $ad->category_id)->get();
+        
+        $query = \App\Models\Service::where('category_id', $ad->category_id);
+        
+        // Search Filter
+        if ($request->filled('q')) {
+            $query->where(function($q) use ($request) {
+                $q->where('title', 'like', '%' . $request->q . '%')
+                  ->orWhere('description', 'like', '%' . $request->q . '%');
+            });
+        }
+        
+        // Sorting
+        $sort = $request->get('sort', 'newest');
+        if ($sort === 'price_high') {
+            $query->orderBy('price', 'desc');
+        } elseif ($sort === 'price_low') {
+            $query->orderBy('price', 'asc');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+        
+        $services = $query->paginate(12)->appends($request->all());
         $categories = Category::whereNull('parent_id')->get();
         $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
 

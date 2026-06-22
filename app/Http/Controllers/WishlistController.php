@@ -26,10 +26,11 @@ class WishlistController extends Controller
             })
             ->update(['status' => 'active']);
 
-        // Start query with Ads that are favorited by the current user
+        // Start query with Ads that are favorited by the current user (excluding user's own ads)
         $query = Ad::whereHas('favorites', function ($q) use ($user) {
             $q->where('user_id', $user->id);
-        })->with(['category', 'user', 'city']);
+        })->where('user_id', '!=', $user->id)
+          ->with(['category', 'user', 'city']);
 
         // Filter out blocked users' ads
         if (auth()->check()) {
@@ -159,6 +160,17 @@ class WishlistController extends Controller
     {
         $ad = Ad::findOrFail($adId);
         $user = Auth::user();
+
+        if ($ad->user_id === $user->id) {
+            $message = 'لا يمكنك إضافة إعلانك الخاص إلى المفضلة';
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message
+                ], 400);
+            }
+            return back()->with('error', $message);
+        }
 
         $favorite = Favorite::where('user_id', $user->id)
                             ->where('ad_id', $ad->id)

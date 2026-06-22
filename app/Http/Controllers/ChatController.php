@@ -18,36 +18,33 @@ class ChatController extends Controller
         $user = auth()->user();
         if (!$user) return redirect()->route('home');
 
-        // Create sample conversations if none exist (for demo)
-        if (Conversation::where('user_one_id', $user->id)->orWhere('user_two_id', $user->id)->count() == 0) {
-            $otherUsers = \App\Models\User::where('id', '!=', $user->id)->limit(5)->get();
-            foreach($otherUsers as $ou) {
-                $conv = Conversation::create([
-                    'user_one_id' => $user->id,
-                    'user_two_id' => $ou->id,
-                    'ad_id' => \App\Models\Ad::inRandomOrder()->first()->id,
-                    'last_message_at' => now()
-                ]);
-                Message::create([
-                    'conversation_id' => $conv->id,
-                    'sender_id' => $ou->id,
-                    'content' => 'هل تم الرد علي استفسارك بوضوح ؟',
-                    'created_at' => now()->subMinutes(rand(1, 100))
-                ]);
-            }
-        }
 
         $filter = $request->get('filter', 'all');
+        $search = $request->get('search') ?: $request->get('q');
+        
         $query = Conversation::where(function($q) use ($user) {
                 $q->where('user_one_id', $user->id)
                   ->orWhere('user_two_id', $user->id);
-            })
-            ->with(['userOne', 'userTwo', 'messages', 'ad'])
-            ->orderByRaw('CASE 
-                WHEN (user_one_id = ? AND user_one_pinned = 1) OR (user_two_id = ? AND user_two_pinned = 1) THEN 1 
-                ELSE 0 
-            END DESC', [$user->id, $user->id])
-            ->orderBy('last_message_at', 'desc');
+            });
+
+        if (!empty($search)) {
+            $query->where(function($q) use ($search, $user) {
+                $q->whereHas('userOne', function($uq) use ($search, $user) {
+                    $uq->where('id', '!=', $user->id)
+                       ->where('name', 'like', '%' . $search . '%');
+                })
+                ->orWhereHas('userTwo', function($uq) use ($search, $user) {
+                    $uq->where('id', '!=', $user->id)
+                       ->where('name', 'like', '%' . $search . '%');
+                })
+                ->orWhereHas('messages', function($mq) use ($search) {
+                    $mq->where('content', 'like', '%' . $search . '%');
+                })
+                ->orWhereHas('ad', function($aq) use ($search) {
+                    $aq->where('title', 'like', '%' . $search . '%');
+                });
+            });
+        }
 
         if ($filter == 'unread') {
             $query->whereHas('messages', function($q) use ($user) {
@@ -55,7 +52,13 @@ class ChatController extends Controller
             });
         }
 
-        $conversations = $query->get();
+        $conversations = $query->with(['userOne', 'userTwo', 'messages', 'ad'])
+            ->orderByRaw('CASE 
+                WHEN (user_one_id = ? AND user_one_pinned = 1) OR (user_two_id = ? AND user_two_pinned = 1) THEN 1 
+                ELSE 0 
+            END DESC', [$user->id, $user->id])
+            ->orderBy('last_message_at', 'desc')
+            ->get();
             
         $activeConversation = null;
         $isBlocked = false;

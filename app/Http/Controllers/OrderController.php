@@ -13,6 +13,11 @@ class OrderController extends Controller
 {
     public function store(Request $request, $adId)
     {
+        $request->validate([
+            'quantity' => 'nullable|integer|min:1'
+        ]);
+        
+        $quantity = (int) ($request->quantity ?? 1);
         $ad = Ad::findOrFail($adId);
 
         // Prevent buying own ad
@@ -20,19 +25,25 @@ class OrderController extends Controller
             return back()->with('error', 'لا يمكنك شراء إعلانك الخاص.');
         }
 
-        // Prevent duplicate orders for the same ad
-        $existing = Order::where('ad_id', $ad->id)
-            ->where('buyer_id', Auth::id())
-            ->whereIn('status', ['pending_payment', 'receiving', 'received', 'paid'])
-            ->first();
+        // Prevent duplicate orders for the same ad (only for auctions)
+        if (in_array($ad->type, ['electronic_auction', 'hybrid_auction'])) {
+            $existing = Order::where('ad_id', $ad->id)
+                ->where('buyer_id', Auth::id())
+                ->whereIn('status', ['pending_payment', 'receiving', 'received', 'paid'])
+                ->first();
 
-        if ($existing) {
-            return back()->with('error', 'لقد قمت بشراء هذا الإعلان مسبقاً.');
+            if ($existing) {
+                return back()->with('error', 'لقد قمت بشراء هذا الإعلان مسبقاً.');
+            }
         }
 
-        // Prevent buying a finished ad
-        if ($ad->status === 'finished') {
+        // Prevent buying a finished ad or if requested quantity is more than available
+        if ($ad->status === 'finished' || $ad->quantity <= 0) {
             return back()->with('error', 'هذا الإعلان لم يعد متاحاً للشراء.');
+        }
+
+        if ($ad->quantity < $quantity) {
+            return back()->with('error', 'الكمية المطلوبة غير متوفرة. المتاح حالياً: ' . $ad->quantity);
         }
 
         // Calculate fees (same logic as show.blade)
@@ -45,8 +56,8 @@ class OrderController extends Controller
         $saai_val = $ad->price * ($comm_rate / 100);
         $vat_val = $saai_val * ($vat_rate / 100);
         
-        // Total price for direct purchase matches the UI modal (Price + Admin Fees + Transfer Fees)
-        $total_price = $ad->price + $admin_fees + $transfer_fees;
+        // Total price for direct purchase matches the UI modal (Price * Qty + Admin Fees + Transfer Fees)
+        $total_price = ($ad->price * $quantity) + $admin_fees + $transfer_fees;
 
         // Create the order
         $order = Order::create([
@@ -55,6 +66,7 @@ class OrderController extends Controller
             'buyer_id'     => Auth::id(),
             'seller_id'    => $ad->user_id,
             'final_price'  => round($total_price),
+            'quantity'     => $quantity,
             'status'       => 'pending_payment',
         ]);
 
@@ -69,8 +81,15 @@ class OrderController extends Controller
             'status'             => 'under_review',
         ]);
 
-        // Mark ad as finished so no one else can buy it
-        $ad->update(['status' => 'finished']);
+        // Manage ad quantity and status
+        if ($ad->quantity > $quantity) {
+            $ad->decrement('quantity', $quantity);
+        } else {
+            $ad->update([
+                'quantity' => 0,
+                'status' => 'finished'
+            ]);
+        }
 
         // Remove item from buyer's cart if it exists
         \App\Models\Cart::where('user_id', Auth::id())

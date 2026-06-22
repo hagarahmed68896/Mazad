@@ -75,7 +75,7 @@
                     <div class="text-right mb-6">
                         <h2 class="text-2xl font-black text-[#1C1C1C] mb-2">← حدد الفئة</h2>
                         <p class="text-[#64748B] text-[0.95rem] font-semibold leading-relaxed">
-                            حدد نوع السلع التي تقدم لها خدماتك لتبدأ في استقبال الطلبات.
+                            حدد نوع السلع التي تقدم لها خدماتك لعرضك للعملاء المناسبين.
                         </p>
                     </div>
 

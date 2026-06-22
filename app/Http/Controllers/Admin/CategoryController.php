@@ -55,11 +55,11 @@ class CategoryController extends Controller
             'deposit_value' => 'nullable|numeric|min:0',
             'tax_value' => 'nullable|numeric|min:0',
             'sub_categories' => 'nullable|array',
-            'sub_categories.*' => 'required|string|max:255',
+            'sub_categories.*' => 'nullable|string|max:255',
             'pages' => 'nullable|array',
-            'pages.*' => 'required|string|max:255',
+            'pages.*' => 'nullable|string|max:255',
             'services' => 'nullable|array',
-            'services.*' => 'required|string|max:255',
+            'services.*' => 'nullable|string|max:255',
             'ad_type' => 'nullable|string|in:ads,tenders',
         ], [
             'image.max' => 'عذراً، يجب ألا يتجاوز حجم الصورة 10 ميجابايت.',
@@ -85,34 +85,40 @@ class CategoryController extends Controller
             // Sub Categories
             if ($request->has('sub_categories')) {
                 foreach ($request->sub_categories as $subName) {
-                    Category::create([
-                        'parent_id' => $category->id,
-                        'name' => $subName,
-                        'ad_types' => $category->ad_types, // Inherit ad types? or maybe nullable
-                    ]);
+                    if ($subName) {
+                        Category::create([
+                            'parent_id' => $category->id,
+                            'name' => $subName,
+                            'ad_types' => $category->ad_types, // Inherit ad types? or maybe nullable
+                        ]);
+                    }
                 }
             }
 
             // Pages
             if ($request->has('pages')) {
                 foreach ($request->pages as $pageName) {
-                    CategoryPage::create([
-                        'category_id' => $category->id,
-                        'name' => $pageName,
-                    ]);
+                    if ($pageName) {
+                        CategoryPage::create([
+                            'category_id' => $category->id,
+                            'name' => $pageName,
+                        ]);
+                    }
                 }
             }
 
             // Services
             if ($request->has('services')) {
                 foreach ($request->services as $serviceTitle) {
-                    Service::create([
-                        'category_id' => $category->id,
-                        'user_id' => auth()->id(), // Associate with admin
-                        'title' => $serviceTitle,
-                        'price' => 0,
-                        'description' => $serviceTitle,
-                    ]);
+                    if ($serviceTitle) {
+                        Service::create([
+                            'category_id' => $category->id,
+                            'user_id' => auth()->id(), // Associate with admin
+                            'title' => $serviceTitle,
+                            'price' => 0,
+                            'description' => $serviceTitle,
+                        ]);
+                    }
                 }
             }
 

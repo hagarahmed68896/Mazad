@@ -76,38 +76,19 @@
                     <!-- Services Custom Checkbox cards -->
                     <div class="services-list-container space-y-3" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 20px; padding: 1.25rem;">
                         
-                        <!-- Service 1: Inspection -->
-                        <label class="service-checkbox-card" style="display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid #E2E8F0; padding: 1rem 1.25rem; border-radius: 14px; cursor: pointer; transition: all 0.3s ease;">
-                            <span style="font-size: 0.95rem; font-weight: 700; color: #475569;">خدمة الفحص</span>
-                            <div class="checkbox-wrapper" style="position: relative; width: 22px; height: 22px;">
-                                <input type="checkbox" name="services[]" value="خدمة الفحص" class="service-input" style="display: none;" onchange="updateServiceCard(this)">
-                                <div class="custom-checkbox" style="width: 22px; height: 22px; border: 2px solid #CBD5E1; border-radius: 6px; background: white; transition: all 0.2s; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fa-solid fa-check text-white text-xs" style="display: none;"></i>
+                        @forelse($services as $service)
+                            <label class="service-checkbox-card" style="display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid #E2E8F0; padding: 1rem 1.25rem; border-radius: 14px; cursor: pointer; transition: all 0.3s ease;">
+                                <span style="font-size: 0.95rem; font-weight: 700; color: #475569;">{{ $service->title }}</span>
+                                <div class="checkbox-wrapper" style="position: relative; width: 22px; height: 22px;">
+                                    <input type="checkbox" name="services[]" value="{{ $service->id }}" class="service-input" style="display: none;" onchange="updateServiceCard(this)">
+                                    <div class="custom-checkbox" style="width: 22px; height: 22px; border: 2px solid #CBD5E1; border-radius: 6px; background: white; transition: all 0.2s; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fa-solid fa-check text-white text-xs" style="display: none;"></i>
+                                    </div>
                                 </div>
-                            </div>
-                        </label>
-
-                        <!-- Service 2: Shipping -->
-                        <label class="service-checkbox-card" style="display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid #E2E8F0; padding: 1rem 1.25rem; border-radius: 14px; cursor: pointer; transition: all 0.3s ease;">
-                            <span style="font-size: 0.95rem; font-weight: 700; color: #475569;">خدمة الشحن</span>
-                            <div class="checkbox-wrapper" style="position: relative; width: 22px; height: 22px;">
-                                <input type="checkbox" name="services[]" value="خدمة الشحن" class="service-input" style="display: none;" onchange="updateServiceCard(this)">
-                                <div class="custom-checkbox" style="width: 22px; height: 22px; border: 2px solid #CBD5E1; border-radius: 6px; background: white; transition: all 0.2s; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fa-solid fa-check text-white text-xs" style="display: none;"></i>
-                                </div>
-                            </div>
-                        </label>
-
-                        <!-- Service 3: Purchase -->
-                        <label class="service-checkbox-card" style="display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid #E2E8F0; padding: 1rem 1.25rem; border-radius: 14px; cursor: pointer; transition: all 0.3s ease;">
-                            <span style="font-size: 0.95rem; font-weight: 700; color: #475569;">خدمة الشراء</span>
-                            <div class="checkbox-wrapper" style="position: relative; width: 22px; height: 22px;">
-                                <input type="checkbox" name="services[]" value="خدمة الشراء" class="service-input" style="display: none;" onchange="updateServiceCard(this)">
-                                <div class="custom-checkbox" style="width: 22px; height: 22px; border: 2px solid #CBD5E1; border-radius: 6px; background: white; transition: all 0.2s; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fa-solid fa-check text-white text-xs" style="display: none;"></i>
-                                </div>
-                            </div>
-                        </label>
+                            </label>
+                        @empty
+                            <p class="text-[#64748B] font-bold text-sm text-center py-4">لا توجد خدمات متاحة لاهتماماتك المحددة حالياً.</p>
+                        @endforelse
 
                     </div>
 

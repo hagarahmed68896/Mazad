@@ -49,7 +49,7 @@
 
                     <div class="flex items-center gap-4 w-full pt-4">
                         <button @click="showBlockModal = false" class="flex-1 px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black hover:bg-slate-200 transition-all active:scale-95">إلغاء</button>
-                        <form :action="`{{ url('admin/individuals') }}/${userToBlock}/toggle-block`" method="POST" class="flex-1">
+                        <form :action="`{{ url('admin/accounts/individuals') }}/${userToBlock}/toggle-block`" method="POST" class="flex-1">
                             @csrf
                             <button type="submit" class="w-full px-6 py-4 bg-rose-500 text-white rounded-2xl font-black shadow-xl shadow-rose-500/20 hover:scale-[1.02] active:scale-95 transition-all">نعم، حظر</button>
                         </form>

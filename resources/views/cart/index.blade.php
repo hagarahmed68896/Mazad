@@ -148,6 +148,7 @@
                                             <div class="flex items-center gap-3 text-xs font-bold text-gray-500">
                                                 <form id="buy-form-{{ $item->ad_id }}" action="{{ route('orders.store', $item->ad_id) }}" method="POST" class="inline">
                                                     @csrf
+                                                    <input type="hidden" name="quantity" value="{{ $item->quantity }}">
                                                     <button type="submit" class="text-primary hover:underline bg-transparent border-none cursor-pointer p-0 font-bold">
                                                         اشتر الآن
                                                     </button>

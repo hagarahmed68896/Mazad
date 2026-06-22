@@ -401,25 +401,12 @@
 
                 <!-- Custom Checkboxes Container -->
                 <div id="filterServicesContainer" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 16px; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
-                    
-                    <!-- Service 1: Inspection -->
+                    @foreach($filterServices ?? [] as $serviceName)
                     <label class="filter-service-row" style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.25rem; cursor: pointer; user-select: none;">
-                        <span style="font-size: 0.9rem; font-weight: 700; color: #475569;">خدمة الفحص</span>
-                        <input type="checkbox" name="services[]" value="خدمة الفحص" class="filter-svc-input" style="width: 20px; height: 20px; border-radius: 6px; border: 2.5px solid #CBD5E1; accent-color: #1A73E8; cursor: pointer;" onchange="updateSelectedText()" {{ in_array('خدمة الفحص', (array)request('services')) ? 'checked' : '' }}>
+                        <span style="font-size: 0.9rem; font-weight: 700; color: #475569;">{{ $serviceName }}</span>
+                        <input type="checkbox" name="services[]" value="{{ $serviceName }}" class="filter-svc-input" style="width: 20px; height: 20px; border-radius: 6px; border: 2.5px solid #CBD5E1; accent-color: #1A73E8; cursor: pointer;" onchange="updateSelectedText()" {{ in_array($serviceName, (array)request('services')) ? 'checked' : '' }}>
                     </label>
-
-                    <!-- Service 2: Shipping -->
-                    <label class="filter-service-row" style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.25rem; cursor: pointer; user-select: none;">
-                        <span style="font-size: 0.9rem; font-weight: 700; color: #475569;">خدمة الشحن</span>
-                        <input type="checkbox" name="services[]" value="خدمة الشحن" class="filter-svc-input" style="width: 20px; height: 20px; border-radius: 6px; border: 2.5px solid #CBD5E1; accent-color: #1A73E8; cursor: pointer;" onchange="updateSelectedText()" {{ in_array('خدمة الشحن', (array)request('services')) ? 'checked' : '' }}>
-                    </label>
-
-                    <!-- Service 3: Purchase -->
-                    <label class="filter-service-row" style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.25rem; cursor: pointer; user-select: none;">
-                        <span style="font-size: 0.9rem; font-weight: 700; color: #475569;">خدمة الشراء</span>
-                        <input type="checkbox" name="services[]" value="خدمة الشراء" class="filter-svc-input" style="width: 20px; height: 20px; border-radius: 6px; border: 2.5px solid #CBD5E1; accent-color: #1A73E8; cursor: pointer;" onchange="updateSelectedText()" {{ in_array('خدمة الشراء', (array)request('services')) ? 'checked' : '' }}>
-                    </label>
-
+                    @endforeach
                 </div>
             </div>
         </form>

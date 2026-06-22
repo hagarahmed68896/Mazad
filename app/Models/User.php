@@ -29,6 +29,10 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    protected $appends = [
+        'unread_messages_count',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -144,5 +148,24 @@ class User extends Authenticatable
         ->where('sender_id', '!=', $this->id)
         ->where('is_read', false)
         ->count();
+    }
+
+    public function getUnreadMessagesCountAttribute()
+    {
+        return $this->unreadMessagesCount();
+    }
+
+    public function getAvatarAttribute($value)
+    {
+        if (!$value) {
+            if (in_array($this->account_type, ['representative', 'partner'])) {
+                return null;
+            }
+            return asset('images/chart.svg');
+        }
+        if (\Illuminate\Support\Str::startsWith($value, 'http')) {
+            return $value;
+        }
+        return asset($value);
     }
 }

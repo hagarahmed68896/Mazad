@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Notification::query();
+        $query = Notification::query()->whereNull('user_id');
 
         // Filters
         if ($request->filled('search')) {
@@ -42,7 +43,7 @@ class NotificationController extends Controller
         $cardStats = [
             [
                 'label' => 'الإشعارات المرسلة',
-                'value' => Notification::where('status', 'sent')->count(),
+                'value' => Notification::whereNull('user_id')->where('status', 'sent')->count(),
                 'percentage' => 0.43,
                 'color' => '#10B981',
                 'icon' => 'sent',
@@ -50,7 +51,7 @@ class NotificationController extends Controller
             ],
             [
                 'label' => 'الإشعارات المجدولة',
-                'value' => Notification::where('status', 'scheduled')->count(),
+                'value' => Notification::whereNull('user_id')->where('status', 'scheduled')->count(),
                 'percentage' => 0.43,
                 'color' => '#1A73E8',
                 'icon' => 'scheduled',
@@ -58,7 +59,7 @@ class NotificationController extends Controller
             ],
             [
                 'label' => 'الإشعارات غير المرسلة',
-                'value' => Notification::where('status', 'unsent')->count(),
+                'value' => Notification::whereNull('user_id')->where('status', 'unsent')->count(),
                 'percentage' => 0.43,
                 'color' => '#EF4444',
                 'icon' => 'unsent',
@@ -78,7 +79,12 @@ class NotificationController extends Controller
 
     public function store(Request $request)
     {
-        Notification::create($request->all());
+        $notification = Notification::create(array_merge($request->all(), ['user_id' => null]));
+        
+        if ($notification->status === 'sent') {
+            $this->sendToAllUsers($notification);
+        }
+        
         return redirect()->route('admin.notifications.index')->with('success', 'تمت إضافة الإشعار بنجاح');
     }
 
@@ -89,14 +95,43 @@ class NotificationController extends Controller
 
     public function update(Request $request, Notification $notification)
     {
+        $oldStatus = $notification->status;
         $notification->update($request->all());
+        
+        if ($oldStatus !== 'sent' && $notification->status === 'sent') {
+            if (is_null($notification->user_id)) {
+                $this->sendToAllUsers($notification);
+            }
+        }
+        
         return redirect()->route('admin.notifications.index')->with('success', 'تم تحديث الإشعار بنجاح');
     }
 
     public function send(Notification $notification)
     {
-        $notification->update(['status' => 'sent']);
+        if ($notification->status !== 'sent') {
+            $notification->update(['status' => 'sent']);
+            
+            if (is_null($notification->user_id)) {
+                $this->sendToAllUsers($notification);
+            }
+        }
         return back()->with('success', 'تم إرسال الإشعار بنجاح');
+    }
+
+    private function sendToAllUsers(Notification $notification)
+    {
+        User::where('email', '!=', 'admin@mazad.com')->chunk(100, function ($users) use ($notification) {
+            foreach ($users as $user) {
+                Notification::create([
+                    'type' => $notification->type,
+                    'title' => $notification->title,
+                    'content' => $notification->content,
+                    'user_id' => $user->id,
+                    'status' => 'sent',
+                ]);
+            }
+        });
     }
 
     public function destroy(Notification $notification)

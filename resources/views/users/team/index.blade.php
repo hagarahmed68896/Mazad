@@ -128,8 +128,14 @@
                                 </div>
 
                                 <!-- Member Avatar (Right inside card) -->
-                                <div class="w-20 h-20 rounded-2xl overflow-hidden border border-gray-100 shadow-inner flex-shrink-0">
-                                    <img src="{{ $member->avatar ?? asset('images/default-avatar.png') }}" alt="{{ $member->name }}" class="w-full h-full object-cover">
+                                <div class="w-20 h-20 rounded-2xl overflow-hidden border border-gray-100 shadow-inner flex-shrink-0 flex items-center justify-center bg-gray-50">
+                                    @if($member->avatar)
+                                        <img src="{{ $member->avatar }}" alt="{{ $member->name }}" class="w-full h-full object-cover">
+                                    @else
+                                        <div class="w-full h-full bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center font-bold text-xl uppercase">
+                                            {{ mb_substr($member->name, 0, 1) }}
+                                        </div>
+                                    @endif
                                 </div>
 
                             </div>
@@ -154,8 +160,14 @@
                                 </div>
 
                                 <!-- Member Avatar (Right) -->
-                                <div class="w-20 h-20 rounded-2xl overflow-hidden border border-gray-100 shadow-inner flex-shrink-0">
-                                    <img src="{{ $member->avatar ?? asset('images/default-avatar.png') }}" alt="{{ $member->name }}" class="w-full h-full object-cover">
+                                <div class="w-20 h-20 rounded-2xl overflow-hidden border border-gray-100 shadow-inner flex-shrink-0 flex items-center justify-center bg-gray-50">
+                                    @if($member->avatar)
+                                        <img src="{{ $member->avatar }}" alt="{{ $member->name }}" class="w-full h-full object-cover">
+                                    @else
+                                        <div class="w-full h-full bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center font-bold text-xl uppercase">
+                                            {{ mb_substr($member->name, 0, 1) }}
+                                        </div>
+                                    @endif
                                 </div>
 
                             </div>

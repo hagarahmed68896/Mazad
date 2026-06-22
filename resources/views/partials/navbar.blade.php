@@ -1,3 +1,33 @@
+@php
+    $addr = Auth::check() ? Auth::user()->address : session('user_address');
+    $city = null;
+    if ($addr) {
+        $normalized = str_replace('،', ',', $addr);
+        $parts = array_map('trim', explode(',', $normalized));
+        $parts = array_filter($parts, function($part) {
+            return $part !== 'السعودية' && !is_numeric($part) && !preg_match('/^[0-9]+$/', $part);
+        });
+        $parts = array_values($parts);
+        
+        if (count($parts) > 0) {
+            if (count($parts) >= 2) {
+                $lastPart = $parts[count($parts) - 1];
+                $secondLast = $parts[count($parts) - 2];
+                $cleanLast = preg_replace('/^(منطقة|محافظة|مدينة|بلدية)\s+/u', '', $lastPart);
+                $cleanSecond = preg_replace('/^(منطقة|محافظة|مدينة|بلدية)\s+/u', '', $secondLast);
+                
+                if (mb_strlen($cleanLast) > 0 && mb_strlen($cleanLast) < 20) {
+                    $city = $cleanLast;
+                } else {
+                    $city = $cleanSecond;
+                }
+            } else {
+                $city = preg_replace('/^(منطقة|محافظة|مدينة|بلدية)\s+/u', '', $parts[0]);
+            }
+        }
+    }
+    $displayLocation = $city ?: 'كل المدن (السعودية)';
+@endphp
 <nav class="navbar">
     <div class="container">
         <!-- Right Side: Burger + Logo + Location (RTL Start) -->
@@ -12,25 +42,15 @@
                     @include('partials.logo', ['size' => 'text-3xl'])
                 </a>
             </div>
+            @if(!Auth::check() || Auth::user()->account_type !== 'partner')
             <div class="location-picker lg-location" onclick="handleLocationClick()" style="margin-right: 1.5rem;">
                 <i class="fa-solid fa-chevron-down"></i>
                 <span id="currentLocationName">
-                    @auth
-                        @php
-                            $addr = Auth::user()->address;
-                            $city = $addr;
-                            if ($addr && strpos($addr, '،') !== false) {
-                                $parts = explode('،', $addr);
-                                $city = (count($parts) >= 3) ? trim($parts[count($parts) - 3]) : trim($parts[0]);
-                            }
-                        @endphp
-                        {{ $city ?: 'كل المدن (السعودية)' }}
-                    @else
-                        كل المدن (السعودية)
-                    @endauth
+                    {{ $displayLocation }}
                 </span>
                 <img src="https://upload.wikimedia.org/wikipedia/commons/0/0d/Flag_of_Saudi_Arabia.svg" alt="Saudi Flag" class="flag-icon">
             </div>
+            @endif
         </div>
 
         <!-- Middle: Spacer -->
@@ -133,7 +153,11 @@
                     <!-- Profile -->
                     <div class="profile-wrapper" style="position: relative;">
                         <div class="user-profile" id="userProfileBtn" onclick="toggleSidebar()">
-                            <div class="user-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</div>
+                            @if(Auth::user()->avatar)
+                                <img src="{{ Auth::user()->avatar }}" alt="{{ Auth::user()->name }}" class="user-avatar object-cover border border-slate-100">
+                            @else
+                                <div class="user-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</div>
+                            @endif
                             <span class="user-greeting hidden sm:block">مرحباً، {{ explode(' ', Auth::user()->name)[0] }}</span>
                         </div>
                     </div>
@@ -153,15 +177,17 @@
     </div>
 
     <!-- Mobile Only Location Row -->
+    @if(!Auth::check() || Auth::user()->account_type !== 'partner')
     <div class="mobile-location-row" style="display: none;">
         <div class="location-picker" onclick="handleLocationClick()">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/0/0d/Flag_of_Saudi_Arabia.svg" alt="Saudi Flag" class="flag-icon" style="width: 24px;">
-                <span id="currentLocationNameMobile">كل المدن (السعودية)</span>
+                <span id="currentLocationNameMobile">{{ $displayLocation }}</span>
             </div>
             <i class="fa-solid fa-chevron-down"></i>
         </div>
     </div>
+    @endif
 </nav>
 
 @push('scripts')

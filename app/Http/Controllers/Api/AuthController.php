@@ -398,6 +398,54 @@ class AuthController extends Controller
         return $this->apiResponse(true, 'تم تحديث الاهتمامات بنجاح');
     }
 
+    public function updateServices(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'service_ids' => 'required|array',
+            'service_ids.*' => 'exists:services,id',
+        ], [
+            'service_ids.required' => 'يرجى اختيار خدمة واحدة على الأقل.',
+            'service_ids.array' => 'تنسيق البيانات غير صحيح.',
+            'service_ids.*.exists' => 'إحدى الخدمات المختارة غير موجودة في قاعدة البيانات.',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->apiResponse(false, 'فشل التحقق', $validator->errors(), 422);
+        }
+
+        $user = $request->user();
+
+        // Verify that all selected service_ids actually belong to the admin user (user_id = 1)
+        $templatesCount = \App\Models\Service::where('user_id', 1)
+            ->whereIn('id', $request->service_ids)
+            ->count();
+
+        if ($templatesCount !== count(array_unique($request->service_ids))) {
+            return $this->apiResponse(false, 'إحدى الخدمات المختارة غير صالحة كقالب خدمة من المسؤول', null, 400);
+        }
+
+        // Delete user's previous services to avoid duplication
+        \App\Models\Service::where('user_id', $user->id)->delete();
+
+        // Recreate services under user's profile
+        $templates = \App\Models\Service::where('user_id', 1)
+            ->whereIn('id', $request->service_ids)
+            ->get();
+
+        foreach ($templates as $tmpl) {
+            \App\Models\Service::create([
+                'user_id' => $user->id,
+                'category_id' => $tmpl->category_id,
+                'title' => $tmpl->title,
+                'description' => $tmpl->description ?: 'خدمة احترافية مقدمة من الشريك كجزء من منصة مزاد.',
+                'image' => $tmpl->getRawOriginal('image'),
+                'price' => (float)$tmpl->price,
+            ]);
+        }
+
+        return $this->apiResponse(true, 'تم تحديث خدمات الشريك بنجاح');
+    }
+
     /**
      * Update Profile API
      */

@@ -159,7 +159,7 @@ class SupportController extends Controller
         if ($tickets->isEmpty()) {
             $sampleTickets = [
                 [
-                    'ticket_number' => 'TCK-A938F1',
+                    'ticket_number' => 'TCK-' . strtoupper(Str::random(8)),
                     'type' => 'inquiry',
                     'user_id' => Auth::id(),
                     'phone' => Auth::user()->phone ?? '0512345678',
@@ -169,7 +169,7 @@ class SupportController extends Controller
                     'notes' => 'تم الرد: لاختيار العقار المناسب، يرجى مراجعة الصك الإلكتروني المرفق في صفحة المزاد، والتنسيق لمعاينة العقار على الطبيعة من خلال رقم ممثل البيع الموضح.'
                 ],
                 [
-                    'ticket_number' => 'TCK-B127C5',
+                    'ticket_number' => 'TCK-' . strtoupper(Str::random(8)),
                     'type' => 'inquiry',
                     'user_id' => Auth::id(),
                     'phone' => Auth::user()->phone ?? '0512345678',

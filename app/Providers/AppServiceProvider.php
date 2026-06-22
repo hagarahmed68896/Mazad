@@ -26,6 +26,16 @@ class AppServiceProvider extends ServiceProvider
             $view->with('categories', \App\Models\Category::whereNull('parent_id')->get());
         });
 
+        view()->composer('*', function ($view) {
+            if (auth()->check() && auth()->user()->account_type === 'partner') {
+                $categoryIds = auth()->user()->interests()->pluck('categories.id')->toArray();
+                $partnerServicesOptions = \App\Models\Service::where('user_id', 1)
+                    ->whereIn('category_id', $categoryIds)
+                    ->get();
+                $view->with('partnerServicesOptions', $partnerServicesOptions);
+            }
+        });
+
         require base_path('routes/channels.php');
     }
 }

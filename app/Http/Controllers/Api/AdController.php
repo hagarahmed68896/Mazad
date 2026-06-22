@@ -42,7 +42,9 @@ class AdController extends Controller
             ], 404);
         }
 
-        $ad->increment('views_count');
+        if (!$currentUser || $currentUser->id !== $ad->user_id) {
+            $ad->increment('views_count');
+        }
 
         $isFavorited = false;
         if ($request->bearerToken() && $user = auth('sanctum')->user()) {

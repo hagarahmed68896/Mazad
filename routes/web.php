@@ -3,6 +3,16 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 
+Route::get('/run-db-updates', function () {
+    try {
+        \Illuminate\Support\Facades\Artisan::call('migrate');
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\PartnerBannerSeeder']);
+        return "Migration and Seeder executed successfully! 🎉";
+    } catch (\Exception $e) {
+        return "Error: " . $e->getMessage();
+    }
+});
+
 Route::get('/', [\App\Http\Controllers\HomeController::class, 'index'])->name('home');
 Route::get('/search', [\App\Http\Controllers\HomeController::class, 'search'])->name('search');
 Route::get('/categories', [\App\Http\Controllers\HomeController::class, 'showAllCategories'])->name('categories.all');

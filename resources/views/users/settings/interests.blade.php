@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'اهتماماتي | مزاد')
+@section('title', Auth::user()->account_type === 'partner' ? 'الفئات | مزاد' : 'اهتماماتي | مزاد')
 
 @push('styles')
 <style>
@@ -46,7 +46,7 @@
         <div class="flex items-center gap-2 text-sm font-bold text-gray-500 mb-6 justify-start" dir="rtl">
             <a href="{{ route('home') }}" class="hover:text-primary transition-colors">الرئيسية</a>
             <i class="fa-solid fa-chevron-left text-xs"></i>
-            <span class="text-white bg-primary px-3 py-1 rounded-full text-xs">اهتماماتي</span>
+            <span class="text-white bg-primary px-3 py-1 rounded-full text-xs">{{ Auth::user()->account_type === 'partner' ? 'الفئات' : 'اهتماماتي' }}</span>
         </div>
 
         <!-- Main Card Container -->
@@ -54,10 +54,14 @@
             
             <!-- Header Text -->
             <div class="max-w-2xl mx-auto mb-10">
-                <h1 class="text-3xl font-black text-gray-900 mb-3">اهتماماتي</h1>
-                <h2 class="text-xl font-bold text-gray-800 mb-4">وش الفئات اللي تهمك؟</h2>
+                <h1 class="text-3xl font-black text-gray-900 mb-3">{{ Auth::user()->account_type === 'partner' ? 'الفئات' : 'اهتماماتي' }}</h1>
+                <h2 class="text-xl font-bold text-gray-800 mb-4">{{ Auth::user()->account_type === 'partner' ? '← حدد الفئة' : 'وش الفئات اللي تهمك؟' }}</h2>
                 <p class="text-gray-500 text-sm md:text-base font-medium leading-relaxed">
-                    اختر المزادات اللي حاب تتابعها أول بأول، ونخلي باقي الفئات متاحة لك متى ما حبيت تبحث عنها.
+                    @if(Auth::user()->account_type === 'partner')
+                        حدد نوع السلع التي تقدم لها خدماتك لعرضك للعملاء المناسبين.
+                    @else
+                        اختر المزادات اللي حاب تتابعها أول بأول، ونخلي باقي الفئات متاحة لك متى ما حبيت تبحث عنها.
+                    @endif
                 </p>
             </div>
 

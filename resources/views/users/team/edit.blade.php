@@ -61,8 +61,15 @@
                         <div onclick="document.getElementById('avatar-upload').click()" class="file-upload-box cursor-pointer p-6 flex flex-col items-center justify-center text-center relative overflow-hidden min-h-[160px]">
                             
                             <!-- Display current avatar -->
-                            <div id="avatar-preview-wrap" class="w-24 h-24 rounded-full overflow-hidden mb-2 border border-gray-200 shadow-inner">
-                                <img id="avatar-preview-img" src="{{ $member->avatar ?? asset('images/default-avatar.png') }}" class="w-full h-full object-cover">
+                            <div id="avatar-preview-wrap" class="w-24 h-24 rounded-full overflow-hidden mb-2 border border-gray-200 shadow-inner flex items-center justify-center bg-gray-50">
+                                @if($member->avatar)
+                                    <img id="avatar-preview-img" src="{{ $member->avatar }}" class="w-full h-full object-cover">
+                                @else
+                                    <div id="avatar-preview-text" class="w-full h-full bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center font-bold text-2xl uppercase">
+                                        {{ mb_substr($member->name, 0, 1) }}
+                                    </div>
+                                    <img id="avatar-preview-img" class="w-full h-full object-cover hidden">
+                                @endif
                             </div>
                             
                             <div id="avatar-placeholder" class="hidden flex flex-col items-center">
@@ -143,7 +150,13 @@
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                document.getElementById('avatar-preview-img').src = e.target.result;
+                const img = document.getElementById('avatar-preview-img');
+                const text = document.getElementById('avatar-preview-text');
+                img.src = e.target.result;
+                img.classList.remove('hidden');
+                if (text) {
+                    text.classList.add('hidden');
+                }
             };
             reader.readAsDataURL(input.files[0]);
         }

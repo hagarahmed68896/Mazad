@@ -25,48 +25,68 @@ class Notification extends Model
     protected static function booted()
     {
         static::created(function ($notification) {
-            // Load user relation if not already loaded
-            $user = $notification->user;
-            if ($user && $user->fcm_token) {
-                // Check if user has enabled notifications OR if it is a critical alert (security warning)
-                if ($user->all_notifications || $notification->type === 'alert') {
-                    try {
-                        // Prepare custom data depending on notification type to enable interactive buttons in the mobile UI
-                        $customData = [
-                            'notification_id' => (string) $notification->id,
-                            'type' => (string) $notification->type,
-                        ];
-                        
-                        // We can add actions / extra fields to map exactly what buttons the UI should render
-                        // e.g. for "bid_outbid" -> Show "إعطاء عرض"
-                        // for "offer" -> Show "قبول العرض"
-                        // for "winning_bid" -> Show "إتمام الدفع"
-                        if ($notification->type === 'bid_outbid') {
-                            $customData['actions'] = json_encode([
-                                ['action' => 'bid', 'label' => 'إعطاء عرض', 'color' => 'blue']
-                            ], JSON_UNESCAPED_UNICODE);
-                        } elseif (str_contains($notification->type, 'offer')) {
-                            $customData['actions'] = json_encode([
-                                ['action' => 'accept', 'label' => 'قبول العرض', 'color' => 'blue'],
-                                ['action' => 'reject', 'label' => 'رفض العرض', 'color' => 'grey']
-                            ], JSON_UNESCAPED_UNICODE);
-                        } elseif ($notification->type === 'winning_bid') {
-                            $customData['actions'] = json_encode([
-                                ['action' => 'pay', 'label' => 'إتمام الدفع', 'color' => 'blue']
-                            ], JSON_UNESCAPED_UNICODE);
-                        }
-
-                        \App\Services\FcmService::sendPush(
-                            $user->fcm_token,
-                            $notification->title,
-                            $notification->content,
-                            $customData
-                        );
-                    } catch (\Exception $e) {
-                        \Log::warning('FCM Auto-Send Failed: ' . $e->getMessage());
-                    }
-                }
+            \Log::info("Notification static::created triggered for ID: {$notification->id}, status: {$notification->status}, user_id: " . ($notification->user_id ?? 'null'));
+            if ($notification->status === 'sent') {
+                $notification->sendFcm();
             }
         });
+
+        static::updated(function ($notification) {
+            \Log::info("Notification static::updated triggered for ID: {$notification->id}, status: {$notification->status}, wasChanged status: " . ($notification->wasChanged('status') ? 'true' : 'false'));
+            if ($notification->wasChanged('status') && $notification->status === 'sent') {
+                $notification->sendFcm();
+            }
+        });
+    }
+
+    public function sendFcm()
+    {
+        $user = $this->user;
+        if (!$user) {
+            \Log::warning("FCM Send skipped: User relation not found for Notification ID: {$this->id}");
+            return;
+        }
+        if (!$user->fcm_token) {
+            \Log::warning("FCM Send skipped: User ID {$user->id} has no FCM token. Notification ID: {$this->id}");
+            return;
+        }
+        
+        \Log::info("FCM Send: User ID {$user->id} has FCM token. Status of 'all_notifications': " . ($user->all_notifications ? 'true' : 'false') . ", notification type: {$this->type}");
+        
+        if ($user->all_notifications || $this->type === 'alert') {
+            try {
+                $customData = [
+                    'notification_id' => (string) $this->id,
+                    'type' => (string) $this->type,
+                ];
+                
+                if ($this->type === 'bid_outbid') {
+                    $customData['actions'] = json_encode([
+                        ['action' => 'bid', 'label' => 'إعطاء عرض', 'color' => 'blue']
+                    ], JSON_UNESCAPED_UNICODE);
+                } elseif (str_contains($this->type, 'offer')) {
+                    $customData['actions'] = json_encode([
+                        ['action' => 'accept', 'label' => 'قبول العرض', 'color' => 'blue'],
+                        ['action' => 'reject', 'label' => 'رفض العرض', 'color' => 'grey']
+                    ], JSON_UNESCAPED_UNICODE);
+                } elseif ($this->type === 'winning_bid') {
+                    $customData['actions'] = json_encode([
+                        ['action' => 'pay', 'label' => 'إتمام الدفع', 'color' => 'blue']
+                    ], JSON_UNESCAPED_UNICODE);
+                }
+
+                \Log::info("Calling FcmService::sendPush for token: " . substr($user->fcm_token, 0, 15) . "...");
+                \App\Services\FcmService::sendPush(
+                    $user->fcm_token,
+                    $this->title,
+                    $this->content,
+                    $customData
+                );
+            } catch (\Exception $e) {
+                \Log::warning('FCM Send Failed: ' . $e->getMessage());
+            }
+        } else {
+            \Log::warning("FCM Send skipped: User ID {$user->id} has all_notifications disabled and type is not 'alert'.");
+        }
     }
 }

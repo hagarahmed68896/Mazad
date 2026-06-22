@@ -235,7 +235,7 @@ class SupportController extends Controller
         if ($tickets->isEmpty()) {
             $sampleTickets = [
                 [
-                    'ticket_number' => 'TCK-A938F1',
+                    'ticket_number' => 'TCK-' . strtoupper(Str::random(8)),
                     'type' => 'inquiry',
                     'user_id' => $user->id,
                     'phone' => $user->phone ?? '0512345678',
@@ -275,5 +275,33 @@ class SupportController extends Controller
         });
 
         return $this->apiResponse(true, 'قائمة استفساراتي', $formattedTickets);
+    }
+
+    /**
+     * Get Social Media Links
+     */
+    public function socialMediaLinks()
+    {
+        $settings = \App\Models\Setting::where('group', 'contacts')->pluck('value', 'key')->toArray();
+
+        $socialLinks = [];
+        if (isset($settings['social_links'])) {
+            $decoded = json_decode($settings['social_links'], true);
+            if (is_array($decoded)) {
+                $socialLinks = $decoded;
+            }
+        }
+
+        // Return fallback if empty
+        if (empty($socialLinks)) {
+            $socialLinks = [
+                ['platform' => 'facebook', 'url' => 'https://facebook.com'],
+                ['platform' => 'twitter', 'url' => 'https://twitter.com'],
+                ['platform' => 'instagram', 'url' => 'https://instagram.com'],
+                ['platform' => 'snapchat', 'url' => 'https://snapchat.com'],
+            ];
+        }
+
+        return $this->apiResponse(true, 'روابط التواصل الاجتماعي', $socialLinks);
     }
 }

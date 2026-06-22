@@ -12,12 +12,36 @@ use Illuminate\Support\Facades\Validator;
 
 class ChatController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
-        $conversations = Conversation::where('user_one_id', $user->id)
-            ->orWhere('user_two_id', $user->id)
-            ->with(['userOne', 'userTwo', 'messages' => function($q) {
+        $search = $request->get('search') ?: $request->get('q');
+
+        $query = Conversation::where(function($q) use ($user) {
+            $q->where('user_one_id', $user->id)
+              ->orWhere('user_two_id', $user->id);
+        });
+
+        if (!empty($search)) {
+            $query->where(function($q) use ($search, $user) {
+                $q->whereHas('userOne', function($uq) use ($search, $user) {
+                    $uq->where('id', '!=', $user->id)
+                       ->where('name', 'like', '%' . $search . '%');
+                })
+                ->orWhereHas('userTwo', function($uq) use ($search, $user) {
+                    $uq->where('id', '!=', $user->id)
+                       ->where('name', 'like', '%' . $search . '%');
+                })
+                ->orWhereHas('messages', function($mq) use ($search) {
+                    $mq->where('content', 'like', '%' . $search . '%');
+                })
+                ->orWhereHas('ad', function($aq) use ($search) {
+                    $aq->where('title', 'like', '%' . $search . '%');
+                });
+            });
+        }
+
+        $conversations = $query->with(['userOne', 'userTwo', 'messages' => function($q) {
                 $q->latest()->limit(1);
             }, 'ad'])
             ->orderBy('last_message_at', 'desc')
@@ -69,6 +93,7 @@ class ChatController extends Controller
 
         return response()->json([
             'success' => true,
+            'unread_messages_count' => $conversations->sum('unread_count'),
             'data' => $conversations
         ]);
     }

@@ -22,10 +22,16 @@
             <div class="w-full md:w-[350px] lg:w-[400px] border-b md:border-b-0 md:border-l border-gray-100 flex flex-col bg-white overflow-hidden shrink-0 {{ isset($activeConversation) ? 'hidden md:flex' : 'flex' }}">
                 <!-- Sidebar Header -->
                 <div class="p-4 md:p-6 border-b border-gray-50 bg-white sticky top-0 z-10">
-                    <div class="relative mb-4">
+                    <form action="{{ route('chats.index') }}" method="GET" class="relative mb-4">
+                        @if(request('filter'))
+                            <input type="hidden" name="filter" value="{{ request('filter') }}">
+                        @endif
+                        @if(request('id'))
+                            <input type="hidden" name="id" value="{{ request('id') }}">
+                        @endif
                         <i class="fa-solid fa-magnifying-glass absolute right-5 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" id="conversationSearch" placeholder="ابحث في المحادثات..." class="w-full bg-gray-50 border-none rounded-2xl py-3.5 pr-12 pl-4 focus:ring-2 focus:ring-primary/20 font-bold text-sm transition-all">
-                    </div>
+                        <input type="text" name="search" id="conversationSearch" value="{{ request('search') ?: request('q') }}" placeholder="ابحث في المحادثات..." class="w-full bg-gray-50 border-none rounded-2xl py-3.5 pr-12 pl-4 focus:ring-2 focus:ring-primary/20 font-bold text-sm transition-all">
+                    </form>
                     
                     <div class="flex gap-2">
                         @php $currentFilter = request('filter', 'all'); @endphp

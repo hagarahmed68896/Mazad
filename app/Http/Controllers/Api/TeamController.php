@@ -122,12 +122,6 @@ class TeamController extends Controller
             
             $file->move($destinationPath, $filename);
             $avatarUrl = '/uploads/avatars/' . $filename;
-        } else {
-            $avatarUrl = '/uploads/avatars/placeholder.png';
-            $placeholderPath = public_path($avatarUrl);
-            if (!file_exists($placeholderPath)) {
-                @copy('https://i.pravatar.cc/150?img=' . rand(1, 70), $placeholderPath);
-            }
         }
 
         $member = User::create([

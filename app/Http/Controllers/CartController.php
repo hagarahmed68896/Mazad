@@ -127,7 +127,6 @@ class CartController extends Controller
             
             // Total price matches single checkout: item price + shipping + fees
             $total_price = $itemPrice + $shippingPrice + $admin_fees + $transfer_fees;
-
             // Create Order
             $order = Order::create([
                 'order_number' => strtoupper(Str::random(8)),
@@ -135,9 +134,9 @@ class CartController extends Controller
                 'buyer_id'     => $user->id,
                 'seller_id'    => $ad->user_id,
                 'final_price'  => round($total_price),
+                'quantity'     => $item->quantity,
                 'status'       => 'pending_payment',
             ]);
-
             // Create Transaction
             Transaction::create([
                 'transaction_number' => 'TXN-' . strtoupper(Str::random(8)),

@@ -18,6 +18,11 @@ class OrderController extends Controller
      */
     public function store(Request $request, $adId)
     {
+        $request->validate([
+            'quantity' => 'nullable|integer|min:1'
+        ]);
+        
+        $quantity = (int) ($request->quantity ?? 1);
         $ad = Ad::find($adId);
 
         if (!$ad) {
@@ -35,24 +40,33 @@ class OrderController extends Controller
             ], 403);
         }
 
-        // Prevent duplicate orders
-        $existing = Order::where('ad_id', $ad->id)
-            ->where('buyer_id', Auth::id())
-            ->whereIn('status', ['pending_payment', 'receiving', 'received', 'paid'])
-            ->first();
+        // Prevent duplicate orders (only for auctions)
+        if (in_array($ad->type, ['electronic_auction', 'hybrid_auction'])) {
+            $existing = Order::where('ad_id', $ad->id)
+                ->where('buyer_id', Auth::id())
+                ->whereIn('status', ['pending_payment', 'receiving', 'received', 'paid'])
+                ->first();
 
-        if ($existing) {
-            return response()->json([
-                'success' => false,
-                'message' => 'لقد قمت بشراء هذا الإعلان مسبقاً.'
-            ], 400);
+            if ($existing) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لقد قمت بشراء هذا الإعلان مسبقاً.'
+                ], 400);
+            }
         }
 
-        // Prevent buying a finished ad
-        if ($ad->status === 'finished') {
+        // Prevent buying a finished ad or if requested quantity is more than available
+        if ($ad->status === 'finished' || $ad->quantity <= 0) {
             return response()->json([
                 'success' => false,
                 'message' => 'هذا الإعلان لم يعد متاحاً للشراء.'
+            ], 400);
+        }
+
+        if ($ad->quantity < $quantity) {
+            return response()->json([
+                'success' => false,
+                'message' => 'الكمية المطلوبة غير متوفرة. المتاح حالياً: ' . $ad->quantity
             ], 400);
         }
 
@@ -60,7 +74,7 @@ class OrderController extends Controller
         $admin_fees = (float) (Setting::where('key', 'admin_fees')->value('value') ?? 19);
         $transfer_fees = (float) (Setting::where('key', 'transfer_fees')->value('value') ?? 500);
         
-        $total_price = $ad->price + $admin_fees + $transfer_fees;
+        $total_price = ($ad->price * $quantity) + $admin_fees + $transfer_fees;
 
         // Create the order
         $order = Order::create([
@@ -69,6 +83,7 @@ class OrderController extends Controller
             'buyer_id'     => Auth::id(),
             'seller_id'    => $ad->user_id,
             'final_price'  => round($total_price),
+            'quantity'     => $quantity,
             'status'       => 'pending_payment',
         ]);
 
@@ -83,8 +98,15 @@ class OrderController extends Controller
             'status'             => 'under_review',
         ]);
 
-        // Mark ad as finished
-        $ad->update(['status' => 'finished']);
+        // Manage ad quantity and status
+        if ($ad->quantity > $quantity) {
+            $ad->decrement('quantity', $quantity);
+        } else {
+            $ad->update([
+                'quantity' => 0,
+                'status' => 'finished'
+            ]);
+        }
 
         // Remove item from buyer's cart if it exists
         \App\Models\Cart::where('user_id', Auth::id())

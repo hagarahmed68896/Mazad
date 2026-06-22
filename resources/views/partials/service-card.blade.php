@@ -15,9 +15,15 @@
     </div>
 
     <!-- Card Body: Image & Details -->
-    <a href="{{ route('services.show', $service->id) }}" class="service-image relative group-hover:scale-[1.02] transition-transform duration-500 overflow-hidden">
-        <img src="{{ $service->image ? (Str::startsWith($service->image, 'http') ? $service->image : '/' . ltrim($service->image, '/')) : 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=600&q=80' }}" 
-             class="w-full h-48 object-cover">
+    <a href="{{ route('services.show', $service->id) }}" class="service-image relative group-hover:scale-[1.02] transition-transform duration-500 overflow-hidden block h-48 bg-gray-50 flex items-center justify-center border-b border-gray-100">
+        @if($service->image)
+            <img src="{{ Str::startsWith($service->image, 'http') ? $service->image : '/' . ltrim($service->image, '/') }}" 
+                 class="w-full h-full object-cover">
+        @else
+            <div class="w-full h-full bg-gray-50 flex items-center justify-center text-gray-300">
+                <i class="fa-solid fa-image text-4xl"></i>
+            </div>
+        @endif
         
         <!-- Price Badge Over Image -->
         <div class="absolute bottom-4 left-4 bg-blue-600/90 backdrop-blur text-white px-3 py-1.5 rounded-xl font-black text-xs shadow-lg flex items-center gap-1">

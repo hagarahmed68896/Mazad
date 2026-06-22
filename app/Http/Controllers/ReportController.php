@@ -132,11 +132,7 @@ class ReportController extends Controller
                         ->count();
                 }
                 
-                // If value is 0 and we want to show a realistic example line like the screenshot,
-                // we can add a slight base mock value if they seeded mock data
-                if ($val == 0) {
-                    $val = $tab === 'sales' ? rand(50000, 150000) : rand(3, 12);
-                }
+
                 
                 $chartData[] = $val;
             }

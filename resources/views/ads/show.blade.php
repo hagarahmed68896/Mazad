@@ -1033,7 +1033,7 @@
                         <div class="flex justify-between items-center p-4 rounded-2xl hover:bg-gray-50 transition-colors">
                             <span class="text-gray-600 font-bold">سعر الشراء</span>
                             <div class="flex items-center gap-1">
-                                <span class="font-black text-gray-900 text-lg">{{ number_format($ad->price) }}</span>
+                                <span id="purchaseModalPrice" class="font-black text-gray-900 text-lg">{{ number_format($ad->price) }}</span>
                                 <div class="relative flex items-center justify-center">
                                     <x-riyal-icon class="w-4 h-4" />
                                 </div>
@@ -1060,7 +1060,7 @@
                         <div class="mt-4 p-5 bg-blue-50/50 rounded-[24px] border border-blue-100/50 flex justify-between items-center">
                             <span class="text-gray-900 font-black text-lg">الإجمالي</span>
                             <div class="flex items-center gap-1 text-primary">
-                                <span class="font-black text-3xl">{{ number_format($total_purchase_price) }}</span>
+                                <span id="purchaseModalTotal" class="font-black text-3xl">{{ number_format($total_purchase_price) }}</span>
                                 <x-riyal-icon class="w-6 h-6" />
                             </div>
                         </div>
@@ -1069,6 +1069,7 @@
                 <div class="p-8 bg-gray-50/30 flex gap-4">
                     <form action="{{ route('orders.store', $ad->id) }}" method="POST" class="flex-1">
                         @csrf
+                        <input type="hidden" name="quantity" id="directBuyQtyInput" value="1">
                         <button type="submit" class="w-full bg-primary text-white font-black py-5 rounded-[20px] hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 text-lg">اشترِ الآن</button>
                     </form>
                     <button onclick="hidePurchaseModal()" class="flex-1 bg-white border border-gray-200 text-gray-500 font-bold py-5 rounded-[20px] hover:bg-gray-50 transition-all text-lg">إلغاء</button>
@@ -1660,11 +1661,28 @@
     }
 
     // Purchase Modal Logic
+    const adminFees = {{ $admin_fees ?? 19 }};
+    const transferFees = {{ $transfer_fees ?? 500 }};
     function showPurchaseModal() {
         const modal = document.getElementById('purchaseModal');
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         document.body.style.overflow = 'hidden';
+
+        // Update hidden quantity input
+        const qtyInput = document.getElementById('directBuyQtyInput');
+        if (qtyInput) {
+            qtyInput.value = typeof currentQty !== 'undefined' ? currentQty : 1;
+        }
+
+        // Update modal displays if quantity selector exists
+        const purchaseModalPrice = document.getElementById('purchaseModalPrice');
+        const purchaseModalTotal = document.getElementById('purchaseModalTotal');
+        if (purchaseModalPrice && purchaseModalTotal) {
+            const qty = typeof currentQty !== 'undefined' ? currentQty : 1;
+            purchaseModalPrice.innerText = new Intl.NumberFormat().format(qty * basePrice);
+            purchaseModalTotal.innerText = new Intl.NumberFormat().format(qty * basePrice + adminFees + transferFees);
+        }
     }
 
     function hidePurchaseModal() {

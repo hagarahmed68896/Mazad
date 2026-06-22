@@ -157,6 +157,7 @@ class CartController extends Controller
                 'buyer_id' => Auth::id(),
                 'seller_id' => $ad->user_id,
                 'final_price' => $finalPrice,
+                'quantity' => $item->quantity,
                 'status' => 'pending_payment' // Or 'paid' depending on logic
             ]);
 

@@ -679,22 +679,7 @@ class AdController extends Controller
 
         // 2.1 Selected Services Filter (For Partners)
         if ($request->has('services') && is_array($request->services) && !empty($request->services)) {
-            $query->where(function($q) use ($request) {
-                foreach ($request->services as $service) {
-                    if ($service === 'خدمة الفحص') {
-                        $q->orWhere('title', 'like', '%فحص%')
-                          ->orWhere('description', 'like', '%فحص%');
-                    } elseif ($service === 'خدمة الشحن') {
-                        $q->orWhere('title', 'like', '%شحن%')
-                          ->orWhere('description', 'like', '%شحن%');
-                    } elseif ($service === 'خدمة الشراء') {
-                        $q->orWhere('title', 'like', '%شراء%')
-                          ->orWhere('description', 'like', '%شراء%');
-                    } else {
-                        $q->orWhere('title', 'like', '%' . $service . '%');
-                    }
-                }
-            });
+            $query->whereIn('title', $request->services);
         }
         
         // 3. City Filter
@@ -753,7 +738,12 @@ class AdController extends Controller
         
         if ($user->account_type === 'partner') {
             $banners = \App\Models\Banner::where('status', true)->where('for_user_type', 'partner')->get();
-            return view('ads.partner-ads', compact('ads', 'status', 'cities', 'categories', 'activeCategory', 'banners'));
+            $filterServices = \App\Models\Ad::where('user_id', $user->id)
+                ->where('category_id', 4)
+                ->pluck('title')
+                ->unique()
+                ->toArray();
+            return view('ads.partner-ads', compact('ads', 'status', 'cities', 'categories', 'activeCategory', 'banners', 'filterServices'));
         }
         
         return view('ads.my-ads', compact('ads', 'status', 'cities', 'categories', 'activeCategory'));

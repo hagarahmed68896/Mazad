@@ -34,19 +34,7 @@ class HomeController extends Controller
 
         if ($user) {
             if ($user->account_type === 'partner') {
-                $query = Ad::where('user_id', $user->id);
-
-                // Tab Status Filter (if any)
-                $status = $request->query('status', 'all');
-                if ($status === 'incomplete') {
-                    $query->whereIn('status', ['pending', 'incomplete']);
-                } elseif ($status === 'active') {
-                    $query->where('status', 'active');
-                } elseif ($status === 'upcoming') {
-                    $query->where('status', 'upcoming');
-                } elseif ($status === 'finished') {
-                    $query->where('status', 'finished');
-                }
+                $query = \App\Models\Service::where('user_id', $user->id);
 
                 // Search Keyword Filter
                 if ($request->has('q') && !empty($request->q)) {
@@ -54,31 +42,6 @@ class HomeController extends Controller
                         $q->where('title', 'like', '%' . $request->q . '%')
                           ->orWhere('description', 'like', '%' . $request->q . '%');
                     });
-                }
-
-                // Selected Services Filter (For Partners)
-                if ($request->has('services') && is_array($request->services) && !empty($request->services)) {
-                    $query->where(function($q) use ($request) {
-                        foreach ($request->services as $service) {
-                            if ($service === 'خدمة الفحص') {
-                                $q->orWhere('title', 'like', '%فحص%')
-                                  ->orWhere('description', 'like', '%فحص%');
-                            } elseif ($service === 'خدمة الشحن') {
-                                $q->orWhere('title', 'like', '%شحن%')
-                                  ->orWhere('description', 'like', '%شحن%');
-                            } elseif ($service === 'خدمة الشراء') {
-                                $q->orWhere('title', 'like', '%شراء%')
-                                  ->orWhere('description', 'like', '%شراء%');
-                            } else {
-                                $q->orWhere('title', 'like', '%' . $service . '%');
-                            }
-                        }
-                    });
-                }
-
-                // City Filter
-                if ($request->has('city') && !empty($request->city)) {
-                    $query->where('city_id', $request->city);
                 }
 
                 // Category Filter
@@ -96,16 +59,25 @@ class HomeController extends Controller
                     $query->orderBy('created_at', 'desc');
                 }
 
-                $ads = $query->with(['category', 'city', 'images'])->get();
-                $banners = Banner::where('status', true)->where('for_user_type', 'partner')->get();
+                $services = $query->with('category')->get()->map(function ($service) {
+                    return [
+                        'id' => $service->id,
+                        'category_id' => $service->category_id,
+                        'category_name' => $service->category ? $service->category->name : null,
+                        'title' => $service->title,
+                        'description' => $service->description,
+                        'price' => (float)$service->price,
+                        'image' => $service->image ? (\Illuminate\Support\Str::startsWith($service->image, 'http') ? $service->image : url('/' . ltrim($service->image, '/'))) : null,
+                        'created_at' => $service->created_at,
+                    ];
+                });
 
                 return response()->json([
                     'success' => true,
                     'message' => 'الصفحة الرئيسية للشريك',
                     'is_auth' => true,
                     'data' => [
-                        'banners' => $banners,
-                        'ads' => $ads
+                        'services' => $services
                     ]
                 ]);
             }
@@ -278,6 +250,43 @@ class HomeController extends Controller
         ]);
     }
 
+    public function servicesOptions(Request $request)
+    {
+        $categoryIdsInput = $request->get('category_ids');
+        $categoryIds = [];
+
+        if (!empty($categoryIdsInput)) {
+            if (is_array($categoryIdsInput)) {
+                $categoryIds = $categoryIdsInput;
+            } else {
+                $categoryIds = array_filter(explode(',', $categoryIdsInput));
+            }
+        }
+
+        $query = \App\Models\Service::where('user_id', 1);
+
+        if (!empty($categoryIds)) {
+            $query->whereIn('category_id', $categoryIds);
+        }
+
+        $services = $query->get()->map(function ($service) {
+            return [
+                'id' => $service->id,
+                'category_id' => $service->category_id,
+                'title' => $service->title,
+                'description' => $service->description,
+                'price' => (float)$service->price,
+                'image' => $service->image ? (\Illuminate\Support\Str::startsWith($service->image, 'http') ? $service->image : url('/' . ltrim($service->image, '/'))) : null,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'الخدمات المتاحة للتفعيل',
+            'data' => $services
+        ]);
+    }
+
     public function serviceShow($id)
     {
         $service = \App\Models\Service::with(['user', 'category'])->find($id);
@@ -362,6 +371,8 @@ class HomeController extends Controller
                     'image' => $service->image ? (\Illuminate\Support\Str::startsWith($service->image, 'http') ? $service->image : url('/' . ltrim($service->image, '/'))) : null,
                     'description' => $service->description,
                     'price' => (float)$service->price,
+                    'phone' => ($service instanceof \App\Models\Service) ? ($service->phone ?? ($service->user->phone ?? null)) : ($service->user->phone ?? null),
+                    'email' => ($service instanceof \App\Models\Service) ? ($service->email ?? ($service->user->email ?? null)) : ($service->user->email ?? null),
                     'all_images' => $allImages,
                     'created_at' => $service->created_at,
                     'is_ad_fallback' => $service instanceof \App\Models\Ad,

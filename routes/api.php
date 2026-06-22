@@ -33,6 +33,7 @@ Route::get('/regions', [LocationController::class, 'regions']);
 Route::get('/regions/{regionId}/cities', [LocationController::class, 'cities']);
 Route::get('/ads/{id}', [\App\Http\Controllers\Api\AdController::class, 'show']);
 Route::get('/ads/{id}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'adReviews']);
+Route::get('/services/options', [HomeController::class, 'servicesOptions']);
 Route::get('/services/{id}', [HomeController::class, 'serviceShow']);
 Route::get('/ads/{id}/bids/info', [BidController::class, 'info']);
 Route::get('/ads/{id}/bids/history', [BidController::class, 'history']);
@@ -45,6 +46,7 @@ Route::get('/faqs', [\App\Http\Controllers\Api\SupportController::class, 'faqs']
 Route::get('/privacy-policy', [\App\Http\Controllers\Api\SupportController::class, 'privacy']);
 Route::get('/terms-conditions', [\App\Http\Controllers\Api\SupportController::class, 'terms']);
 Route::get('/contact-info', [\App\Http\Controllers\Api\SupportController::class, 'contactInfo']);
+Route::get('/socialMediaLinks', [\App\Http\Controllers\Api\SupportController::class, 'socialMediaLinks']);
 Route::post('/contact-us', [\App\Http\Controllers\Api\SupportController::class, 'storeTicket']);
 
 // Protected Routes
@@ -56,6 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/bank', [AuthController::class, 'updateBank']);
     Route::post('/profile/avatar', [AuthController::class, 'updateAvatar']);
     Route::post('/profile/cover', [AuthController::class, 'updateCover']);
+    Route::post('/profile/services', [AuthController::class, 'updateServices']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/update-interests', [AuthController::class, 'updateInterests']);
     Route::get('/interests', [AuthController::class, 'getInterests']);
@@ -149,6 +152,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/settings/team/{id}', [\App\Http\Controllers\Api\TeamController::class, 'show']);
     Route::post('/settings/team/{id}/update', [\App\Http\Controllers\Api\TeamController::class, 'update']);
     Route::delete('/settings/team/{id}', [\App\Http\Controllers\Api\TeamController::class, 'destroy']);
+
+    // Partner Service Management Routes
+    Route::get('/my-services', [\App\Http\Controllers\Api\ServiceController::class, 'index']);
+    Route::post('/services', [\App\Http\Controllers\Api\ServiceController::class, 'store']);
+    Route::post('/services/{id}/update', [\App\Http\Controllers\Api\ServiceController::class, 'update']);
+    Route::delete('/services/{id}', [\App\Http\Controllers\Api\ServiceController::class, 'destroy']);
+    Route::post('/services/{id}/delete', [\App\Http\Controllers\Api\ServiceController::class, 'destroy']);
 
     // Broadcasting authentication
     \Illuminate\Support\Facades\Broadcast::routes(['middleware' => ['auth:sanctum']]);

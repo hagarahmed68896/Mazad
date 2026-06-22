@@ -331,28 +331,31 @@ class AuthController extends Controller
     {
         $request->validate([
             'services' => 'required|array',
-            'services.*' => 'string|in:خدمة الفحص,خدمة الشحن,خدمة الشراء',
+            'services.*' => 'exists:services,id',
         ]);
 
-        foreach ($request->services as $serviceTitle) {
-            $exists = \App\Models\Service::where('user_id', Auth::id())
-                ->where('title', $serviceTitle)
-                ->exists();
+        $user = Auth::user();
 
-            if (!$exists) {
-                $categoryId = 4; // Default "الخدمات"
-                if ($serviceTitle === 'خدمة الفحص') {
-                    $categoryId = 1; // "السيارات"
-                }
+        $templates = \App\Models\Service::where('user_id', 1)
+            ->whereIn('id', $request->services)
+            ->get();
 
-                \App\Models\Service::create([
-                    'user_id' => Auth::id(),
-                    'category_id' => $categoryId,
-                    'title' => $serviceTitle,
-                    'description' => 'خدمة احترافية مقدمة من الشريك كجزء من منصة مزاد.',
-                    'price' => 0.00,
-                ]);
-            }
+        if ($templates->count() !== count(array_unique($request->services))) {
+            return back()->withErrors(['services' => 'إحدى الخدمات المختارة غير صالحة.']);
+        }
+
+        // Delete old services
+        \App\Models\Service::where('user_id', $user->id)->delete();
+
+        foreach ($templates as $tmpl) {
+            \App\Models\Service::create([
+                'user_id' => $user->id,
+                'category_id' => $tmpl->category_id,
+                'title' => $tmpl->title,
+                'description' => $tmpl->description ?: 'خدمة احترافية مقدمة من الشريك كجزء من منصة مزاد.',
+                'image' => $tmpl->getRawOriginal('image'),
+                'price' => (float)$tmpl->price,
+            ]);
         }
 
         return redirect()->route('home')->with('success', 'تم تفعيل وتحديد خدمات الشريك بنجاح! 🎉');
@@ -379,34 +382,44 @@ class AuthController extends Controller
 
     public function showPartnerServicesForm()
     {
-        return view('auth.register-partner-services');
+        $user = Auth::user();
+        $categoryIds = $user->interests()->pluck('categories.id')->toArray();
+        $services = \App\Models\Service::where('user_id', 1)
+            ->whereIn('category_id', $categoryIds)
+            ->get();
+
+        return view('auth.register-partner-services', compact('services'));
     }
 
     public function savePartnerServices(Request $request)
     {
         $request->validate([
             'services' => 'required|array',
-            'services.*' => 'string|in:خدمة الفحص,خدمة الشحن,خدمة الشراء',
+            'services.*' => 'exists:services,id',
         ]);
 
         $user = Auth::user();
+
+        $templates = \App\Models\Service::where('user_id', 1)
+            ->whereIn('id', $request->services)
+            ->get();
+
+        if ($templates->count() !== count(array_unique($request->services))) {
+            return back()->withErrors(['services' => 'إحدى الخدمات المختارة غير صالحة.']);
+        }
 
         // Delete old services to avoid duplication
         \App\Models\Service::where('user_id', $user->id)->delete();
 
         // Save selected services
-        foreach ($request->services as $serviceTitle) {
-            $categoryId = 4; // Default "الخدمات"
-            if ($serviceTitle === 'خدمة الفحص') {
-                $categoryId = 1; // "السيارات"
-            }
-
+        foreach ($templates as $tmpl) {
             \App\Models\Service::create([
                 'user_id' => $user->id,
-                'category_id' => $categoryId,
-                'title' => $serviceTitle,
-                'description' => 'خدمة احترافية مقدمة من الشريك كجزء من منصة مزاد.',
-                'price' => 0.00,
+                'category_id' => $tmpl->category_id,
+                'title' => $tmpl->title,
+                'description' => $tmpl->description ?: 'خدمة احترافية مقدمة من الشريك كجزء من منصة مزاد.',
+                'image' => $tmpl->getRawOriginal('image'),
+                'price' => (float)$tmpl->price,
             ]);
         }
 

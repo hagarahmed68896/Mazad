@@ -5,6 +5,11 @@
 @push('styles')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <style>
+    /* Force SweetAlert to show above modal overlay */
+    .swal2-container {
+        z-index: 10000 !important;
+    }
+
     /* Add custom active styles for sidebar links */
     .tab-link.active {
         background-color: #EBF3FC;
@@ -490,7 +495,22 @@
         fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ar`)
             .then(r => r.json())
             .then(data => {
-                if (data && data.display_name) {
+                if (data && data.address) {
+                    const addr = data.address;
+                    let city = addr.city || addr.town || addr.village || addr.state || "";
+                    city = city.replace(/محافظة |منطقة |مدينة /g, '').trim();
+                    
+                    let neighborhood = addr.suburb || addr.neighbourhood || addr.quarter || "";
+                    neighborhood = neighborhood.replace(/حي /g, '').trim();
+                    
+                    let shortAddress = "";
+                    if (neighborhood && city) {
+                        shortAddress = neighborhood + "، " + city;
+                    } else {
+                        shortAddress = city || neighborhood || data.display_name;
+                    }
+                    document.getElementById('address-input').value = shortAddress;
+                } else if (data && data.display_name) {
                     document.getElementById('address-input').value = data.display_name;
                 }
             })

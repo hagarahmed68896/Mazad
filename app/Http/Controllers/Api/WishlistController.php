@@ -26,6 +26,13 @@ class WishlistController extends Controller
 
         $user = Auth::user();
 
+        if ($ad->user_id === $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكنك إضافة إعلانك الخاص إلى المفضلة'
+            ], 400);
+        }
+
         $favorite = Favorite::where('user_id', $user->id)
                             ->where('ad_id', $ad->id)
                             ->first();
@@ -61,10 +68,11 @@ class WishlistController extends Controller
     {
         $user = Auth::user();
 
-        // Start query with Ads that are favorited by the current user
+        // Start query with Ads that are favorited by the current user (excluding user's own ads)
         $query = Ad::whereHas('favorites', function ($q) use ($user) {
             $q->where('user_id', $user->id);
-        })->with(['category', 'user', 'city']);
+        })->where('user_id', '!=', $user->id)
+          ->with(['category', 'user', 'city']);
 
         // 1. Keywords (Title, Description, Category Name, City Name)
         if ($request->has('q') && !empty($request->q)) {

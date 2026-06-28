@@ -838,6 +838,12 @@ class AdController extends Controller
             return redirect()->back()->with('error', 'لا يمكن إعادة نشر الإعلان قبل انتهائه.');
         }
 
+        // Block republish if there are pending_payment orders — buyer must pay first
+        $pendingOrder = $ad->orders()->where('status', 'pending_payment')->first();
+        if ($pendingOrder) {
+            return redirect()->back()->with('error', 'لا يمكن إعادة نشر الإعلان لأن هناك طلب شراء قيد الدفع (رقم الطلب: #' . $pendingOrder->order_number . '). يرجى انتظار إتمام الدفع أو إلغاء الطلب أولاً.');
+        }
+
         // Determine duration
         $duration = 7; // Default 7 days
         if ($ad->start_date && $ad->end_date) {

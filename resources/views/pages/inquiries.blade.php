@@ -51,8 +51,11 @@
                                 {{ mb_substr(Auth::user()->name ?? 'م', 0, 1) }}
                             </div>
                             <div>
-                                <h3 class="text-base font-black text-gray-900">{{ $ticket->reported_about ?? 'استفسار عام' }}</h3>
-                                <p class="text-gray-400 font-bold text-xs mt-0.5">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="text-base font-black text-gray-900">{{ str_replace(' (تطبيق)', '', $ticket->reported_about ?? 'استفسار عام') }}</h3>
+                                    <span class="bg-blue-50 text-primary px-2.5 py-0.5 rounded-full text-xs font-mono font-bold">{{ $ticket->ticket_number }}</span>
+                                </div>
+                                <p class="text-gray-400 font-bold text-xs mt-1">
                                     الدعم والمساعدة - 
                                     @if($ticket->created_at)
                                         {{ $ticket->created_at->diffForHumans() }}
@@ -118,6 +121,12 @@
                     </a>
                 </div>
             @endforelse
+
+            @if($tickets->hasPages())
+                <div class="mt-8 flex justify-center">
+                    <x-custom-pagination :paginator="$tickets" />
+                </div>
+            @endif
         </div>
 
     </div>

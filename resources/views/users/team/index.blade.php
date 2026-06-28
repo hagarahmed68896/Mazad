@@ -203,16 +203,25 @@
             }
         }).then((result) => {
             if (result.isConfirmed) {
-                // Perform AJAX delete request
-                fetch(`/settings/team/${id}`, {
-                    method: 'DELETE',
+                fetch('{{ url("/settings/team") }}/' + id, {
+                    method: 'POST',
                     headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    body: JSON.stringify({
+                        _method: 'DELETE',
+                        _token: '{{ csrf_token() }}'
+                    })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            throw new Error(text || 'HTTP ' + response.status);
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         // Remove member card from DOM with anim
@@ -242,8 +251,9 @@
                         Swal.fire('خطأ', data.message || 'فشل حذف عضو الفريق', 'error');
                     }
                 })
-                .catch(() => {
-                    Swal.fire('خطأ', 'حدث خلل في الاتصال بالخادم.', 'error');
+                .catch(error => {
+                    console.error('Delete error:', error);
+                    Swal.fire('خطأ', 'حدث خلل في الاتصال بالخادم: ' + error.message, 'error');
                 });
             }
         });

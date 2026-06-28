@@ -76,7 +76,7 @@ class HomeController extends Controller
         $discoveryCategories = Category::whereNull('parent_id')->get();
         
         // Handle User Interests for personalization (Web)
-        $interestIds = Auth::check() ? Auth::user()->interests()->pluck('categories.id')->toArray() : [];
+        $interestIds = Auth::check() ? Auth::user()->resolvedInterests()->pluck('id')->toArray() : [];
         $interestIdsStr = !empty($interestIds) ? implode(',', $interestIds) : null;
 
         // Helper for prioritized query
@@ -172,6 +172,8 @@ class HomeController extends Controller
         $totalRevenue = 0;
         $chartData = [];
         $currentFilter = request('filter', 'weekly');
+        $revenueTrend = 0;
+        $trendDirection = 'flat';
         
         if (auth()->check()) {
             $user = auth()->user();
@@ -185,6 +187,15 @@ class HomeController extends Controller
                         'total' => $user->sales()->where('status', 'delivered')->whereYear('created_at', $month->year)->whereMonth('created_at', $month->month)->sum('final_price')
                     ];
                 }
+                
+                $currentPeriodRevenue = collect($chartData)->sum('total');
+                $previousPeriodRevenue = $user->sales()
+                    ->where('status', 'delivered')
+                    ->whereBetween('created_at', [
+                        now()->subMonths(23)->startOfMonth(),
+                        now()->subMonths(12)->endOfMonth()
+                    ])
+                    ->sum('final_price');
             } elseif ($currentFilter === 'monthly') {
                 for ($i = 3; $i >= 0; $i--) {
                     $weekStart = now()->subWeeks($i)->startOfWeek();
@@ -194,6 +205,15 @@ class HomeController extends Controller
                         'total' => $user->sales()->where('status', 'delivered')->whereBetween('created_at', [$weekStart, $weekEnd])->sum('final_price')
                     ];
                 }
+                
+                $currentPeriodRevenue = collect($chartData)->sum('total');
+                $previousPeriodRevenue = $user->sales()
+                    ->where('status', 'delivered')
+                    ->whereBetween('created_at', [
+                        now()->subWeeks(7)->startOfWeek(),
+                        now()->subWeeks(4)->endOfWeek()
+                    ])
+                    ->sum('final_price');
             } else {
                 for ($i = 6; $i >= 0; $i--) {
                     $day = now()->subDays($i);
@@ -202,7 +222,34 @@ class HomeController extends Controller
                         'total' => $user->sales()->where('status', 'delivered')->whereDate('created_at', $day->toDateString())->sum('final_price')
                     ];
                 }
+                
+                $currentPeriodRevenue = collect($chartData)->sum('total');
+                $previousPeriodRevenue = $user->sales()
+                    ->where('status', 'delivered')
+                    ->whereBetween('created_at', [
+                        now()->subDays(13)->startOfDay(),
+                        now()->subDays(7)->endOfDay()
+                    ])
+                    ->sum('final_price');
             }
+            
+            if ($previousPeriodRevenue > 0) {
+                $revenueTrend = (($currentPeriodRevenue - $previousPeriodRevenue) / $previousPeriodRevenue) * 100;
+            } elseif ($currentPeriodRevenue > 0) {
+                $revenueTrend = 100.0;
+            } else {
+                $revenueTrend = 0.0;
+            }
+            
+            if ($revenueTrend > 0) {
+                $trendDirection = 'up';
+            } elseif ($revenueTrend < 0) {
+                $trendDirection = 'down';
+            } else {
+                $trendDirection = 'flat';
+            }
+            
+            $revenueTrend = abs($revenueTrend);
         }
 
         $settings = Setting::pluck('value', 'key')->toArray();
@@ -211,7 +258,7 @@ class HomeController extends Controller
             'banners', 'discoveryCategories', 'featuredAds', 
             'interactiveAds', 'endingSoon', 'recentlyViewed', 
             'currentAuctions', 'instantBuy', 'settings',
-            'totalRevenue', 'chartData'
+            'totalRevenue', 'chartData', 'revenueTrend', 'trendDirection'
         ));
     }
 
@@ -311,8 +358,12 @@ class HomeController extends Controller
         });
 
         // City
-        if ($request->has('city') && !empty($request->city)) {
-            $query->where('city_id', $request->city);
+        $cityFilter = $request->get('city');
+        if (empty($cityFilter)) {
+            $cityFilter = Auth::check() ? Auth::user()->city_id : session('user_city_id');
+        }
+        if (!empty($cityFilter)) {
+            $query->where('city_id', $cityFilter);
         }
 
         // 4. Type Filter (auction, buy_now, etc.)
@@ -365,10 +416,26 @@ class HomeController extends Controller
         }
 
         $sort = $request->get('sort', 'newest');
-        if ($sort === 'price_high') $query->orderBy('price', 'desc');
-        elseif ($sort === 'price_low') $query->orderBy('price', 'asc');
-        elseif ($sort === 'ending_soon') $query->orderBy('end_date', 'asc')->whereNotNull('end_date')->where('end_date', '>', now());
-        else $query->orderBy('created_at', 'desc');
+        if ($sort === 'price_high') {
+            $query->orderBy('price', 'desc');
+        } elseif ($sort === 'price_low') {
+            $query->orderBy('price', 'asc');
+        } elseif ($sort === 'ending_soon') {
+            $query->orderBy('end_date', 'asc')->whereNotNull('end_date')->where('end_date', '>', now());
+        } else {
+            // Default sort (newest or relevant)
+            if ($userLat && $userLng) {
+                // Prioritize by distance (closest first), keeping ads without coordinates at the end
+                $query->orderByRaw("CASE WHEN lat IS NULL OR lng IS NULL THEN 1 ELSE 0 END")
+                      ->orderByRaw("(6371 * acos(cos(radians(?)) * cos(radians(lat)) * cos(radians(lng) - radians(?)) + sin(radians(?)) * sin(radians(lat)))) ASC", [$userLat, $userLng, $userLat]);
+            }
+            
+            if ($sort === 'newest') {
+                $query->orderBy('created_at', 'desc');
+            } else {
+                $query->orderBy('is_featured', 'desc')->orderBy('created_at', 'desc');
+            }
+        }
 
         $ads = $query->paginate(12)->appends($request->all());
         
@@ -378,10 +445,14 @@ class HomeController extends Controller
 
         return view('search', compact('ads', 'categories', 'cities', 'settings', 'activeCategory'));
     }
-
     public function showAd($id)
     {
         $ad = Ad::with(['category', 'user', 'city', 'adProperties.property', 'images'])->findOrFail($id);
+
+        // If the ad is in Services category (category_id = 4), redirect to services.show
+        if ($ad->category_id == 4) {
+            return redirect()->route('services.show', $ad->id);
+        }
         
         // Draft privacy check: If the ad is incomplete, only the owner can view it
         if ($ad->status === 'incomplete' && (!Auth::check() || Auth::id() !== $ad->user_id)) {
@@ -428,6 +499,10 @@ class HomeController extends Controller
         // 3. Final collection (Real images only)
         $allImages = $realImages;
 
+        if ($allImages->isEmpty()) {
+            return redirect()->route('ads.show', $id)->with('error', 'لا توجد صور متوفرة لهذا الإعلان.');
+        }
+
         $categories = Category::whereNull('parent_id')->get();
         $settings = Setting::pluck('value', 'key')->toArray();
         $startIndex = (int)$index;
@@ -448,19 +523,23 @@ class HomeController extends Controller
             }
         }
 
-        $user = \App\Models\User::with(['ads.category', 'ads.city', 'company'])->findOrFail($id);
+        $user = \App\Models\User::with(['ads.category', 'ads.city', 'company', 'reviewsReceived.reviewer', 'teamMembers'])->findOrFail($id);
         $categories = Category::whereNull('parent_id')->get();
         $settings = Setting::pluck('value', 'key')->toArray();
         $cities = City::all();
-        
-        // Stats for the profile card
-        $adsCount = $user->ads()->count();
-        $soldCount = $user->sales()->where('status', 'delivered')->count();
+
+        // Collect IDs: the user themselves + any team members (representatives) if this is a company
+        $teamMemberIds = $user->teamMembers->pluck('id')->toArray();
+        $allUserIds = array_merge([$user->id], $teamMemberIds);
+
+        // Stats for the profile card (include team members' ads & sales)
+        $adsCount = \App\Models\Ad::whereIn('user_id', $allUserIds)->count();
+        $soldCount = \App\Models\Order::whereIn('seller_id', $allUserIds)->where('status', 'delivered')->count();
         $rating = $user->reviewsReceived()->avg('rating') ?: 0.0;
         $reviewsCount = $user->reviewsReceived()->count();
 
-        // Filtering ads for the Products tab
-        $query = $user->ads()->with(['category', 'user', 'city']);
+        // Filtering ads for the Products tab (include team members' ads)
+        $query = \App\Models\Ad::whereIn('user_id', $allUserIds)->with(['category', 'user', 'city']);
 
         if ($request->filled('q')) {
             $query->where('title', 'like', '%' . $request->q . '%');
@@ -645,6 +724,13 @@ class HomeController extends Controller
             ->unique()
             ->map(fn($img) => \Illuminate\Support\Str::startsWith($img, 'http') ? $img : '/' . ltrim($img, '/'))
             ->values();
+
+        if ($allImages->isEmpty()) {
+            if ($service instanceof \App\Models\Ad) {
+                return redirect()->route('ads.show', $id)->with('error', 'لا توجد صور متوفرة لهذا الإعلان.');
+            }
+            return redirect()->route('services.show', $id)->with('error', 'لا توجد صور متوفرة لهذه الخدمة.');
+        }
 
         $categories = Category::whereNull('parent_id')->get();
         $settings = Setting::pluck('value', 'key')->toArray();

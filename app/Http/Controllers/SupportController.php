@@ -131,7 +131,7 @@ class SupportController extends Controller
         // Create log
         $ticket->logs()->create([
             'action' => 'ticket_created',
-            'note' => 'تم إنشاء تذكرة الدعم الفني بنجاح عبر نموذج اتصل بنا.'
+            'note' => 'تم إنشاء تذكرة الدعم الفني بنجاح.'
         ]);
 
         if (Auth::check()) {
@@ -153,7 +153,7 @@ class SupportController extends Controller
         $tickets = Ticket::where('user_id', Auth::id())
             ->with(['logs'])
             ->latest()
-            ->get();
+            ->paginate(10);
 
         // Seed some sample data for inquiries if empty to show a beautiful initial screen matching screenshot
         if ($tickets->isEmpty()) {
@@ -198,7 +198,7 @@ class SupportController extends Controller
             $tickets = Ticket::where('user_id', Auth::id())
                 ->with(['logs'])
                 ->latest()
-                ->get();
+                ->paginate(10);
         }
 
         return view('pages.inquiries', compact('tickets'));

@@ -154,7 +154,7 @@
                     <input type="hidden" name="action" value="reply">
                     <textarea name="note" rows="5" required class="w-full p-8 bg-[#F8FAFC] border-none rounded-[30px] font-bold text-slate-600 focus:ring-2 focus:ring-blue-100 transition-all resize-none shadow-sm" placeholder="اكتب ردك هنا..."></textarea>
                     <div class="flex justify-start">
-                        <button type="submit" class="h-14 px-12 bg-[#1A73E8] text-white rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 text-[16px]">
+                        <button type="submit" class="h-14 px-12 whitespace-nowrap bg-[#1A73E8] text-white rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 text-[16px] w-auto min-w-[160px]" style="padding: 0 3rem;">
                             إرسال الرد
                         </button>
                     </div>
@@ -201,7 +201,7 @@
                             <span class="text-sm font-bold text-slate-400" dir="rtl">{{ $log->created_at->diffForHumans() }}</span>
                         </div>
                         <p class="mt-4 text-slate-500 font-bold leading-relaxed text-[15px]">
-                            {{ $log->note }}
+                            {{ str_replace([' عبر التطبيق.', ' عبر التطبيق', ' عبر نموذج اتصل بنا.', ' عبر نموذج اتصل بنا'], '', $log->note) }}
                         </p>
                     </div>
                 @endforeach

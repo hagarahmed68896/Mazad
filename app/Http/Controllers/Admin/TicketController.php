@@ -66,16 +66,71 @@ class TicketController extends Controller
                 'action' => $request->action,
                 'note' => $request->note
             ]);
-            $ticket->update(['status' => 'resolved']);
+            
+            $updateData = ['status' => 'resolved'];
+            if ($request->action === 'reply') {
+                $updateData['notes'] = $request->note;
+            }
+            $ticket->update($updateData);
+
+            if ($ticket->user_id) {
+                $title = $ticket->type === 'inquiry' ? 'تم الرد على استفسارك' : 'تمت معالجة بلاغك';
+                $content = $ticket->type === 'inquiry' 
+                    ? 'تم الرد على استفسارك رقم ' . $ticket->ticket_number . ' بنجاح. يمكنك قراءة الرد في صفحة استفساراتي.'
+                    : 'تم مراجعة ومعالجة البلاغ رقم ' . $ticket->ticket_number . ' بنجاح واتخاذ الإجراءات اللازمة.';
+
+                \App\Models\Notification::create([
+                    'user_id' => $ticket->user_id,
+                    'title' => $title,
+                    'content' => $content,
+                    'type' => 'alert',
+                    'status' => 'sent',
+                ]);
+            }
+
             return redirect()->back()->with('success', 'تم اتخاذ الإجراء بنجاح وتم حل التذكرة.');
         }
 
         if ($request->has('status')) {
+            $oldStatus = $ticket->status;
             $ticket->update(['status' => $request->status]);
+
+            if ($request->status === 'resolved' && $oldStatus !== 'resolved' && $ticket->user_id) {
+                $title = $ticket->type === 'inquiry' ? 'تم الرد على استفسارك' : 'تمت معالجة بلاغك';
+                $content = $ticket->type === 'inquiry' 
+                    ? 'تم الرد على استفسارك رقم ' . $ticket->ticket_number . ' بنجاح. يمكنك قراءة الرد في صفحة استفساراتي.'
+                    : 'تم مراجعة ومعالجة البلاغ رقم ' . $ticket->ticket_number . ' بنجاح واتخاذ الإجراءات اللازمة.';
+
+                \App\Models\Notification::create([
+                    'user_id' => $ticket->user_id,
+                    'title' => $title,
+                    'content' => $content,
+                    'type' => 'alert',
+                    'status' => 'sent',
+                ]);
+            }
+
             return redirect()->back()->with('success', 'تم تحديث حالة التذكرة بنجاح');
         }
 
+        $oldStatus = $ticket->status;
         $ticket->update($request->only('status', 'notes'));
+
+        if ($ticket->status === 'resolved' && $oldStatus !== 'resolved' && $ticket->user_id) {
+            $title = $ticket->type === 'inquiry' ? 'تم الرد على استفسارك' : 'تمت معالجة بلاغك';
+            $content = $ticket->type === 'inquiry' 
+                ? 'تم الرد على استفسارك رقم ' . $ticket->ticket_number . ' بنجاح. يمكنك قراءة الرد في صفحة استفساراتي.'
+                : 'تم مراجعة ومعالجة البلاغ رقم ' . $ticket->ticket_number . ' بنجاح واتخاذ الإجراءات اللازمة.';
+
+            \App\Models\Notification::create([
+                'user_id' => $ticket->user_id,
+                'title' => $title,
+                'content' => $content,
+                'type' => 'alert',
+                'status' => 'sent',
+            ]);
+        }
+
         return redirect()->back()->with('success', 'تم التحديث بنجاح');
     }
 

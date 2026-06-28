@@ -108,8 +108,11 @@
                             </a>
                             <!-- Notification Dropdown -->
                             <div class="notification-dropdown" id="notificationDropdown">
-                                <div class="notif-header">
-                                    <h3>التنبيهات</h3>
+                                <div class="notif-header" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #F1F5F9; padding-bottom: 12px; margin-bottom: 10px;">
+                                    <h3 style="margin: 0;">التنبيهات</h3>
+                                    @if(Auth::user()->unreadNotifications->count() > 0)
+                                        <button onclick="markAllNotificationsRead(event)" class="text-primary hover:underline bg-transparent border-0 cursor-pointer text-xs font-bold" id="markAllReadBtnDropdown" style="font-family: inherit;">تمييز الكل كمقروء</button>
+                                    @endif
                                 </div>
                                 <div class="notif-body">
                                     @forelse(Auth::user()->notifications()->latest()->get() as $notification)
@@ -285,6 +288,58 @@
             }
         } catch (error) {
             console.error('Error deleting notification:', error);
+        }
+    }
+
+    async function markAllNotificationsRead(event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        try {
+            const response = await fetch(`/notifications/mark-all-read`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                // Update dropdown items
+                document.querySelectorAll('.notification-dropdown .notification-item.unread').forEach(item => {
+                    item.classList.remove('unread');
+                    const markBtn = item.querySelector('.mark-read-btn');
+                    if (markBtn) markBtn.remove();
+                });
+                
+                // Hide badge
+                const badge = document.getElementById('unreadNotifBadge');
+                if (badge) {
+                    badge.style.display = 'none';
+                    badge.textContent = '0';
+                }
+                
+                // Hide dropdown mark all read button
+                const btnDropdown = document.getElementById('markAllReadBtnDropdown');
+                if (btnDropdown) btnDropdown.remove();
+
+                // If on notification index page, update the UI there as well
+                const btnIndex = document.getElementById('markAllReadBtnIndex');
+                if (btnIndex) btnIndex.remove();
+
+                document.querySelectorAll('.notif-card-item.unread').forEach(card => {
+                    card.classList.remove('unread');
+                    const dropdown = document.getElementById(`dropdown-${card.id.replace('notif-', '')}`);
+                    if (dropdown) {
+                        const markBtn = dropdown.querySelector('.action-item:not(.delete)');
+                        if (markBtn) markBtn.remove();
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error marking all notifications as read:', error);
         }
     }
 

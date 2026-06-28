@@ -186,7 +186,15 @@
                             @endforeach
                             <div class="flex justify-between items-center p-6 bg-gray-50 rounded-2xl border border-gray-100/50">
                                 <span class="text-gray-500 font-bold">المدينة</span>
-                                <span class="text-gray-900 font-black">{{ $ad->city->name ?? 'غير محدد' }}</span>
+                                <span class="text-gray-900 font-black">
+                                    @if($ad->city)
+                                        {{ $ad->city->region ? $ad->city->region->name . ' - ' : '' }}{{ $ad->city->name }}
+                                    @elseif($ad->address)
+                                        {{ $ad->address }}
+                                    @else
+                                        غير محدد
+                                    @endif
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -292,6 +300,12 @@
                     <!-- Seller Info Panel -->
                     @php
                         $seller = $ad->user;
+                        // Check if seller is a representative (has a parent company)
+                        $parentCompany = $seller->parent_id ? $seller->company()->first() : null;
+                        $isRepresentative = ($seller->account_type === 'representative' || $seller->account_type === 'delegate') && $parentCompany;
+                        if (!$isRepresentative && $seller->parent_id && $parentCompany) {
+                            $isRepresentative = true;
+                        }
                         if (Auth::check() && Auth::id() == $ad->user_id) {
                             $reviews = $seller->reviewsReceived()->latest()->get();
                         } else {
@@ -322,7 +336,21 @@
                                     <a href="{{ route('users.profile', $seller->id) }}" class="hover:text-primary transition-colors">
                                         <h4 class="text-2xl font-black text-gray-900 mb-1">{{ $seller->name }}</h4>
                                     </a>
-                                    <p class="text-gray-400 font-bold mb-3">{{ $seller->account_type == 'company' ? ($seller->company_name ?? 'شركة معتمدة') : 'عضو فردي' }}</p>
+                                    @if($isRepresentative && $parentCompany)
+                                        <p class="text-gray-400 font-bold mb-2" style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                                            <span style="background:#EBF3FD; color:#1A73E8; border-radius:8px; padding:2px 10px; font-size:0.82rem; font-weight:800; display:inline-flex; align-items:center; gap:0.3rem;">
+                                                <i class="fa-solid fa-building" style="font-size:0.75rem;"></i>
+                                                مندوب شركة
+                                            </span>
+                                            <a href="{{ route('users.profile', $parentCompany->id) }}" style="color:#1A73E8; font-weight:900; text-decoration:none; font-size:0.95rem;" class="hover:underline">
+                                                {{ $parentCompany->company_name ?? $parentCompany->name }}
+                                            </a>
+                                        </p>
+                                    @elseif($seller->account_type == 'company')
+                                        <p class="text-gray-400 font-bold mb-3">{{ $seller->company_name ?? 'شركة معتمدة' }}</p>
+                                    @else
+                                        <p class="text-gray-400 font-bold mb-3">عضو فردي</p>
+                                    @endif
                                     <a href="{{ route('users.profile', $seller->id) }}" class="text-primary font-black text-sm hover:underline flex items-center gap-2">
                                         عرض جميع الإعلانات <i class="fa-solid fa-arrow-left text-[10px]"></i>
                                     </a>
@@ -331,9 +359,16 @@
                             
                             <div class="mb-8 text-gray-500 font-medium leading-relaxed">
                                 <p class="line-clamp-3">
-                                    {{ $seller->name }} عضو نشط في منصة مزاد {{ $seller->created_at->diffForHumans() }}. 
-                                    قام بإضافة {{ $seller->ads()->count() }} إعلان حتى الآن، 
-                                    ويتمتع بسمعة طيبة بناءً على تقييمات العملاء السابقة.
+                                    @if($isRepresentative && $parentCompany)
+                                        {{ $seller->name }} مندوب معتمد لدى شركة {{ $parentCompany->company_name ?? $parentCompany->name }}، 
+                                        عضو نشط في منصة مزاد منذ {{ $seller->created_at->diffForHumans() }}.
+                                        قام بإضافة {{ $seller->ads()->count() }} إعلان حتى الآن،
+                                        ويتمتع بسمعة طيبة بناءً على تقييمات العملاء السابقة.
+                                    @else
+                                        {{ $seller->name }} عضو نشط في منصة مزاد {{ $seller->created_at->diffForHumans() }}. 
+                                        قام بإضافة {{ $seller->ads()->count() }} إعلان حتى الآن، 
+                                        ويتمتع بسمعة طيبة بناءً على تقييمات العملاء السابقة.
+                                    @endif
                                 </p>
                                 <button class="text-primary font-black text-sm mt-2">المزيد</button>
                             </div>
@@ -680,7 +715,7 @@
                                 </div>
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
                                     <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المزايدات</span>
-                                    <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->bids()->count()) }}</span>
+                                    <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->bids()->where('type', '!=', 'deposit')->count()) }}</span>
                                 </div>
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
                                     <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المفضلة</span>
@@ -709,7 +744,7 @@
                             <!-- Action Buttons -->
                             <div class="space-y-3">
                                 @if($b_order_status == 'pending_payment')
-                                    <button type="button" onclick="showAdPaymentDetails('{{ $buyerOrder->order_number }}', '{{ number_format($buyerOrder->final_price) }}')" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
+                                    <button type="button" onclick="openCardPaymentModal('{{ $buyerOrder->order_number }}', '{{ number_format($buyerOrder->final_price) }}', {{ $buyerOrder->id }})" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
                                         اتمام الدفع
                                     </button>
                                 @elseif($b_order_status == 'receiving')
@@ -814,7 +849,7 @@
                                             {{ $ad->type == 'direct_purchase' ? 'السومات' : 'المزايدات' }}
                                         @endif
                                     </span>
-                                    <button onclick="showBidsModal()" class="text-primary font-black text-sm underline text-left hover:text-blue-700 transition-colors">{{ number_format($ad->bids()->count()) }}</button>
+                                    <button onclick="showBidsModal()" class="text-primary font-black text-sm underline text-left hover:text-blue-700 transition-colors">{{ number_format($ad->bids()->where('type', '!=', 'deposit')->count()) }}</button>
                                 </div>
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
                                     <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المفضلة</span>
@@ -852,7 +887,7 @@
                                 @endif
                             </div>
 
-                            @if($ad->type == 'direct_purchase' && Auth::id() != $ad->user_id)
+                            @if($ad->type == 'direct_purchase' && (!Auth::check() || !Auth::user()->isSameTeam($ad->user_id)))
                             <!-- Quantity Selector -->
                             <div class="mb-6 space-y-3">
                                 <div class="flex justify-between items-center px-1">
@@ -877,7 +912,7 @@
                                 $is_closed = $ad->status == 'finished' || (isset($b_status) && ($b_status == 'sold' || $b_status == 'finished'));
                             @endphp
 
-                            @if(!$is_closed && Auth::id() != $ad->user_id)
+                            @if(!$is_closed && (!Auth::check() || !Auth::user()->isSameTeam($ad->user_id)))
                             <div class="space-y-3">
                                 @if($ad->type == 'electronic_auction' || $ad->type == 'hybrid_auction')
                                     @php
@@ -937,6 +972,10 @@
                                     <a href="{{ route('ads.edit', $ad->id) }}" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-3">
                                         <i class="fa-solid fa-pen-to-square"></i> تعديل الإعلان
                                     </a>
+                                </div>
+                            @elseif(Auth::check() && Auth::user()->isSameTeam($ad->user_id))
+                                <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 text-center">
+                                    <p class="text-primary font-black mb-4">هذا الإعلان تابع لشركتك أو أحد مناديبك.</p>
                                 </div>
                             @endif
                         @endif
@@ -1066,13 +1105,72 @@
                         </div>
                     </div>
                 </div>
-                <div class="p-8 bg-gray-50/30 flex gap-4">
-                    <form action="{{ route('orders.store', $ad->id) }}" method="POST" class="flex-1">
+                {{-- Step 1 Buttons --}}
+                <div class="px-8 pb-8 flex gap-4" id="purchaseStep1Btns">
+                    <button type="button" onclick="showPaymentStep()"
+                            class="flex-1 bg-primary text-white font-black py-5 rounded-[20px] hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 text-lg">
+                        متابعة للدفع
+                    </button>
+                    <button type="button" onclick="hidePurchaseModal()"
+                            class="flex-1 bg-white border border-gray-200 text-gray-500 font-bold py-5 rounded-[20px] hover:bg-gray-50 transition-all text-lg">إلغاء</button>
+                </div>
+
+                {{-- Step 2: Payment Card Step --}}
+                <div id="purchasePaymentStep" class="hidden px-8 pb-8 pt-6 border-t border-gray-100">
+                    <h4 class="text-xl font-black text-gray-900 mb-5 text-right">تفاصيل الدفع</h4>
+
+                    {{-- Card brand selector --}}
+                    <div class="flex gap-4 mb-5">
+                        <div id="pm-master" onclick="selectPurchasePayment('card')"
+                             class="flex-1 border-2 border-primary bg-blue-50/10 rounded-2xl p-4 cursor-pointer flex justify-center items-center h-14 transition-all duration-300">
+                            <img src="{{ asset('images/image 10.png') }}" class="h-7 object-contain" alt="Mastercard">
+                        </div>
+                        <div id="pm-mada" onclick="selectPurchasePayment('mada')"
+                             class="flex-1 border-2 border-gray-100 rounded-2xl p-4 cursor-pointer flex justify-center items-center h-14 transition-all duration-300">
+                            <img src="{{ asset('images/images 2.svg') }}" class="h-5 object-contain" alt="mada">
+                        </div>
+                    </div>
+
+                    {{-- Card fields --}}
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 font-bold mb-1.5 text-right text-sm">اسم البطاقة</label>
+                            <input type="text" id="pm_card_name" placeholder="أدخل اسم البطاقة"
+                                   class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3.5 px-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm text-right">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-bold mb-1.5 text-right text-sm">رقم البطاقة</label>
+                            <input type="text" id="pm_card_number" placeholder="أدخل رقم البطاقة" maxlength="19"
+                                   class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3.5 px-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm text-right">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-gray-700 font-bold mb-1.5 text-right text-sm">CVV</label>
+                                <input type="text" id="pm_card_cvv" placeholder="CVV" maxlength="4"
+                                       class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3.5 px-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm text-center">
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-bold mb-1.5 text-right text-sm">تاريخ الانتهاء</label>
+                                <input type="text" id="pm_card_expiry" placeholder="شهر/سنة"
+                                       class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3.5 px-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm text-center">
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Hidden form for submit --}}
+                    <form action="{{ route('orders.store', $ad->id) }}" method="POST" id="directBuyForm" class="mt-5 flex flex-col gap-3">
                         @csrf
                         <input type="hidden" name="quantity" id="directBuyQtyInput" value="1">
-                        <button type="submit" class="w-full bg-primary text-white font-black py-5 rounded-[20px] hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 text-lg">اشترِ الآن</button>
+                        <input type="hidden" name="payment_method" id="directBuyPaymentMethod" value="card">
+                        <button type="button" onclick="submitDirectPurchase()"
+                                class="w-full bg-primary text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-base flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-lock text-sm"></i> إتمام الدفع
+                        </button>
+                        <button type="button" onclick="hidePaymentStep()"
+                                class="w-full bg-gray-100 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-200 transition-all text-sm">
+                            العودة لملخص الطلب
+                        </button>
                     </form>
-                    <button onclick="hidePurchaseModal()" class="flex-1 bg-white border border-gray-200 text-gray-500 font-bold py-5 rounded-[20px] hover:bg-gray-50 transition-all text-lg">إلغاء</button>
                 </div>
             </div>
         </div>
@@ -1089,14 +1187,14 @@
                         {{ $ad->type == 'tender' ? 'سجل المناقصات' : 'سجل المزايدات' }}
                     </h3>
                     <div class="px-3 py-1 bg-blue-50 text-primary rounded-full text-sm font-black border border-blue-100">
-                        {{ $ad->bids()->count() }} {{ $ad->type == 'tender' ? 'مناقصة' : 'مزايدة' }}
+                        {{ $ad->bids()->where('type', '!=', 'deposit')->count() }} {{ $ad->type == 'tender' ? 'مناقصة' : 'مزايدة' }}
                     </div>
                 </div>
 
                 <!-- Table -->
                 <div class="overflow-y-auto max-h-[500px]">
                     @php 
-                        $bids = $ad->bids()->with('user')->orderByDesc('amount')->get(); 
+                        $bids = $ad->bids()->where('type', '!=', 'deposit')->with('user')->orderByDesc('amount')->get(); 
                         $winner_bid_id = ($ad->type == 'tender') ? ($bids->last()->id ?? null) : ($bids->first()->id ?? null);
                     @endphp
                     @if($bids->count() > 0)
@@ -1387,8 +1485,8 @@
                             </button>
                         </div>
                         <div class="flex items-center justify-center gap-1 text-gray-400 font-bold">
-                            <span>قيمة التزايد</span>
-                            <span>{{ number_format(500) }}</span>
+                            <span>قيمة التناقص</span>
+                            <span>{{ number_format($ad->bid_increment ?? 500) }}</span>
                             <x-riyal-icon class="w-4 h-4" />
                         </div>
                     </div>
@@ -1690,6 +1788,66 @@
         modal.classList.add('hidden');
         modal.classList.remove('flex');
         document.body.style.overflow = 'auto';
+        // Reset to step 1 on close
+        hidePaymentStep();
+    }
+
+    // Purchase Modal - Payment Step Functions
+    let selectedPurchasePayment = 'card';
+
+    function showPaymentStep() {
+        document.getElementById('purchaseStep1Btns').classList.add('hidden');
+        document.getElementById('purchasePaymentStep').classList.remove('hidden');
+    }
+
+    function hidePaymentStep() {
+        document.getElementById('purchasePaymentStep').classList.add('hidden');
+        document.getElementById('purchaseStep1Btns').classList.remove('hidden');
+        // Clear fields
+        ['pm_card_name', 'pm_card_number', 'pm_card_cvv', 'pm_card_expiry'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        // Reset to card selected
+        selectPurchasePayment('card');
+    }
+
+    function selectPurchasePayment(method) {
+        selectedPurchasePayment = method;
+        const master = document.getElementById('pm-master');
+        const mada   = document.getElementById('pm-mada');
+        if (method === 'card') {
+            master.className = 'flex-1 border-2 border-primary bg-blue-50/10 rounded-2xl p-4 cursor-pointer flex justify-center items-center h-14 transition-all duration-300';
+            mada.className   = 'flex-1 border-2 border-gray-100 rounded-2xl p-4 cursor-pointer flex justify-center items-center h-14 transition-all duration-300';
+        } else {
+            mada.className   = 'flex-1 border-2 border-primary bg-blue-50/10 rounded-2xl p-4 cursor-pointer flex justify-center items-center h-14 transition-all duration-300';
+            master.className = 'flex-1 border-2 border-gray-100 rounded-2xl p-4 cursor-pointer flex justify-center items-center h-14 transition-all duration-300';
+        }
+        const pmInput = document.getElementById('directBuyPaymentMethod');
+        if (pmInput) pmInput.value = method;
+    }
+
+    function submitDirectPurchase() {
+        const name   = document.getElementById('pm_card_name').value.trim();
+        const number = document.getElementById('pm_card_number').value.trim();
+        const cvv    = document.getElementById('pm_card_cvv').value.trim();
+        const expiry = document.getElementById('pm_card_expiry').value.trim();
+
+        if (!name || !number || !cvv || !expiry) {
+            Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'يرجى ملء جميع حقول البطاقة البنكية.', confirmButtonColor: '#1A73E8', customClass: { popup: 'rounded-[32px]' } });
+            return;
+        }
+        if (number.replace(/\s/g, '').length < 15) {
+            Swal.fire({ icon: 'warning', title: 'رقم البطاقة غير صحيح', text: 'يرجى إدخال رقم بطاقة بنكية صالح.', confirmButtonColor: '#1A73E8', customClass: { popup: 'rounded-[32px]' } });
+            return;
+        }
+        if (cvv.length < 3) {
+            Swal.fire({ icon: 'warning', title: 'رمز CVV غير صحيح', text: 'يرجى إدخال رمز CVV المكون من 3 أو 4 أرقام.', confirmButtonColor: '#1A73E8', customClass: { popup: 'rounded-[32px]' } });
+            return;
+        }
+
+        Swal.fire({ title: 'جاري معالجة الدفع...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        document.getElementById('directBuyForm').submit();
     }
 
     // Close on click outside
@@ -1818,8 +1976,8 @@
     }
 
     // Tender Modal Logic
-    let currentTenderAmount = {{ $ad->price - 500 }};
-    const tenderStep = 500;
+    let currentTenderAmount = {{ $ad->price - ($ad->bid_increment ?? 500) }};
+    const tenderStep = {{ $ad->bid_increment ?? 500 }};
     
     function showTenderModal() {
         const modal = document.getElementById('tenderModal');
@@ -1827,7 +1985,7 @@
         modal.classList.add('flex');
         document.body.style.overflow = 'hidden';
         
-        currentTenderAmount = {{ $ad->price - 500 }};
+        currentTenderAmount = {{ $ad->price - ($ad->bid_increment ?? 500) }};
         updateTenderDisplay();
     }
 
@@ -2245,51 +2403,135 @@
         });
     };
 
-    window.showAdPaymentDetails = function(orderNumber, price) {
+    window.openCardPaymentModal = function(orderNumber, price, orderId) {
         Swal.fire({
-            title: '<span style="font-size: 1.35rem; font-weight: 900; color: #1E293B;">تفاصيل الحساب البنكي للدفع</span>',
+            title: '<span style="font-size: 1.35rem; font-weight: 900; color: #1E293B;">تفاصيل الدفع</span>',
             html: `
-                <div class="text-right space-y-4 font-bold" style="direction: rtl; text-align: right;">
-                    <div class="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl mb-4">
-                        <p class="text-xs text-gray-500 font-bold mb-1">رقم الطلب:</p>
-                        <p class="text-sm font-black text-blue-600">#${orderNumber}</p>
-                        <p class="text-xs text-gray-500 font-bold mt-2 mb-1">الإجمالي المطلوب سداده:</p>
-                        <p class="text-lg font-black text-gray-900">${price} ريال سعودي</p>
+                <div style="direction: rtl; text-align: right;">
+                    <!-- Order summary -->
+                    <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:16px; padding:14px; margin-bottom:20px;">
+                        <p style="font-size:11px; color:#6B7280; font-weight:700; margin:0 0 2px;">رقم الطلب:</p>
+                        <p style="font-size:13px; font-weight:900; color:#1A73E8; margin:0 0 8px;">#${orderNumber}</p>
+                        <p style="font-size:11px; color:#6B7280; font-weight:700; margin:0 0 2px;">الإجمالي المطلوب سداده:</p>
+                        <p style="font-size:18px; font-weight:900; color:#111827; margin:0;">${price} ريال سعودي</p>
                     </div>
-                    <div class="space-y-3 text-slate-700">
+
+                    <!-- Card brand selector -->
+                    <div style="display:flex; gap:12px; margin-bottom:18px;">
+                        <div id="swal-pm-card" onclick="swalSelectPayment('card')"
+                             style="flex:1; border:2px solid #1A73E8; background:#EFF6FF; border-radius:14px; padding:10px; cursor:pointer; display:flex; justify-content:center; align-items:center; height:52px; transition:all .3s;">
+                            <img src="/images/image 10.png" style="height:28px; object-fit:contain;" alt="Mastercard">
+                        </div>
+                        <div id="swal-pm-mada" onclick="swalSelectPayment('mada')"
+                             style="flex:1; border:2px solid #E5E7EB; border-radius:14px; padding:10px; cursor:pointer; display:flex; justify-content:center; align-items:center; height:52px; transition:all .3s;">
+                            <img src="/images/images 2.svg" style="height:22px; object-fit:contain;" alt="mada">
+                        </div>
+                    </div>
+
+                    <!-- Card fields -->
+                    <div style="display:flex; flex-direction:column; gap:12px;">
                         <div>
-                            <span class="text-xs text-gray-400 font-bold block">اسم البنك:</span>
-                            <span class="text-sm font-black text-slate-700 block">البنك الأهلي السعودي (SNB)</span>
+                            <label style="display:block; font-size:12px; font-weight:700; color:#374151; margin-bottom:6px;">اسم البطاقة</label>
+                            <input type="text" id="swal_card_name" placeholder="أدخل اسم البطاقة"
+                                   style="width:100%; background:#F9FAFB; border:1px solid #F3F4F6; border-radius:14px; padding:12px 14px; font-weight:700; font-size:13px; outline:none; box-sizing:border-box; text-align:right;">
                         </div>
                         <div>
-                            <span class="text-xs text-gray-400 font-bold block">اسم الحساب:</span>
-                            <span class="text-sm font-black text-slate-700 block">شركة تقنية المعلومات للمزادات المحدودة</span>
+                            <label style="display:block; font-size:12px; font-weight:700; color:#374151; margin-bottom:6px;">رقم البطاقة</label>
+                            <input type="text" id="swal_card_number" placeholder="أدخل رقم البطاقة" maxlength="19"
+                                   style="width:100%; background:#F9FAFB; border:1px solid #F3F4F6; border-radius:14px; padding:12px 14px; font-weight:700; font-size:13px; outline:none; box-sizing:border-box; text-align:right;">
                         </div>
-                        <div>
-                            <span class="text-xs text-gray-400 font-bold block">رقم الحساب:</span>
-                            <span class="text-sm font-black text-slate-700 block">1000000839201</span>
-                        </div>
-                        <div>
-                            <span class="text-xs text-gray-400 font-bold block">رقم الآيبان (IBAN):</span>
-                            <div class="flex items-center justify-between bg-slate-50 border border-slate-100 p-2.5 rounded-xl mt-1">
-                                <span class="text-xs font-black text-slate-800" style="font-family: monospace; letter-spacing: 0.5px;">SA9876543210000012345678</span>
-                                <button type="button" onclick="navigator.clipboard.writeText('SA9876543210000012345678'); Swal.fire('نسخ!', 'تم نسخ رقم الآيبان.', 'success')" class="text-blue-500 hover:text-blue-700 font-bold text-xs">نسخ</button>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div>
+                                <label style="display:block; font-size:12px; font-weight:700; color:#374151; margin-bottom:6px;">CVV</label>
+                                <input type="text" id="swal_card_cvv" placeholder="CVV" maxlength="4"
+                                       style="width:100%; background:#F9FAFB; border:1px solid #F3F4F6; border-radius:14px; padding:12px 14px; font-weight:700; font-size:13px; outline:none; box-sizing:border-box; text-align:center;">
+                            </div>
+                            <div>
+                                <label style="display:block; font-size:12px; font-weight:700; color:#374151; margin-bottom:6px;">تاريخ الانتهاء</label>
+                                <input type="text" id="swal_card_expiry" placeholder="شهر/سنة"
+                                       style="width:100%; background:#F9FAFB; border:1px solid #F3F4F6; border-radius:14px; padding:12px 14px; font-weight:700; font-size:13px; outline:none; box-sizing:border-box; text-align:center;">
                             </div>
                         </div>
                     </div>
-                    <p class="text-[11px] text-rose-500 font-bold leading-relaxed mt-4 pt-3 border-t border-slate-100">
-                        * تنبيه: يرجى كتابة رقم الطلب (#${orderNumber}) في وصف الحوالة البنكية، ثم إرسال صورة التحويل لخدمة العملاء لإتمام مراجعة الطلب وتأكيد عملية الدفع.
-                    </p>
                 </div>
             `,
             showConfirmButton: true,
-            confirmButtonText: 'موافق',
+            confirmButtonText: '<i class="fa-solid fa-lock" style="margin-left:6px; font-size:12px;"></i> إتمام الدفع',
             confirmButtonColor: '#1A73E8',
+            showCancelButton: true,
+            cancelButtonText: 'إلغاء',
+            cancelButtonColor: '#E5E7EB',
             customClass: {
                 popup: 'rounded-[32px] p-8 max-w-[460px] w-full text-right',
-                confirmButton: 'rounded-2xl px-8 py-3.5 font-bold text-sm w-full bg-primary border-0'
+                confirmButton: 'rounded-2xl px-8 py-3.5 font-bold text-sm bg-primary border-0',
+                cancelButton: 'rounded-2xl px-8 py-3.5 font-bold text-sm text-slate-500 border-0 bg-gray-100'
+            },
+            didOpen: () => {
+                window._swalPaymentMethod = 'card';
+            },
+            preConfirm: () => {
+                const name   = document.getElementById('swal_card_name').value.trim();
+                const number = document.getElementById('swal_card_number').value.trim();
+                const cvv    = document.getElementById('swal_card_cvv').value.trim();
+                const expiry = document.getElementById('swal_card_expiry').value.trim();
+                if (!name || !number || !cvv || !expiry) {
+                    Swal.showValidationMessage('يرجى ملء جميع حقول البطاقة البنكية.');
+                    return false;
+                }
+                if (number.replace(/\s/g, '').length < 15) {
+                    Swal.showValidationMessage('يرجى إدخال رقم بطاقة بنكية صالح.');
+                    return false;
+                }
+                if (cvv.length < 3) {
+                    Swal.showValidationMessage('يرجى إدخال رمز CVV المكون من 3 أو 4 أرقام.');
+                    return false;
+                }
+                return true;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'جاري معالجة الدفع...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                fetch(`/orders/${orderId}/submit-payment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ payment_method: window._swalPaymentMethod ?? 'card' })
+                }).then(r => r.json()).then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم إرسال تأكيد الدفع!',
+                            text: 'سيقوم الفريق بمراجعة طلبك وسيتم التواصل معك قريباً.',
+                            confirmButtonText: 'حسناً',
+                            confirmButtonColor: '#1A73E8',
+                            customClass: { popup: 'rounded-[32px]', confirmButton: 'rounded-2xl px-8 py-3.5 font-bold text-sm bg-primary border-0' }
+                        }).then(() => location.reload());
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'خطأ', text: data.message ?? 'حدث خطأ، يرجى المحاولة لاحقاً.', confirmButtonColor: '#1A73E8', customClass: { popup: 'rounded-[32px]' } });
+                    }
+                }).catch(() => {
+                    Swal.fire({ icon: 'error', title: 'خطأ في الاتصال', text: 'فشل الاتصال بالخادم، يرجى المحاولة لاحقاً.', confirmButtonColor: '#1A73E8', customClass: { popup: 'rounded-[32px]' } });
+                });
             }
         });
+    };
+
+    window.swalSelectPayment = function(method) {
+        window._swalPaymentMethod = method;
+        const card = document.getElementById('swal-pm-card');
+        const mada = document.getElementById('swal-pm-mada');
+        if (!card || !mada) return;
+        if (method === 'card') {
+            card.style.border = '2px solid #1A73E8'; card.style.background = '#EFF6FF';
+            mada.style.border = '2px solid #E5E7EB'; mada.style.background = '';
+        } else {
+            mada.style.border = '2px solid #1A73E8'; mada.style.background = '#EFF6FF';
+            card.style.border = '2px solid #E5E7EB'; card.style.background = '';
+        }
     };
 
     window.openAdDeliveryModal = function(code) {

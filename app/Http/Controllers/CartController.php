@@ -27,18 +27,51 @@ class CartController extends Controller
 
         $ad = Ad::findOrFail($request->ad_id);
 
+        // Prevent adding own or team member's ad to cart
+        if (Auth::user()->isSameTeam($ad->user_id)) {
+            $message = 'لا يمكنك إضافة إعلان خاص بك أو بأحد مناديبك/شركتك إلى السلة.';
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                ], 422);
+            }
+            return redirect()->back()->with('error', $message);
+        }
+
+        $availableQuantity = (int) ($ad->quantity ?? 1);
+        $requestedQuantity = (int) $request->quantity;
+
         // Check if item already in cart
         $cartItem = Cart::where('user_id', Auth::id())
                         ->where('ad_id', $ad->id)
                         ->first();
 
+        $currentCartQuantity = $cartItem ? $cartItem->quantity : 0;
+        $newQuantity = $currentCartQuantity + $requestedQuantity;
+
+        if ($newQuantity > $availableQuantity) {
+            $message = $availableQuantity === 1
+                ? 'هذا المنتج مضاف بالفعل في السلة ولا يمكن إضافة أكثر من قطعة واحدة.'
+                : "عذراً، لا يمكنك إضافة أكثر من {$availableQuantity} قطع من هذا المنتج (الكمية المتاحة بالكامل).";
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                ], 422);
+            }
+
+            return redirect()->back()->with('error', $message);
+        }
+
         if ($cartItem) {
-            $cartItem->increment('quantity', $request->quantity);
+            $cartItem->update(['quantity' => $newQuantity]);
         } else {
             Cart::create([
                 'user_id' => Auth::id(),
                 'ad_id' => $ad->id,
-                'quantity' => $request->quantity,
+                'quantity' => $requestedQuantity,
                 'price' => $ad->price
             ]);
         }
@@ -56,8 +89,27 @@ class CartController extends Controller
 
     public function update(Request $request, $id)
     {
-        $cartItem = Cart::where('user_id', Auth::id())->findOrFail($id);
-        $cartItem->update(['quantity' => $request->quantity]);
+        $request->validate([
+            'quantity' => 'required|integer|min:1'
+        ]);
+
+        $cartItem = Cart::where('user_id', Auth::id())->with('ad')->findOrFail($id);
+        $ad = $cartItem->ad;
+        $availableQuantity = (int) ($ad->quantity ?? 1);
+        $requestedQuantity = (int) $request->quantity;
+
+        if ($requestedQuantity > $availableQuantity) {
+            $message = $availableQuantity === 1
+                ? 'لا يمكن إضافة أكثر من قطعة واحدة من هذا المنتج.'
+                : "عذراً، لا يمكنك طلب أكثر من {$availableQuantity} قطع من هذا المنتج.";
+
+            return response()->json([
+                'success' => false,
+                'message' => $message
+            ], 422);
+        }
+
+        $cartItem->update(['quantity' => $requestedQuantity]);
 
         return response()->json(['success' => true]);
     }
@@ -113,8 +165,8 @@ class CartController extends Controller
             $ad = $item->ad;
 
             // Basic checks
-            if ($ad->user_id === $user->id) {
-                continue; // Can't buy own ad
+            if ($user->isSameTeam($ad->user_id)) {
+                continue; // Can't buy own or team member's ad
             }
 
             if ($ad->status === 'finished') {

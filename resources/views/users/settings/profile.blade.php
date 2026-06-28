@@ -101,9 +101,29 @@
                     </div>
                     
                     <h3 class="text-xl font-black text-gray-900 mb-1">{{ Auth::user()->name }}</h3>
-                    <p class="text-gray-500 text-sm font-bold mb-6">
-                        @if(Auth::user()->account_type == 'company') شركة @elseif(Auth::user()->account_type == 'representative') مندوب @else فرد @endif
+                    <p class="text-gray-500 text-sm font-bold mb-1">
+                        @if(Auth::user()->account_type == 'company') 
+                            <span class="flex items-center gap-1 justify-center"><i class="fa-solid fa-building text-primary/60 text-xs"></i> شركة</span>
+                        @elseif(Auth::user()->account_type == 'representative') 
+                            <span class="flex items-center gap-1 justify-center"><i class="fa-solid fa-id-badge text-primary/60 text-xs"></i> مندوب</span>
+                        @else 
+                            <span class="flex items-center gap-1 justify-center"><i class="fa-solid fa-user text-primary/60 text-xs"></i> فرد</span>
+                        @endif
                     </p>
+                    @if(Auth::user()->parent_id)
+                        @php $myCompany = Auth::user()->company()->first(); @endphp
+                        @if($myCompany)
+                        <div class="mb-5 mt-1 px-3 py-2 rounded-xl text-center" style="background:#EBF3FD;">
+                            <p class="text-xs text-gray-400 font-bold mb-0.5">تابع لشركة</p>
+                            <a href="{{ route('users.profile', $myCompany->id) }}" class="font-black hover:underline" style="color:#1A73E8; font-size:0.82rem;">
+                                <i class="fa-solid fa-building text-[10px] ml-1"></i>
+                                {{ $myCompany->company_name ?? $myCompany->name }}
+                            </a>
+                        </div>
+                        @endif
+                    @else
+                        <div class="mb-5"></div>
+                    @endif
 
                     <div class="w-full space-y-2 text-right">
                         <button onclick="switchTab('profile')" id="tab-btn-profile" class="tab-link active w-full text-right px-4 py-3 text-gray-600 font-bold hover:bg-gray-50 hover:text-primary rounded-lg transition-all flex items-center justify-between">

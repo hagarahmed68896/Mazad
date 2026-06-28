@@ -83,7 +83,7 @@ class HomeController extends Controller
             }
 
             // --- AUTH USER CONTENT ONLY ---
-            $interestIds = $user->interests()->pluck('categories.id')->toArray();
+            $interestIds = $user->resolvedInterests()->pluck('id')->toArray();
             $interestIdsStr = !empty($interestIds) ? implode(',', $interestIds) : null;
 
             // Helper for prioritized query
@@ -436,18 +436,22 @@ class HomeController extends Controller
             }
         }
 
-        $user = \App\Models\User::with(['company'])->findOrFail($id);
+        $user = \App\Models\User::with(['company', 'teamMembers'])->findOrFail($id);
 
-        // Stats for the profile card
-        $adsCount = $user->ads()->count();
-        $soldCount = $user->sales()->where('status', 'delivered')->count();
+        // Collect IDs: user + team members (representatives)
+        $teamMemberIds = $user->teamMembers->pluck('id')->toArray();
+        $allUserIds = array_merge([$user->id], $teamMemberIds);
+
+        // Stats for the profile card (include team members)
+        $adsCount = \App\Models\Ad::whereIn('user_id', $allUserIds)->count();
+        $soldCount = \App\Models\Order::whereIn('seller_id', $allUserIds)->where('status', 'delivered')->count();
         
         $reviews = $user->reviewsReceived();
         $totalReviews = $reviews->count();
         $avgRating = $totalReviews > 0 ? round($reviews->avg('rating'), 1) : 0.0;
 
-        // Fetch active ads
-        $adsQuery = $user->ads()
+        // Fetch active ads (include team members)
+        $adsQuery = \App\Models\Ad::whereIn('user_id', $allUserIds)
             ->with(['category', 'city'])
             ->where('status', 'active')
             ->where(function($q) {

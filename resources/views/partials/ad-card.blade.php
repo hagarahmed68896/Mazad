@@ -141,13 +141,13 @@
                     </div>
                 @elseif($ad->status == 'finished' || $ad->status == 'sold')
                     <div style="display: flex; gap: 0.5rem; width: 100%;">
-                        <a href="{{ route('ads.edit', $ad->id) }}" class="btn btn-p-outline" style="flex: 1; border-color: #1A73E8; color: #1A73E8; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 40px;">
+                        <a href="{{ route('ads.edit', $ad->id) }}" class="btn btn-p-outline" style="flex: 1; border-color: #1A73E8; color: #1A73E8; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.25rem; border-radius: 12px; height: 40px; font-size: 0.85rem; white-space: nowrap; padding: 0 0.25rem;">
                             <i class="fa-solid fa-pen-to-square text-sm"></i>
                             <span>تعديل</span>
                         </a>
                         <form action="{{ route('ads.repost', $ad->id) }}" method="POST" style="flex: 1; display: flex;">
                             @csrf
-                            <button type="submit" class="btn btn-p-primary" style="width: 100%; background-color: #1A73E8; border-color: #1A73E8; color: white; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 40px; cursor: pointer; text-decoration: none;">
+                            <button type="submit" class="btn btn-p-primary" style="width: 100%; background-color: #1A73E8; border-color: #1A73E8; color: white; display: flex; align-items: center; justify-content: center; gap: 0.25rem; border-radius: 12px; height: 40px; cursor: pointer; text-decoration: none; font-size: 0.85rem; white-space: nowrap; padding: 0 0.25rem;">
                                 <i class="fa-solid fa-rotate text-sm"></i>
                                 <span>إعادة النشر</span>
                             </button>
@@ -170,15 +170,36 @@
                     </div>
                 @endif
             @else
-                @if($ad->type == 'direct_purchase')
-                    <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">شراء</a>
-                    <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-outline">قدم عرضك</a>
-                @elseif($ad->type == 'hybrid_auction')
-                    <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">المشاركة في المزاد</a>
-                @elseif($ad->type == 'tender')
-                    <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">ناقص الآن</a>
+                @if($ad->status !== 'active')
+                    @if($ad->status == 'upcoming')
+                        <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-outline w-full text-center" style="border-color: #CBD5E1; color: #64748B; width: 100%; display: flex; align-items: center; justify-content: center; height: 40px; border-radius: 12px; font-weight: 700; text-decoration: none; background: #F8FAFC;">تبدأ قريباً</a>
+                    @else
+                        @php
+                            $pendingOrder = null;
+                            if (Auth::check()) {
+                                $pendingOrder = \App\Models\Order::where('ad_id', $ad->id)
+                                    ->where('buyer_id', Auth::id())
+                                    ->where('status', 'pending_payment')
+                                    ->first();
+                            }
+                        @endphp
+                        @if ($pendingOrder)
+                            <a href="{{ route('purchases.my') }}" class="btn btn-p-primary w-full text-center" style="background-color: #1A73E8; border-color: #1A73E8; color: white; width: 100%; display: flex; align-items: center; justify-content: center; height: 40px; border-radius: 12px; font-weight: 700; text-decoration: none;">إتمام الدفع</a>
+                        @else
+                            <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-outline w-full text-center" style="border-color: #E2E8F0; color: #94A3B8; width: 100%; display: flex; align-items: center; justify-content: center; height: 40px; border-radius: 12px; font-weight: 700; text-decoration: none; background: #F1F5F9;">عرض التفاصيل (منتهي)</a>
+                        @endif
+                    @endif
                 @else
-                    <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">زايد</a>
+                    @if($ad->type == 'direct_purchase')
+                        <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">شراء</a>
+                        <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-outline">قدم عرضك</a>
+                    @elseif($ad->type == 'hybrid_auction')
+                        <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">المشاركة في المزاد</a>
+                    @elseif($ad->type == 'tender')
+                        <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">ناقص الآن</a>
+                    @else
+                        <a href="{{ route('ads.show', $ad->id) }}" class="btn btn-p-primary">زايد</a>
+                    @endif
                 @endif
             @endif
         </div>

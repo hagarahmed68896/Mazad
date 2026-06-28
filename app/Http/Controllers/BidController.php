@@ -19,9 +19,9 @@ class BidController extends Controller
             return redirect()->route('login')->with('error', 'يجب تسجيل الدخول للمشاركة.');
         }
 
-        // Can't bid on own ad
-        if ($ad->user_id === Auth::id()) {
-            return back()->with('error', 'لا يمكنك المزايدة على إعلانك');
+        // Can't bid on own or team member's ad
+        if (Auth::user()->isSameTeam($ad->user_id)) {
+            return back()->with('error', 'لا يمكنك المزايدة على إعلان خاص بك أو بأحد مناديبك/شركتك');
         }
 
         $type = $request->type ?? 'bid';
@@ -125,6 +125,8 @@ class BidController extends Controller
                     'bids_count' => $ad->bids_count + 1,
                 ]);
 
+                $this->notifyAdOwner($ad->user_id, $ad, $minBid, 'bid');
+
                 return [
                     'outbid' => false,
                     'message' => 'تم تسجيل مزايدتك بنجاح بمبلغ ' . number_format($minBid) . ' ريال',
@@ -161,6 +163,8 @@ class BidController extends Controller
 
                 // Notify old leader
                 $this->notifyOutbid($currentTopBid->user_id, $ad, $settledPrice);
+
+                $this->notifyAdOwner($ad->user_id, $ad, $settledPrice, 'bid');
 
                 return [
                     'outbid' => false,
@@ -207,6 +211,8 @@ class BidController extends Controller
             // Notify the new bidder they lost
             $this->notifyOutbid($userId, $ad, $autoPrice);
 
+            $this->notifyAdOwner($ad->user_id, $ad, $autoPrice, 'bid');
+
             return [
                 'outbid' => true,
                 'message' => 'تم تجاوز مزايدتك تلقائياً! السعر الحالي ' . number_format($autoPrice) . ' ريال. يمكنك رفع الحد الأعلى للمزايدة مرة أخرى.',
@@ -226,9 +232,33 @@ class BidController extends Controller
                 'title' => 'تم تجاوز مزايدتك',
                 'content' => 'تم تجاوز مزايدتك على "' . $ad->title . '". السعر الحالي ' . number_format($newPrice) . ' ريال. قم برفع الحد الأعلى لمزايدتك الآن!',
                 'type' => 'bid_outbid',
+                'status' => 'sent',
             ]);
         } catch (\Exception $e) {
             \Log::warning('Failed to create outbid notification: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Notify ad owner about new bid or tender
+     */
+    private function notifyAdOwner(int $userId, Ad $ad, float $amount, string $type): void
+    {
+        try {
+            $title = $type === 'tender' ? 'تم تقديم مناقصة جديدة 📝' : 'مزايدة جديدة على إعلانك 🔨';
+            $content = $type === 'tender' 
+                ? 'تم تقديم مناقصة بقيمة ' . number_format($amount) . ' ريال على إعلانك "' . $ad->title . '".'
+                : 'تم تقديم مزايدة جديدة بقيمة ' . number_format($amount) . ' ريال على إعلانك "' . $ad->title . '".';
+
+            Notification::create([
+                'user_id' => $userId,
+                'title' => $title,
+                'content' => $content,
+                'type' => 'notification',
+                'status' => 'sent',
+            ]);
+        } catch (\Exception $e) {
+            \Log::warning('Failed to notify ad owner: ' . $e->getMessage());
         }
     }
 
@@ -304,6 +334,7 @@ class BidController extends Controller
                 'price' => $amount,
                 'bids_count' => $ad->bids_count + 1,
             ]);
+            $this->notifyAdOwner($ad->user_id, $ad, $amount, 'tender');
         });
 
         return back()->with('success', 'تم تقديم المناقصة بنجاح.');
@@ -338,6 +369,7 @@ class BidController extends Controller
                     'notify_near_limit' => (bool) request('notify_near_limit', false),
                 ]);
                 $ad->update(['price' => $maxAllowed, 'bids_count' => $ad->bids_count + 1]);
+                $this->notifyAdOwner($ad->user_id, $ad, $maxAllowed, 'tender');
                 return ['outbid' => false, 'message' => 'أنت صاحب أقل عرض حالياً بمبلغ ' . number_format($maxAllowed), 'current_price' => $maxAllowed];
             }
 
@@ -353,6 +385,7 @@ class BidController extends Controller
                     'notify_near_limit' => (bool) request('notify_near_limit', false),
                 ]);
                 $ad->update(['price' => $settledPrice, 'bids_count' => $ad->bids_count + 1]);
+                $this->notifyAdOwner($ad->user_id, $ad, $settledPrice, 'tender');
                 return ['outbid' => false, 'message' => 'تم قبول عرضك كأقل سعر حالياً: ' . number_format($settledPrice), 'current_price' => $settledPrice];
             }
 
@@ -370,6 +403,7 @@ class BidController extends Controller
                 'notify_near_limit' => (bool) ($currentTopTender->notify_near_limit ?? false),
             ]);
             $ad->update(['price' => $autoPrice, 'bids_count' => $ad->bids_count + 2]);
+            $this->notifyAdOwner($ad->user_id, $ad, $autoPrice, 'tender');
             return ['outbid' => true, 'message' => 'يوجد عرض منافس أقل من حدك الأدنى! السعر الحالي ' . number_format($autoPrice), 'current_price' => $autoPrice];
         });
     }
@@ -457,7 +491,19 @@ class BidController extends Controller
         $tab = $request->get('tab', 'offers'); // 'offers' or 'auctions'
         $role = $request->get('role', 'seller'); // 'seller' (received) or 'buyer' (submitted)
 
-        $query = Bid::query();
+        // Get only the latest bid record per ad for the buyer, or per buyer per ad for the seller
+        $latestIdsQuery = Bid::select(DB::raw('MAX(id) as id'));
+        if ($role === 'buyer') {
+            $latestIdsQuery->where('user_id', $user->id)
+                           ->groupBy('ad_id');
+        } else {
+            $latestIdsQuery->whereHas('ad', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })->groupBy('ad_id', 'user_id');
+        }
+        $latestIds = $latestIdsQuery->pluck('id');
+
+        $query = Bid::whereIn('id', $latestIds);
 
         if ($role === 'buyer') {
             $query->where('user_id', $user->id);
@@ -521,7 +567,7 @@ class BidController extends Controller
             } elseif ($status === 'rejected') {
                 $query->where('status', 'rejected');
             } elseif ($status === 'active') {
-                $query->where('status', 'active');
+                $query->whereIn('status', ['active', 'counter']);
             } elseif ($status === 'upcoming') {
                 $query->whereHas('ad', function($q) {
                     $q->where('status', 'upcoming');
@@ -606,22 +652,24 @@ class BidController extends Controller
     {
         $bid = Bid::with('ad')->findOrFail($bidId);
 
-        // Can only accept bids on owned ads
-        if ($bid->ad->user_id !== Auth::id()) {
+        $isSeller = ($bid->ad->user_id === Auth::id());
+        $isBuyer = ($bid->user_id === Auth::id());
+
+        if (!$isSeller && !($isBuyer && $bid->status === 'counter')) {
             return response()->json([
                 'success' => false,
                 'message' => 'غير مصرح لك بإجراء هذه العملية.'
             ], 403);
         }
 
-        DB::transaction(function() use ($bid) {
+        DB::transaction(function() use ($bid, $isBuyer) {
             // Update this bid status to accepted
             $bid->update(['status' => 'accepted']);
 
             // Reject all other active bids on this ad
             Bid::where('ad_id', $bid->ad_id)
                 ->where('id', '!=', $bid->id)
-                ->where('status', 'active')
+                ->whereIn('status', ['active', 'counter'])
                 ->update(['status' => 'rejected']);
 
             // Mark the ad as finished
@@ -632,18 +680,25 @@ class BidController extends Controller
                 'order_number' => 'ORD-' . strtoupper(\Illuminate\Support\Str::random(10)),
                 'ad_id' => $bid->ad_id,
                 'buyer_id' => $bid->user_id,
-                'seller_id' => Auth::id(),
+                'seller_id' => $bid->ad->user_id,
                 'final_price' => $bid->amount,
                 'status' => 'pending_payment',
             ]);
 
-            // Notify the buyer
+            // Notify the other party
+            $notifyUserId = $isBuyer ? $bid->ad->user_id : $bid->user_id;
+            $title = $isBuyer ? 'تم قبول عرضك المضاد! 🎉' : 'تم قبول عرضك! 🎉';
+            $content = $isBuyer 
+                ? 'تم قبول عرضك المضاد بقيمة ' . number_format($bid->amount) . ' ريال من قبل المشتري على إعلان "' . $bid->ad->title . '".'
+                : 'تم قبول عرضك بقيمة ' . number_format($bid->amount) . ' ريال على إعلان "' . $bid->ad->title . '". يرجى الذهاب لصفحة مشترياتك لإتمام الدفع.';
+
             try {
                 Notification::create([
-                    'user_id' => $bid->user_id,
-                    'title' => 'تم قبول عرضك! 🎉',
-                    'content' => 'تم قبول عرضك بقيمة ' . number_format($bid->amount) . ' ريال على إعلان "' . $bid->ad->title . '". يرجى الذهاب لصفحة مشترياتك لإتمام الدفع.',
-                    'type' => 'bid_accepted',
+                    'user_id' => $notifyUserId,
+                    'title' => $title,
+                    'content' => $content,
+                    'type' => 'notification',
+                    'status' => 'sent',
                 ]);
             } catch (\Exception $e) {
                 \Log::warning('Notification failed: ' . $e->getMessage());
@@ -663,7 +718,10 @@ class BidController extends Controller
     {
         $bid = Bid::with('ad')->findOrFail($bidId);
 
-        if ($bid->ad->user_id !== Auth::id()) {
+        $isSeller = ($bid->ad->user_id === Auth::id());
+        $isBuyer = ($bid->user_id === Auth::id());
+
+        if (!$isSeller && !($isBuyer && $bid->status === 'counter')) {
             return response()->json([
                 'success' => false,
                 'message' => 'غير مصرح لك بإجراء هذه العملية.'
@@ -672,13 +730,19 @@ class BidController extends Controller
 
         $bid->update(['status' => 'rejected']);
 
-        // Notify the buyer
+        $notifyUserId = $isBuyer ? $bid->ad->user_id : $bid->user_id;
+        $title = 'تم رفض العرض';
+        $content = $isBuyer 
+            ? 'عذراً، تم رفض عرضك المضاد بقيمة ' . number_format($bid->amount) . ' ريال من قبل المشتري على إعلان "' . $bid->ad->title . '".'
+            : 'عذراً، تم رفض عرضك بقيمة ' . number_format($bid->amount) . ' ريال على إعلان "' . $bid->ad->title . '".';
+
         try {
             Notification::create([
-                'user_id' => $bid->user_id,
-                'title' => 'تم رفض عرضك',
-                'content' => 'عذراً، تم رفض عرضك بقيمة ' . number_format($bid->amount) . ' ريال على إعلان "' . $bid->ad->title . '".',
-                'type' => 'bid_rejected',
+                'user_id' => $notifyUserId,
+                'title' => $title,
+                'content' => $content,
+                'type' => 'notification',
+                'status' => 'sent',
             ]);
         } catch (\Exception $e) {
             \Log::warning('Notification failed: ' . $e->getMessage());
@@ -701,7 +765,10 @@ class BidController extends Controller
 
         $bid = Bid::with('ad')->findOrFail($bidId);
 
-        if ($bid->ad->user_id !== Auth::id()) {
+        $isSeller = ($bid->ad->user_id === Auth::id());
+        $isBuyer = ($bid->user_id === Auth::id());
+
+        if (!$isSeller && !$isBuyer) {
             return response()->json([
                 'success' => false,
                 'message' => 'غير مصرح لك بإجراء هذه العملية.'
@@ -722,20 +789,28 @@ class BidController extends Controller
         $remaining--;
         session()->put($sessionKey, $remaining);
 
-        // Update bid amount and keep it active (open for negotiation)
+        // Update bid amount and status (waiting for the other party)
+        $newStatus = $isSeller ? 'counter' : 'active';
         $oldAmount = $bid->amount;
         $bid->update([
             'amount' => $request->amount,
-            'status' => 'active'
+            'status' => $newStatus
         ]);
 
-        // Notify buyer about the counter-offer
+        // Notify the other party about the counter-offer
+        $notifyUserId = $isSeller ? $bid->user_id : $bid->ad->user_id;
+        $title = $isSeller ? 'عرض مضاد من البائع 💰' : 'عرض مضاد من المشتري 💰';
+        $content = $isSeller 
+            ? 'قدم البائع عرضاً مضاداً بقيمة ' . number_format($request->amount) . ' ريال بدلاً من ' . number_format($oldAmount) . ' ريال على إعلان "' . $bid->ad->title . '". يمكنك قبوله أو تقديم سومة جديدة.'
+            : 'قدم المشتري عرضاً مضاداً بقيمة ' . number_format($request->amount) . ' ريال بدلاً من ' . number_format($oldAmount) . ' ريال على إعلان "' . $bid->ad->title . '". يمكنك قبوله أو تقديم سومة جديدة.';
+
         try {
             Notification::create([
-                'user_id' => $bid->user_id,
-                'title' => 'عرض مضاد من البائع 💰',
-                'content' => 'قدم البائع عرضاً مضاداً بقيمة ' . number_format($request->amount) . ' ريال بدلاً من ' . number_format($oldAmount) . ' ريال على إعلان "' . $bid->ad->title . '". يمكنك قبوله أو تقديم سومة جديدة.',
-                'type' => 'bid_counter',
+                'user_id' => $notifyUserId,
+                'title' => $title,
+                'content' => $content,
+                'type' => 'notification',
+                'status' => 'sent',
             ]);
         } catch (\Exception $e) {
             \Log::warning('Notification failed: ' . $e->getMessage());
@@ -769,7 +844,7 @@ class BidController extends Controller
         $remaining = session()->get($sessionKey, 2);
 
         // Format dates
-        $dateStr = $bid->created_at->format('Y/m/d - h:i:s a');
+        $dateStr = $bid->updated_at->format('Y/m/d - h:i:s a');
         $dateStr = str_replace(['am', 'pm'], ['ص', 'م'], $dateStr);
 
         return response()->json([

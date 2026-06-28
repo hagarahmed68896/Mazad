@@ -124,10 +124,33 @@ class ReviewController extends Controller
     {
         $userId = auth('sanctum')->id();
         
-        $reviews = Review::with('reviewer:id,name,avatar')
-            ->where('rated_user_id', $userId)
+        $reviews = Review::with(['ratedUser:id,name,avatar', 'ad:id,title'])
+            ->where('reviewer_id', $userId)
             ->latest()
             ->paginate(10);
+
+        // Format clean response collection
+        $reviews->getCollection()->transform(function ($review) {
+            return [
+                'id' => $review->id,
+                'reviewer_id' => $review->reviewer_id,
+                'rated_user_id' => $review->rated_user_id,
+                'rating' => $review->rating,
+                'comment' => $review->comment,
+                'reply' => $review->reply,
+                'created_at' => $review->created_at,
+                'created_at_human' => $review->created_at ? $review->created_at->diffForHumans() : null,
+                'ad' => $review->ad ? [
+                    'id' => $review->ad->id,
+                    'title' => $review->ad->title
+                ] : null,
+                'rated_user' => $review->ratedUser ? [
+                    'id' => $review->ratedUser->id,
+                    'name' => $review->ratedUser->name,
+                    'avatar_url' => $review->ratedUser->avatar ? (\Illuminate\Support\Str::startsWith($review->ratedUser->avatar, 'http') ? $review->ratedUser->avatar : url('/' . ltrim($review->ratedUser->avatar, '/'))) : null,
+                ] : null
+            ];
+        });
 
         return response()->json([
             'success' => true,
@@ -257,6 +280,62 @@ class ReviewController extends Controller
                 'rating_distribution' => $ratingDistribution,
                 'reviews_info' => $this->formatPagination($reviews)
             ]
+        ]);
+    }
+
+    /**
+     * Update an existing review via API.
+     */
+    public function update(Request $request, $id)
+    {
+        $review = Review::findOrFail($id);
+
+        // Ensure user is the owner of the review
+        if ($review->reviewer_id !== auth('sanctum')->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح لك بتعديل هذا التقييم.'
+            ], 403);
+        }
+
+        $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:1000',
+        ]);
+
+        $review->update([
+            'rating' => $request->rating,
+            'comment' => $request->comment,
+            'status' => $request->rating >= 4 ? 'positive' : 'negative',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تعديل التقييم بنجاح.',
+            'data' => $review
+        ]);
+    }
+
+    /**
+     * Delete a review via API.
+     */
+    public function destroy($id)
+    {
+        $review = Review::findOrFail($id);
+
+        // Ensure user is the owner of the review
+        if ($review->reviewer_id !== auth('sanctum')->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح لك بحذف هذا التقييم.'
+            ], 403);
+        }
+
+        $review->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم حذف التقييم بنجاح.'
         ]);
     }
 }

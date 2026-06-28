@@ -54,6 +54,20 @@
                             </button>
                         </form>
                     @else
+                        <!-- Request Service Button -->
+                        <form action="{{ route('chats.start') }}" method="POST" class="m-0 inline">
+                            @csrf
+                            @if($service instanceof \App\Models\Ad)
+                                <input type="hidden" name="ad_id" value="{{ $service->id }}">
+                            @else
+                                <input type="hidden" name="service_id" value="{{ $service->id }}">
+                            @endif
+                            <button type="submit" class="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl shadow-lg shadow-primary/20 font-bold hover:bg-blue-700 transition-all text-sm">
+                                <i class="fa-solid fa-comment-dots"></i>
+                                اطلب الخدمة
+                            </button>
+                        </form>
+
                         <button onclick="shareService()" class="flex items-center gap-2 px-5 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 text-gray-500 font-bold hover:bg-gray-50 transition-all">
                             <i class="fa-solid fa-share-nodes text-primary"></i>
                             مشاركة

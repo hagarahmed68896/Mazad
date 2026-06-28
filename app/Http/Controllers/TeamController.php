@@ -240,7 +240,10 @@ class TeamController extends Controller
             ]);
         }
 
-        return redirect()->route('team.index', ['tab' => $request->account_type])->with('success', 'تم إضافة عضو الفريق بنجاح. كلمة المرور الافتراضية هي: password123');
+        return redirect()->route('team.index', ['tab' => $request->account_type])->with('team_member_created', [
+            'name' => $member->name,
+            'password' => 'password123',
+        ]);
     }
 
     /**
@@ -252,23 +255,31 @@ class TeamController extends Controller
             return response()->json(['success' => false, 'message' => 'يجب تسجيل الدخول.'], 401);
         }
 
-        $company = Auth::user();
-        $member = User::where('parent_id', $company->id)->findOrFail($id);
+        try {
+            $company = Auth::user();
+            $member = User::where('parent_id', $company->id)->findOrFail($id);
 
-        // Delete team member avatar if exists and not placeholder
-        if ($member->avatar && str_contains($member->avatar, '/uploads/avatars/') && !str_contains($member->avatar, 'placeholder.png')) {
-            $oldPath = public_path(ltrim($member->avatar, '/'));
-            if (file_exists($oldPath)) {
-                @unlink($oldPath);
+            // Delete team member avatar if exists and not placeholder
+            $rawAvatar = $member->getRawOriginal('avatar');
+            if ($rawAvatar && str_contains($rawAvatar, '/uploads/avatars/') && !str_contains($rawAvatar, 'placeholder.png')) {
+                $oldPath = public_path(ltrim($rawAvatar, '/'));
+                if (file_exists($oldPath)) {
+                    @unlink($oldPath);
+                }
             }
+
+            $member->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم حذف عضو الفريق بنجاح.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء الحذف: ' . $e->getMessage()
+            ], 500);
         }
-
-        $member->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'تم حذف عضو الفريق بنجاح.'
-        ]);
     }
 
     /**

@@ -138,6 +138,96 @@ class ReportController extends Controller
             }
         }
 
-        return view('reports.index', compact('items', 'tab', 'type', 'period', 'totalRevenue', 'purchasesCount', 'chartLabels', 'chartData'));
+        // Calculate Trend Percentage and Direction based on active tab and period
+        if ($period === 'weekly') {
+            // Last 7 days vs preceding 7 days
+            $startDateCurrent = now()->subDays(6)->startOfDay();
+            $endDateCurrent = now()->endOfDay();
+            $startDatePrevious = now()->subDays(13)->startOfDay();
+            $endDatePrevious = now()->subDays(7)->endOfDay();
+        } elseif ($period === 'yearly') {
+            // Last 12 months vs preceding 12 months
+            $startDateCurrent = now()->subMonths(11)->startOfMonth();
+            $endDateCurrent = now()->endOfDay();
+            $startDatePrevious = now()->subMonths(23)->startOfMonth();
+            $endDatePrevious = now()->subMonths(12)->endOfMonth();
+        } else { // monthly (default)
+            // Last 4 weeks (28 days) vs preceding 4 weeks
+            $startDateCurrent = now()->subWeeks(3)->startOfWeek();
+            $endDateCurrent = now()->endOfWeek();
+            $startDatePrevious = now()->subWeeks(7)->startOfWeek();
+            $endDatePrevious = now()->subWeeks(4)->endOfWeek();
+        }
+
+        if ($tab === 'sales') {
+            // Sum of final price of orders sold by user
+            $currentValQuery = Order::where('seller_id', $user->id)
+                ->whereBetween('created_at', [$startDateCurrent, $endDateCurrent]);
+            if ($type !== 'all') {
+                $currentValQuery->whereHas('ad', function($q) use ($type) {
+                    $q->where('type', $type);
+                });
+            }
+            $currentValue = $currentValQuery->sum('final_price');
+
+            $prevValQuery = Order::where('seller_id', $user->id)
+                ->whereBetween('created_at', [$startDatePrevious, $endDatePrevious]);
+            if ($type !== 'all') {
+                $prevValQuery->whereHas('ad', function($q) use ($type) {
+                    $q->where('type', $type);
+                });
+            }
+            $previousValue = $prevValQuery->sum('final_price');
+        } else {
+            // Count of orders bought by user
+            $currentValQuery = Order::where('buyer_id', $user->id)
+                ->whereBetween('created_at', [$startDateCurrent, $endDateCurrent]);
+            if ($type !== 'all') {
+                $currentValQuery->whereHas('ad', function($q) use ($type) {
+                    $q->where('type', $type);
+                });
+            }
+            $currentValue = $currentValQuery->count();
+
+            $prevValQuery = Order::where('buyer_id', $user->id)
+                ->whereBetween('created_at', [$startDatePrevious, $endDatePrevious]);
+            if ($type !== 'all') {
+                $prevValQuery->whereHas('ad', function($q) use ($type) {
+                    $q->where('type', $type);
+                });
+            }
+            $previousValue = $prevValQuery->count();
+        }
+
+        $currentValue = floatval($currentValue);
+        $previousValue = floatval($previousValue);
+
+        if ($previousValue == 0.0) {
+            if ($currentValue > 0.0) {
+                $trendPercentage = 100;
+                $trendDirection = 'up';
+            } else {
+                $trendPercentage = 0;
+                $trendDirection = 'flat';
+            }
+        } else {
+            $diff = $currentValue - $previousValue;
+            $percentage = ($diff / $previousValue) * 100;
+            if ($percentage > 0.0) {
+                $trendPercentage = round($percentage, 2);
+                $trendDirection = 'up';
+            } elseif ($percentage < 0.0) {
+                $trendPercentage = round(abs($percentage), 2);
+                $trendDirection = 'down';
+            } else {
+                $trendPercentage = 0;
+                $trendDirection = 'flat';
+            }
+        }
+
+        return view('reports.index', compact(
+            'items', 'tab', 'type', 'period', 'totalRevenue', 'purchasesCount', 
+            'chartLabels', 'chartData', 'trendPercentage', 'trendDirection'
+        ));
     }
 }

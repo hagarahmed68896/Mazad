@@ -210,7 +210,7 @@ class SupportController extends Controller
 
         $ticket->logs()->create([
             'action' => 'ticket_created',
-            'note' => 'تم إنشاء تذكرة الدعم بنجاح عبر التطبيق.'
+            'note' => 'تم إنشاء تذكرة الدعم الفني بنجاح.'
         ]);
 
         return $this->apiResponse(true, 'تم تقديم طلب الدعم بنجاح', [

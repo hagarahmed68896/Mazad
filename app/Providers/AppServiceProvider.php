@@ -28,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
 
         view()->composer('*', function ($view) {
             if (auth()->check() && auth()->user()->account_type === 'partner') {
-                $categoryIds = auth()->user()->interests()->pluck('categories.id')->toArray();
+                $categoryIds = auth()->user()->resolvedInterests()->pluck('id')->toArray();
                 $partnerServicesOptions = \App\Models\Service::where('user_id', 1)
                     ->whereIn('category_id', $categoryIds)
                     ->get();

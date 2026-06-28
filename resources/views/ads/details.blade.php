@@ -850,7 +850,7 @@
 
 <script>
     let currentStep = 1;
-    const totalSteps = {{ count($category->pages) + 3 }};
+    const totalSteps = {{ count($category->pages) + ($category->properties->isNotEmpty() ? 1 : 0) + 3 }};
     let actualTotalSteps = totalSteps;
     let isFeaturedChecked = false;
 

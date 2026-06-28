@@ -205,10 +205,31 @@
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                         <div>
                             <h1 class="text-3xl md:text-5xl font-black text-gray-900 mb-2">{{ $user->name }}</h1>
-                            <p class="text-lg text-gray-400 font-bold flex items-center justify-center md:justify-start gap-2">
-                                <i class="fa-solid fa-building text-primary/40"></i>
-                                {{ $user->company_name ?? ($user->company ? $user->company->company_name : 'شركة أوطان للاستثمار') }}
-                            </p>
+                            @php
+                                $profileParentCompany = $user->parent_id ? $user->company()->first() : null;
+                                $isProfileRep = $profileParentCompany !== null;
+                            @endphp
+                            @if($user->account_type == 'company' && $user->company_name)
+                                <p class="text-lg text-gray-400 font-bold flex items-center justify-center md:justify-start gap-2">
+                                    <i class="fa-solid fa-building text-primary/40"></i>
+                                    {{ $user->company_name }}
+                                </p>
+                            @elseif($isProfileRep && $profileParentCompany)
+                                <p class="text-lg font-bold flex items-center justify-center md:justify-start gap-2 flex-wrap">
+                                    <span style="background:#EBF3FD; color:#1A73E8; border-radius:8px; padding:3px 12px; font-size:0.82rem; font-weight:800; display:inline-flex; align-items:center; gap:0.3rem;">
+                                        <i class="fa-solid fa-building" style="font-size:0.75rem;"></i>
+                                        مندوب شركة
+                                    </span>
+                                    <a href="{{ route('users.profile', $profileParentCompany->id) }}" style="color:#1A73E8; font-weight:900; text-decoration:none;" class="hover:underline">
+                                        {{ $profileParentCompany->company_name ?? $profileParentCompany->name }}
+                                    </a>
+                                </p>
+                            @else
+                                <p class="text-lg text-gray-400 font-bold flex items-center justify-center md:justify-start gap-2">
+                                    <i class="fa-solid fa-user text-primary/40"></i>
+                                    عضو فردي
+                                </p>
+                            @endif
                             @if(auth()->check() && auth()->id() == $user->parent_id)
                                 <!-- Stats in single row under company name (For Company Owner View of Representative) -->
                                 <div class="flex flex-wrap items-center justify-center md:justify-start gap-5 mt-4 text-sm font-black text-gray-700">
@@ -237,9 +258,17 @@
                                     <i class="fa-regular fa-trash-can text-sm"></i>
                                 </button>
                             @else
-                                <button class="bg-primary text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center gap-3">
-                                    <i class="fa-solid fa-comments"></i> الدردشة
-                                </button>
+                                @if(!auth()->check() || auth()->id() != $user->id)
+                                    @if(auth()->check())
+                                        <a href="{{ route('chats.with', $user->id) }}" class="bg-primary text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center gap-3">
+                                            <i class="fa-solid fa-comments"></i> الدردشة
+                                        </a>
+                                    @else
+                                        <button type="button" onclick="requireAuth()" class="bg-primary text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center gap-3">
+                                            <i class="fa-solid fa-comments"></i> الدردشة
+                                        </button>
+                                    @endif
+                                @endif
                                 <button onclick="shareProfile()" class="w-14 h-14 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center hover:text-primary hover:bg-blue-50 transition-all border border-gray-100">
                                     <i class="fa-solid fa-share-nodes text-xl"></i>
                                 </button>
@@ -299,7 +328,7 @@
                             نبذة عن المعلن
                         </h3>
                         <p class="text-gray-500 font-medium leading-loose text-lg">
-                            {{ $user->bio ?? 'هذا النص هو مثال لنص يمكن أن يستبدل في نفس المساحة، لقد تم توليد هذا النص من مولد النص العربى، حيث يمكنك أن تولد مثل هذا النص أو العديد من النصوص الأخرى إضافة إلى زيادة عدد الحروف التى يولدها التطبيق. إذا كنت تحتاج إلى عدد أكبر من الفقرات يتيح لك مولد النص العربى زيادة عدد الفقرات كما تريد.' }}
+                            {{ $user->bio }}
                         </p>
                     </div>
                     
@@ -556,7 +585,7 @@
                              </div>
                              <div class="flex-1">
                                 <div class="flex justify-between items-center mb-3">
-                                    <h5 class="font-black text-gray-900">{{ $review->user->name }}</h5>
+                                    <h5 class="font-black text-gray-900">{{ $review->reviewer->name ?? $review->ratedUser->name ?? 'مجهول' }}</h5>
                                     <div class="flex items-center gap-1">
                                         @for($i=1; $i<=5; $i++)
                                             <i class="fa-solid fa-star {{ $i <= $review->rating ? 'text-amber-400' : 'text-gray-100' }} text-xs"></i>

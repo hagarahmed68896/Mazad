@@ -55,6 +55,7 @@ Route::get('/location/clear', [\App\Http\Controllers\LocationController::class, 
 
 Route::middleware('auth')->group(function() {
     Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::delete('/notifications/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
     Route::post('/update-interests', [AuthController::class, 'updateInterests'])->name('update-interests.web');
@@ -75,6 +76,7 @@ Route::middleware('auth')->group(function() {
     Route::post('/my-sales/seed', [\App\Http\Controllers\OrderController::class, 'seedMySales'])->name('sales.seed');
     Route::post('/my-sales/bulk-mark-sold', [\App\Http\Controllers\OrderController::class, 'bulkMarkSold'])->name('sales.bulk-mark-sold');
     Route::post('/orders/{order}/confirm-delivery', [\App\Http\Controllers\OrderController::class, 'confirmDelivery'])->name('orders.confirm-delivery');
+    Route::post('/orders/{order}/submit-payment', [\App\Http\Controllers\OrderController::class, 'submitPayment'])->name('orders.submit-payment');
     Route::post('/ads/{id}/question', [\App\Http\Controllers\AdQuestionController::class, 'store'])->name('ads.question.store');
     Route::post('/questions/{id}/reply', [\App\Http\Controllers\AdQuestionController::class, 'reply'])->name('questions.reply');
     Route::post('/questions/{id}/toggle-visibility', [\App\Http\Controllers\AdQuestionController::class, 'toggleVisibility'])->name('questions.toggle-visibility');
@@ -83,7 +85,10 @@ Route::middleware('auth')->group(function() {
     Route::post('/reviews/{id}/reply', [\App\Http\Controllers\ReviewController::class, 'reply'])->name('reviews.reply');
     Route::post('/reviews/{id}/toggle-visibility', [\App\Http\Controllers\ReviewController::class, 'toggleVisibility'])->name('reviews.toggle-visibility');
     Route::get('/my-reviews', [\App\Http\Controllers\ReviewController::class, 'myReviews'])->name('reviews.my');
+    Route::put('/reviews/{id}', [\App\Http\Controllers\ReviewController::class, 'update'])->name('reviews.update');
+    Route::post('/reviews/{id}/delete', [\App\Http\Controllers\ReviewController::class, 'destroy'])->name('reviews.destroy');
     Route::get('/chats', [\App\Http\Controllers\ChatController::class, 'index'])->name('chats.index');
+    Route::get('/chats/with/{userId}', [\App\Http\Controllers\ChatController::class, 'chatWithUser'])->name('chats.with');
     Route::post('/chats/start', [\App\Http\Controllers\ChatController::class, 'startConversation'])->name('chats.start');
     Route::post('/chats/{id}/message', [\App\Http\Controllers\ChatController::class, 'sendMessage'])->name('chats.send');
     Route::delete('/chats/{id}', [\App\Http\Controllers\ChatController::class, 'destroy'])->name('chats.destroy');

@@ -16,6 +16,7 @@ class ReviewController extends Controller
 
         $request->validate([
             'rated_user_id' => 'required|exists:users,id',
+            'ad_id' => 'nullable|exists:ads,id',
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string|max:1000',
         ]);
@@ -23,6 +24,7 @@ class ReviewController extends Controller
         Review::create([
             'reviewer_id' => Auth::id(),
             'rated_user_id' => $request->rated_user_id,
+            'ad_id' => $request->ad_id,
             'rating' => $request->rating,
             'comment' => $request->comment,
             'status' => $request->rating >= 4 ? 'positive' : 'negative',
@@ -115,22 +117,31 @@ class ReviewController extends Controller
             ];
             $ratings = [5, 5, 5];
 
+            $pastDates = [
+                now()->subHours(4),
+                now()->subDays(3),
+                now()->subWeeks(2)
+            ];
+
             foreach ($otherUsers as $index => $reviewer) {
                 if (isset($comments[$index])) {
+                    $createdAt = $pastDates[$index] ?? now();
                     Review::create([
                         'reviewer_id' => $reviewer->id,
                         'rated_user_id' => $user->id,
                         'rating' => $ratings[$index],
                         'comment' => $comments[$index],
                         'status' => 'positive',
+                        'created_at' => $createdAt,
+                        'updated_at' => $createdAt,
                     ]);
                 }
             }
         }
 
-        // 2. Fetch the paginated reviews
-        $reviews = Review::with('reviewer')
-            ->where('rated_user_id', $user->id)
+        // 2. Fetch the paginated reviews (only reviews made by the user)
+        $reviews = Review::with(['ratedUser', 'ad'])
+            ->where('reviewer_id', $user->id)
             ->latest()
             ->paginate(5);
 
@@ -144,5 +155,63 @@ class ReviewController extends Controller
         }
 
         return view('users.reviews', compact('reviews'));
+    }
+
+    /**
+     * Update an existing review via web AJAX.
+     */
+    public function update(Request $request, $id)
+    {
+        if (!Auth::check()) {
+            return response()->json(['success' => false, 'message' => 'يجب تسجيل الدخول أولاً.'], 401);
+        }
+
+        $review = Review::findOrFail($id);
+
+        // Ensure user is the owner of the review
+        if ($review->reviewer_id !== Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'غير مصرح لك بتعديل هذا التقييم.'], 403);
+        }
+
+        $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:1000',
+        ]);
+
+        $review->update([
+            'rating' => $request->rating,
+            'comment' => $request->comment,
+            'status' => $request->rating >= 4 ? 'positive' : 'negative',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تعديل التقييم بنجاح.',
+            'data' => $review
+        ]);
+    }
+
+    /**
+     * Delete a review via web AJAX.
+     */
+    public function destroy($id)
+    {
+        if (!Auth::check()) {
+            return response()->json(['success' => false, 'message' => 'يجب تسجيل الدخول أولاً.'], 401);
+        }
+
+        $review = Review::findOrFail($id);
+
+        // Ensure user is the owner of the review
+        if ($review->reviewer_id !== Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'غير مصرح لك بحذف هذا التقييم.'], 403);
+        }
+
+        $review->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم حذف التقييم بنجاح.'
+        ]);
     }
 }

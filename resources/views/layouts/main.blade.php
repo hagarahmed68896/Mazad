@@ -48,11 +48,15 @@
             }
         }
     </style>
-    </style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         .fa-heart.fa-solid { color: #EF4444 !important; }
     </style>
+    
+    <!-- Leaflet (Map) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     @stack('styles')
 </head>
 <body>
@@ -113,6 +117,9 @@
     </div>
 
     <script>
+        let locationMapInstance = null;
+        let currentLocationMarker = null;
+
         window.toggleSidebar = function() {
             const drawer = document.getElementById('sidebarDrawer');
             const overlay = document.getElementById('sidebarOverlay');
@@ -250,36 +257,116 @@
         function handleLocationClick() {
             const modal = document.getElementById('locationModal');
             const body = document.getElementById('modalBody');
+            if (!modal || !body) return;
 
-            if (!isLoggedIn) {
-                body.innerHTML = `
-                    <div style="padding: 1rem; text-align:center;">
-                        <i class="fa-solid fa-user-lock" style="font-size: 3rem; color: #1A73E8; margin-bottom: 1.5rem;"></i>
-                        <h2 style="margin-bottom: 1rem;">يرجى تسجيل الدخول أولاً</h2>
-                        <p style="color: #64748B; margin-bottom: 2rem;">يجب أن تكون مسجلاً لدينا لتتمكن من تحديد عنوانك واختيار مدينتك بدقة.</p>
-                        <div style="display: flex; gap: 1rem; justify-content: center;">
-                            <a href="{{ route('login') }}" class="btn btn-primary" style="padding: 0.75rem 2rem;">تسجيل الدخول</a>
-                            <button class="btn btn-outline" onclick="closeModal()" style="padding: 0.75rem 2rem;">إلغاء</button>
-                        </div>
-                    </div>
-                `;
-            } else {
-                body.innerHTML = `
-                    <div style="padding: 1rem;">
-                        <h2 style="margin-bottom: 0.5rem;">اختر موقعك</h2>
-                        <p style="color: #64748B; margin-bottom: 1.5rem;">حدد العنوان المطلوب لعرض المزادات القريبة منك.</p>
-                        <div class="map-container" style="height: 300px; border-radius: 1rem; overflow: hidden;">
-                            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3624.7!2d46.67!3d24.71!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e2f038!2sRiyadh%20Saudi%20Arabia!5e0!3m2!1sen!2ssa!4v1620000000000" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
-                        </div>
-                        <button class="btn btn-primary" style="margin-top: 1.5rem; width: 100%; padding: 1rem;" onclick="closeModal()">تأكيد الموقع</button>
-                    </div>
-                `;
-            }
+            body.innerHTML = `
+                <div style="padding: 1rem; text-align: center;">
+                    <h2 style="margin-bottom: 0.5rem; font-weight: 800;">اختر موقعك</h2>
+                    <p style="color: #64748B; margin-bottom: 1.5rem;">قم بالضغط على أي مكان في الخريطة أو سحب العلامة لتحديد موقعك بدقة.</p>
+                    <div id="map" style="height: 350px; border-radius: 12px; margin-bottom: 1rem; position: relative;"></div>
+                    <button class="btn btn-primary" id="confirmLocationBtn" style="width: 100%; padding: 1rem;" onclick="confirmLocation()">تأكيد هذا الموقع</button>
+                </div>
+            `;
             modal.style.display = 'flex';
+            
+            setTimeout(() => {
+                const initialLat = {{ Auth::check() ? (Auth::user()->latitude ?? 'null') : (session('user_latitude') ?? 'null') }} || 24.7136;
+                const initialLng = {{ Auth::check() ? (Auth::user()->longitude ?? 'null') : (session('user_longitude') ?? 'null') }} || 46.6753;
+                const hasSaved = {{ (Auth::check() && Auth::user()->latitude) || session('user_latitude') ? 'true' : 'false' }};
+                const zoomLevel = hasSaved ? 14 : 6;
+                
+                if (locationMapInstance) {
+                    locationMapInstance.remove();
+                }
+
+                locationMapInstance = L.map('map').setView([initialLat, initialLng], zoomLevel);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(locationMapInstance);
+                
+                currentLocationMarker = L.marker([initialLat, initialLng], { draggable: true }).addTo(locationMapInstance);
+
+                locationMapInstance.on('click', function(e) {
+                    currentLocationMarker.setLatLng(e.latlng);
+                });
+
+                if (!hasSaved && navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(position => {
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+                        locationMapInstance.setView([userLat, userLng], 13);
+                        currentLocationMarker.setLatLng([userLat, userLng]);
+                    }, () => {});
+                }
+            }, 300);
         }
 
         function closeModal() {
-            document.getElementById('locationModal').style.display = 'none';
+            const modal = document.getElementById('locationModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        window.confirmLocation = function() {
+            const btn = document.getElementById('confirmLocationBtn');
+            if (!btn) return;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري استنتاج العنوان...';
+            btn.disabled = true;
+
+            if (!currentLocationMarker) return;
+            const pos = currentLocationMarker.getLatLng();
+            
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.lat}&lon=${pos.lng}&accept-language=ar`)
+                .then(res => res.json())
+                .then(data => {
+                    let cityOnly = "السعودية";
+                    if (data.address) {
+                        const addr = data.address;
+                        let city = addr.city || addr.town || addr.village || addr.state || "السعودية";
+                        city = city.replace(/محافظة |منطقة |مدينة /g, '');
+                        cityOnly = city + "، السعودية";
+                    }
+                    saveLocation(pos.lat, pos.lng, cityOnly, cityOnly);
+                })
+                .catch(err => {
+                    console.error(err);
+                    saveLocation(pos.lat, pos.lng, "الرياض، السعودية", "الرياض، السعودية");
+                });
+        };
+
+        function saveLocation(lat, lng, address, city) {
+            const btn = document.getElementById('confirmLocationBtn');
+            if(btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+
+            fetch('{{ route("location.update") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                body: JSON.stringify({ latitude: lat, longitude: lng, address: address, city: city })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const desktopName = document.getElementById('currentLocationName');
+                    const mobileName = document.getElementById('currentLocationNameMobile');
+                    if (desktopName) desktopName.innerText = city;
+                    if (mobileName) mobileName.innerText = city;
+                    closeModal();
+                    
+                    // Reload the page and append city_id if found
+                    const url = new URL(window.location.href);
+                    if (data.city_id) {
+                        url.searchParams.set('city', data.city_id);
+                    } else {
+                        url.searchParams.delete('city');
+                    }
+                    window.location.href = url.toString();
+                } else {
+                    alert("خطأ: " + (data.message || "حدث خطأ"));
+                    if(btn) { btn.innerHTML = 'تأكيد هذا الموقع'; btn.disabled = false; }
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("حدث خطأ في الاتصال");
+                if(btn) { btn.innerHTML = 'تأكيد هذا الموقع'; btn.disabled = false; }
+            });
         }
 
         // Global Auth Guard
@@ -481,6 +568,57 @@
                 timer: 2000,
                 customClass: { popup: 'rounded-[32px]' }
             });
+        </script>
+    @endif
+
+    @if(session('team_member_created'))
+        <script>
+            (function() {
+                const memberName = '{{ session('team_member_created.name') }}';
+                const password   = '{{ session('team_member_created.password') }}';
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم إضافة العضو بنجاح! 🎉',
+                    html: `
+                        <p class="text-gray-500 font-bold mb-4">تم إنشاء حساب <strong class="text-gray-800">${memberName}</strong> بنجاح.</p>
+                        <p class="text-gray-500 font-bold mb-3">كلمة المرور الافتراضية:</p>
+                        <div class="flex items-center justify-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-5 py-3 mb-2">
+                            <span id="swal-password" class="text-gray-800 font-black text-lg tracking-widest">${password}</span>
+                            <button onclick="copyPassword()" id="copy-btn" class="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs px-3 py-1.5 rounded-xl transition-all border border-blue-200" title="نسخ كلمة المرور">
+                                <i class="fa-regular fa-copy"></i>
+                                <span id="copy-label">نسخ</span>
+                            </button>
+                        </div>
+                        <p class="text-orange-500 text-xs font-bold mt-3">⚠️ يُنصح بإبلاغ العضو بكلمة المرور وتغييرها عند أول تسجيل دخول.</p>
+                    `,
+                    confirmButtonText: 'حسناً، تم',
+                    confirmButtonColor: '#1A73E8',
+                    showConfirmButton: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'rounded-[32px] p-8',
+                        confirmButton: 'rounded-2xl px-10 py-3 font-black text-base',
+                        title: 'font-black text-2xl',
+                        htmlContainer: 'font-bold'
+                    }
+                });
+
+                window.copyPassword = function() {
+                    navigator.clipboard.writeText(password).then(() => {
+                        const label = document.getElementById('copy-label');
+                        const btn   = document.getElementById('copy-btn');
+                        label.textContent = 'تم النسخ ✓';
+                        btn.classList.remove('bg-blue-50', 'text-blue-600', 'border-blue-200');
+                        btn.classList.add('bg-green-50', 'text-green-600', 'border-green-200');
+                        setTimeout(() => {
+                            label.textContent = 'نسخ';
+                            btn.classList.remove('bg-green-50', 'text-green-600', 'border-green-200');
+                            btn.classList.add('bg-blue-50', 'text-blue-600', 'border-blue-200');
+                        }, 2500);
+                    });
+                };
+            })();
         </script>
     @endif
 

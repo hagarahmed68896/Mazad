@@ -219,8 +219,13 @@
             <span class="text-primary">إشعاراتي</span>
         </div>
 
-        <div class="page-header mb-12">
+        <div class="page-header mb-12 flex justify-between items-center">
             <h1 class="text-4xl font-black text-gray-900">الإشعارات</h1>
+            @if(Auth::user()->unreadNotifications->count() > 0)
+                <button onclick="markAllNotificationsRead(event)" class="btn btn-outline" id="markAllReadBtnIndex" style="border-radius: 12px; font-weight: 700; font-size: 0.9rem; padding: 10px 20px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-regular fa-envelope-open"></i> تمييز الكل كمقروء
+                </button>
+            @endif
         </div>
 
         @if($notifications->count() > 0)
@@ -361,6 +366,45 @@
                 }
             } catch (error) {
                 console.error('Error deleting notification:', error);
+            }
+        }
+
+        async function markAllNotificationsRead(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            try {
+                const response = await fetch(`/notifications/mark-all-read`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    document.querySelectorAll('.notif-card-item.unread').forEach(card => {
+                        card.classList.remove('unread');
+                        const dropdown = document.getElementById(`dropdown-${card.id.replace('notif-', '')}`);
+                        if (dropdown) {
+                            const markBtn = dropdown.querySelector('.action-item:not(.delete)');
+                            if (markBtn) markBtn.remove();
+                        }
+                    });
+
+                    const badges = document.querySelectorAll('.nav-badge');
+                    badges.forEach(badge => {
+                        badge.style.display = 'none';
+                        badge.textContent = '0';
+                    });
+
+                    const btnIndex = document.getElementById('markAllReadBtnIndex');
+                    if (btnIndex) btnIndex.remove();
+                }
+            } catch (error) {
+                console.error('Error marking all notifications as read:', error);
             }
         }
 

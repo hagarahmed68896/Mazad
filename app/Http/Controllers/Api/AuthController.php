@@ -360,8 +360,13 @@ class AuthController extends Controller
      */
     public function getInterests(Request $request)
     {
-        $categories = \App\Models\Category::select('id', 'name', 'image')->get();
-        $userInterests = $request->user()->interests()->pluck('categories.id')->toArray();
+        $user = $request->user();
+        if ($user->parent_id && $user->company && $user->company->interests->isNotEmpty()) {
+            $categories = $user->company->interests;
+        } else {
+            $categories = \App\Models\Category::select('id', 'name', 'image')->get();
+        }
+        $userInterests = $user->resolvedInterests()->pluck('id')->toArray();
 
         return $this->apiResponse(true, 'اهتمامات المستخدم والتصنيفات المتاحة', [
             'categories' => $categories->map(function($category) use ($userInterests) {
@@ -380,20 +385,28 @@ class AuthController extends Controller
      */
     public function updateInterests(Request $request)
     {
+        $user = $request->user();
+        if ($user->parent_id && $user->company && $user->company->interests->isNotEmpty()) {
+            $allowedCategoryIds = $user->company->interests()->pluck('categories.id')->toArray();
+        } else {
+            $allowedCategoryIds = \App\Models\Category::pluck('id')->toArray();
+        }
+
         $validator = Validator::make($request->all(), [
             'category_ids' => 'required|array',
-            'category_ids.*' => 'exists:categories,id',
+            'category_ids.*' => 'exists:categories,id|in:' . implode(',', $allowedCategoryIds),
         ], [
             'category_ids.required' => 'يرجى اختيار تصنيف واحد على الأقل.',
             'category_ids.array' => 'تنسيق البيانات غير صحيح.',
             'category_ids.*.exists' => 'أحد التصنيفات المختارة غير موجود في قاعدة البيانات.',
+            'category_ids.*.in' => 'يجب اختيار اهتمام من ضمن اهتمامات الشركة التابع لها.',
         ]);
 
         if ($validator->fails()) {
             return $this->apiResponse(false, 'فشل التحقق', $validator->errors(), 422);
         }
 
-        $request->user()->interests()->sync($request->category_ids);
+        $user->interests()->sync($request->category_ids);
 
         return $this->apiResponse(true, 'تم تحديث الاهتمامات بنجاح');
     }

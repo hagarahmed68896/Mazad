@@ -377,17 +377,27 @@
             },
             body: JSON.stringify({ quantity: newQty })
         })
-        .then(response => {
+        .then(async response => {
             if (response.status === 419) {
                 Swal.fire('الجلسة انتهت', 'يرجى تحديث الصفحة والمحاولة مرة أخرى.', 'warning').then(() => {
                     location.reload();
                 });
                 return null;
             }
+            const data = await response.json();
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'تنبيه',
+                    text: data.message || 'عذراً، حدث خطأ ما.',
+                    confirmButtonColor: '#1A73E8',
+                    confirmButtonText: 'حسناً'
+                }).then(() => {
+                    location.reload();
+                });
+                return null;
             }
-            return response.json();
+            return data;
         })
         .then(data => {
             if (data && data.success) {

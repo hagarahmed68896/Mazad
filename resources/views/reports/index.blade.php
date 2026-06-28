@@ -216,6 +216,16 @@
         margin-right: 1rem;
     }
 
+    .stat-trend.down {
+        background-color: #FEE2E2;
+        color: #EF4444;
+    }
+
+    .stat-trend.flat {
+        background-color: #F1F5F9;
+        color: #64748B;
+    }
+
     /* Table styling */
     .table-card {
         background: white;
@@ -369,13 +379,25 @@
                         <div class="stat-value">
                             <span>{{ number_format($totalRevenue) }}</span>
                             <x-riyal-icon class="w-8 h-8 text-slate-800" />
-                            <span class="stat-trend"><i class="fa-solid fa-arrow-up text-xs"></i> 8.42%</span>
+                            @if($trendDirection === 'up')
+                                <span class="stat-trend"><i class="fa-solid fa-arrow-up text-xs"></i> {{ $trendPercentage }}%</span>
+                            @elseif($trendDirection === 'down')
+                                <span class="stat-trend down"><i class="fa-solid fa-arrow-down text-xs"></i> {{ $trendPercentage }}%</span>
+                            @else
+                                <span class="stat-trend flat"><i class="fa-solid fa-minus text-xs"></i> {{ $trendPercentage }}%</span>
+                            @endif
                         </div>
                     @else
                         <h3 class="stat-title">عدد الطلبات</h3>
                         <div class="stat-value">
                             <span>{{ number_format($purchasesCount) }}</span>
-                            <span class="stat-trend"><i class="fa-solid fa-arrow-up text-xs"></i> 8.42%</span>
+                            @if($trendDirection === 'up')
+                                <span class="stat-trend"><i class="fa-solid fa-arrow-up text-xs"></i> {{ $trendPercentage }}%</span>
+                            @elseif($trendDirection === 'down')
+                                <span class="stat-trend down"><i class="fa-solid fa-arrow-down text-xs"></i> {{ $trendPercentage }}%</span>
+                            @else
+                                <span class="stat-trend flat"><i class="fa-solid fa-minus text-xs"></i> {{ $trendPercentage }}%</span>
+                            @endif
                         </div>
                     @endif
                 </div>

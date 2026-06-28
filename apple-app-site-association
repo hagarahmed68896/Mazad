@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "5Z5VZZX594.com.isky.mazadapp",
+        "paths": [
+          "/share",
+          "/share/*"
+        ]
+      }
+    ]
+  }
+}

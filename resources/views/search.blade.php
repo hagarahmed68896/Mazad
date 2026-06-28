@@ -84,14 +84,14 @@
         }
         .page-item .page-link:hover {
             background: #F1F5F9;
-            border-color: #C8A96E;
-            color: #C8A96E;
+            border-color: var(--primary-color);
+            color: var(--primary-color);
         }
         .page-item.active .page-link {
-            background: linear-gradient(135deg, #C8A96E, #A0793A);
-            border-color: #C8A96E;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border-color: var(--primary-color);
             color: #fff;
-            box-shadow: 0 4px 12px rgba(200, 169, 110, 0.35);
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.25);
         }
         .page-item.disabled .page-link {
             opacity: 0.4;
@@ -321,6 +321,11 @@
         
         .fa-heart.fa-solid { color: #EF4444 !important; }
         
+        .active-pill {
+            background: #1A73E8 !important;
+            color: #fff !important;
+        }
+        
         /* Restore Original Layout */
         .search-container-grid {
             display: grid !important;
@@ -480,10 +485,13 @@
                                 <button type="button" class="location-icon-btn" onclick="handleLocationClick()">
                                     <i class="fa-solid fa-location-dot"></i>
                                 </button>
+                                @php
+                                    $selectedCityId = request('city') ?: (Auth::check() ? Auth::user()->city_id : session('user_city_id'));
+                                @endphp
                                 <select name="city" class="filter-select" onchange="this.form.submit()">
                                     <option value="">حدد الموقع</option>
                                     @foreach($cities as $city)
-                                        <option value="{{ $city->id }}" {{ request('city') == $city->id ? 'selected' : '' }}>{{ $city->name }}</option>
+                                        <option value="{{ $city->id }}" {{ $selectedCityId == $city->id ? 'selected' : '' }}>{{ $city->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -513,7 +521,7 @@
                                 </label>
                                 <label class="filter-pill-label">
                                     <input type="radio" name="type" value="auction" {{ request('type') == 'auction' || request('type') == 'electronic_auction' || request('type') == 'hybrid_auction' ? 'checked' : '' }} onchange="this.form.submit()">
-                                    <span>مزادات</span>
+                                    <span class="{{ request('type') == 'auction' || request('type') == 'electronic_auction' || request('type') == 'hybrid_auction' ? 'active-pill' : '' }}">مزادات</span>
                                 </label>
                                 <label class="filter-pill-label">
                                     <input type="radio" name="type" value="direct_purchase" {{ request('type') == 'direct_purchase' ? 'checked' : '' }} onchange="this.form.submit()">
@@ -988,35 +996,84 @@
 
             const formatPrice = (p) => new Intl.NumberFormat().format(p);
             
+            const image = ad.image ? (ad.image.startsWith('http') ? ad.image : '/' + ad.image.replace(/^\//, '')) : null;
+            
+            let statusLabel = 'جاري';
+            if (ad.type === 'hybrid_auction') {
+                const bStatus = ad.bid_status || ad.status;
+                if (bStatus === 'upcoming') statusLabel = 'لم تبدأ المزايدة';
+                else if (bStatus === 'active') statusLabel = 'جاري';
+                else if (bStatus === 'postponed') statusLabel = 'مؤجل';
+                else if (bStatus === 'not_sold') statusLabel = 'لم يتم البيع';
+                else if (bStatus === 'sold') statusLabel = 'تم البيع';
+                else if (bStatus === 'finished') statusLabel = 'منتهي';
+            } else {
+                if (ad.status === 'active') statusLabel = 'قائم';
+                else if (ad.status === 'upcoming') statusLabel = 'قادم';
+                else statusLabel = 'منتهي';
+            }
+
+            let priceLabel = 'السعر الحالي';
+            if (ad.type === 'direct_purchase') {
+                priceLabel = 'سعر الشراء';
+            } else if (ad.type === 'hybrid_auction') {
+                priceLabel = 'السعر الابتدائي';
+            }
+
+            let typeLabel = 'إلكتروني';
+            if (ad.type === 'electronic_auction') typeLabel = 'إلكتروني';
+            else if (ad.type === 'hybrid_auction') typeLabel = 'هجين';
+            else if (ad.type === 'direct_purchase') typeLabel = 'شراء فوري';
+            else if (ad.type === 'tender') typeLabel = 'مناقصة';
+
+            let bidTypeLabel = 'مزايدة';
+            if (ad.type === 'direct_purchase') bidTypeLabel = 'عرض';
+            else if (ad.type === 'tender') bidTypeLabel = 'مناقصة';
+
             detailBox.innerHTML = `
-                <div class="map-p-card" style="background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.2); direction: rtl; text-align: right; font-family: 'Cairo', sans-serif;">
-                    <div style="position: relative; height: 180px; background: #F8FAFC; display: flex; align-items: center; justify-content: center;">
-                        ${ad.image ? `<img src="{{ asset('') }}${ad.image}" style="width: 100%; height: 100%; object-fit: cover;">` : `<i class="fa-solid fa-image text-4xl text-gray-200"></i>`}
-                        <div style="position: absolute; top: 15px; right: 15px; display: flex; flex-direction: column; gap: 6px;">
-                            ${ad.is_featured ? '<span style="background: #EF4444; color: white; padding: 4px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);">مميز</span>' : ''}
-                            <span style="background: #D4B05B; color: white; padding: 4px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; box-shadow: 0 4px 10px rgba(212, 176, 91, 0.3);">إلكتروني</span>
-                            <span style="background: #10B981; color: white; padding: 4px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);">قائم</span>
+                <div class="p-ad-card" style="box-shadow: 0 12px 36px rgba(0,0,0,0.15); width: 330px; margin: 0; background: white; border-radius: 24px; overflow: hidden; border: 1px solid #E2E8F0;">
+                    <div class="p-card-image" style="height: 180px; position: relative;">
+                        <a href="/ads/${ad.id}" class="h-full w-full block bg-gray-50">
+                            ${image ? `<img src="${image}" alt="${ad.title}" style="width: 100%; height: 100%; object-fit: cover;">` : `<div class="flex items-center justify-center h-full w-full text-gray-300"><i class="fa-solid fa-image text-4xl"></i></div>`}
+                        </a>
+                        
+                        <div class="p-badges">
+                            ${ad.is_featured ? '<span class="p-badge-pill featured"><i class="fa-solid fa-fire"></i> مميز</span>' : ''}
+                            <span class="p-badge-pill type">${typeLabel}</span>
+                            <span class="p-badge-pill status">${statusLabel}</span>
                         </div>
-                        <button style="position: absolute; top: 15px; left: 15px; background: white; border: none; width: 36px; height: 36px; border-radius: 50%; color: #64748B; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                            <i class="fa-regular fa-heart"></i>
-                        </button>
                     </div>
-                    <div style="padding: 20px;">
-                        <span style="color: #1A73E8; background: #E8F1FE; padding: 4px 15px; border-radius: 10px; font-size: 0.8rem; font-weight: 800;">${ad.category ? ad.category.name : 'عقارات'}</span>
-                        <h4 style="margin: 12px 0; font-size: 1.25rem; font-weight: 800; color: #1E293B;">${ad.title}</h4>
-                        <p style="color: #64748B; font-size: 0.9rem; margin-bottom: 15px;"><i class="fa-solid fa-location-dot" style="color: #1A73E8; margin-left: 5px;"></i> ${ad.address || (ad.city ? ad.city.name : 'السعودية')}</p>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <span style="font-size: 0.95rem; color: #64748B;">السعر الحالي:</span>
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <i class="fa-solid fa-money-bill-wave" style="color: #1A73E8;"></i>
-                                <span style="color: #1A73E8; font-weight: 900; font-size: 1.3rem;">${formatPrice(ad.price)} <small style="font-size: 0.8rem;">ر.س</small></span>
+
+                    <div class="p-card-body" style="padding: 1.25rem;">
+                        <span class="p-category-pill">${ad.category ? ad.category.name : 'غير مصنف'}</span>
+                        <a href="/ads/${ad.id}" style="text-decoration: none; color: inherit;">
+                            <h3 class="p-ad-title" style="font-size: 1.15rem; font-weight: 800; margin: 0.5rem 0; height: 3.1rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: #1E293B;">${ad.title}</h3>
+                        </a>
+                        
+                        <div class="p-price-row" style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.75rem;">
+                            <span class="p-price-label" style="font-size: 0.85rem; color: #64748B; font-weight: 700;">${priceLabel}</span>
+                            <div class="flex items-center gap-1 text-primary">
+                                <span class="text-xl font-black">${formatPrice(ad.price)}</span>
+                                <svg class="w-5 h-5 inline-block" viewBox="0 0 43 45" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: inline-block;"><path d="M41.5311 34.2238C42.2985 32.5248 42.8057 30.6803 43 28.7464L30.351 31.4333V26.268L41.5308 23.8951C42.2981 22.1962 42.8053 20.3516 42.9996 18.4177L30.3506 21.1024V2.52648C28.4124 3.6134 26.6911 5.06021 25.2919 6.76682V22.1767L20.2331 23.2506V0C18.2949 1.08654 16.5736 2.53374 15.1744 4.24034V24.3242L3.85537 26.7265C3.08804 28.4254 2.58044 30.27 2.38574 32.2039L15.1744 29.4894V35.9942L1.46886 38.9031C0.701532 40.602 0.194317 42.4466 0 44.3805L14.3458 41.3356C15.5136 41.093 16.5174 40.4034 17.1699 39.4544L19.8009 35.5586V35.5579C20.074 35.1548 20.2331 34.6689 20.2331 34.1454V28.4155L25.2919 27.3416V37.6721L41.5308 34.223L41.5311 34.2238Z" fill="currentColor"/></svg>
                             </div>
                         </div>
-                        <div style="display: flex; gap: 15px; margin-bottom: 20px; font-size: 0.9rem; color: #64748B; border-top: 1px solid #F1F5F9; padding-top: 15px;">
-                            <span style="display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-gavel"></i> ${ad.bids_count || 50} مزايدة</span>
-                            <span style="display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-eye"></i> 50 مشاهدة</span>
+
+                        <div class="p-stats-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; border-top: 1px solid #F1F5F9; padding-top: 0.75rem;">
+                            <div class="p-stat-box" style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; color: #64748B;">
+                                <i class="fa-solid fa-eye"></i>
+                                <span>${ad.views_count || 0} مشاهدة</span>
+                            </div>
+                            <div class="p-stat-box" style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; color: #64748B;">
+                                <i class="fa-solid fa-gavel"></i>
+                                <span>${ad.bids_count || 0} ${bidTypeLabel}</span>
+                            </div>
                         </div>
-                        <a href="/ads/${ad.id}" style="display: block; background: #1A73E8; color: white; text-align: center; padding: 14px; border-radius: 15px; text-decoration: none; font-size: 1.1rem; font-weight: 800; transition: all 0.3s; box-shadow: 0 4px 15px rgba(26, 115, 232, 0.3);">زايد الآن</a>
+
+                        <div class="p-card-footer" style="margin-top: 1.25rem;">
+                            <a href="/ads/${ad.id}" class="btn btn-p-primary" style="display: block; width: 100%; text-align: center; text-decoration: none; padding: 0.75rem; border-radius: 12px; font-weight: 800;">
+                                ${ad.type === 'direct_purchase' ? 'شراء' : ad.type === 'hybrid_auction' ? 'المشاركة في المزاد' : ad.type === 'tender' ? 'تقديم عرض' : 'زايد'}
+                            </a>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1094,7 +1151,7 @@
             fetch('{{ route("location.update") }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                body: JSON.stringify({ latitude: lat, longitude: lng, address: address })
+                body: JSON.stringify({ latitude: lat, longitude: lng, address: address, city: city })
             })
             .then(res => res.json())
             .then(data => {

@@ -88,29 +88,12 @@
             <div class="space-y-8 mt-8">
                 <!-- Name -->
                 <div class="space-y-4">
-                    <label class="text-sm font-black text-[#6F6F6F]">اسم الفئة الرئيسية</label>
-                    <input type="text" name="name" required value="{{ old('name', $category->name) }}" placeholder="أدخل اسم الفئة الرئيسية"
+                    <label class="text-sm font-black text-[#6F6F6F]">اسم الفئة</label>
+                    <input type="text" name="name" required value="{{ old('name', $category->name) }}" placeholder="أدخل اسم الفئة"
                            class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-[15px] font-bold text-[#1C1C1C] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/10 focus:border-[#1A73E8] transition-all">
                 </div>
 
-                <!-- Sub Categories Repeater -->
-                <div class="space-y-4">
-                    <label class="text-sm font-black text-[#6F6F6F]">اسم الفئة الفرعية</label>
-                    <div class="space-y-3">
-                        <template x-for="(sub, index) in subCategories" :key="index">
-                            <div class="flex items-center gap-3">
-                                <input type="text" name="sub_categories[]" x-model="subCategories[index]" placeholder="أدخل اسم الفئة الفرعية"
-                                       class="flex-1 px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-[15px] font-bold text-[#1C1C1C] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/10 focus:border-[#1A73E8] transition-all">
-                                <button type="button" @click="removeSubCategory(index)" x-show="subCategories.length > 1"
-                                        class="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100 transition-colors">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                </button>
-                                <button type="button" x-show="index === subCategories.length - 1" @click="addSubCategory()"
-                                        class="px-8 py-4 bg-[#1A73E8] text-white rounded-2xl font-black shadow-lg hover:shadow-xl transition-all active:scale-95">أضف</button>
-                            </div>
-                        </template>
-                    </div>
-                </div>
+
 
                 <div class="space-y-4 relative" :class="open ? 'z-50' : 'z-10'" x-data="{ 
                     open: false, 
@@ -238,12 +221,10 @@
         return {
             dragOver: false,
             imagePreview: null,
-            subCategories: @json($category->subCategories->pluck('name')->toArray()) || [''],
             pages: @json($category->pages->pluck('name')->toArray()) || [''],
             services: @json($category->services->pluck('title')->toArray()) || [''],
             
             init() {
-                if (this.subCategories.length === 0) this.subCategories = [''];
                 if (this.pages.length === 0) this.pages = [''];
                 if (this.services.length === 0) this.services = [''];
             },
@@ -278,14 +259,6 @@
             removeImage() {
                 this.imagePreview = null;
                 document.getElementById('category_image').value = '';
-            },
-            
-            addSubCategory() {
-                this.subCategories.push('');
-            },
-            
-            removeSubCategory(index) {
-                this.subCategories.splice(index, 1);
             },
             
             addPage() {

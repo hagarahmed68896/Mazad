@@ -93,6 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/my-sales/seed', [OrderController::class, 'seedMySales']);
     Route::post('/my-sales/bulk-mark-sold', [OrderController::class, 'bulkMarkSold']);
     Route::post('/orders/{id}/confirm-delivery', [OrderController::class, 'confirmDelivery']);
+    Route::post('/orders/{id}/submit-payment', [OrderController::class, 'submitPayment']);
 
     // Reports & Analytics
     Route::get('/reports', [\App\Http\Controllers\Api\ReportController::class, 'index']);
@@ -142,6 +143,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reviews/{id}/reply', [\App\Http\Controllers\Api\ReviewController::class, 'reply']);
     Route::post('/reviews/{id}/toggle-visibility', [\App\Http\Controllers\Api\ReviewController::class, 'toggleVisibility']);
     Route::get('/my-reviews', [\App\Http\Controllers\Api\ReviewController::class, 'myReviews']);
+    Route::put('/reviews/{id}', [\App\Http\Controllers\Api\ReviewController::class, 'update']);
+    Route::post('/reviews/{id}/delete', [\App\Http\Controllers\Api\ReviewController::class, 'destroy']);
     // Inquiries Route
     Route::get('/my-inquiries', [\App\Http\Controllers\Api\SupportController::class, 'myInquiries']);
     Route::post('/search/history/clear', [SearchController::class, 'clearHistory']);

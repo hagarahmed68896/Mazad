@@ -148,11 +148,7 @@
                         <td class="px-4 py-4 text-center">{{ $loop->iteration + ($services->currentPage() - 1) * $services->perPage() }}</td>
                         <td class="px-4 py-4">
                             <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-100">
-                                @if($service->image)
-                                    <img src="{{ asset('uploads/' . $service->image) }}" class="w-full h-full object-cover" alt="">
-                                @else
-                                    <img src="https://ui-avatars.com/api/?name={{ urlencode($service->title) }}&background=F1F5F9&color=64748B" class="w-full h-full object-cover" alt="">
-                                @endif
+                                <img src="{{ $service->image ? (Str::startsWith($service->image, 'http') ? $service->image : asset($service->image)) : 'https://ui-avatars.com/api/?name=' . urlencode($service->title) . '&background=F1F5F9&color=64748B' }}" class="w-full h-full object-cover" alt="">
                             </div>
                         </td>
                         <td class="px-4 py-4 text-[#1C1C1C] font-black">{{ $service->title }}</td>

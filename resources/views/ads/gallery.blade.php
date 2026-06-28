@@ -134,7 +134,7 @@
 
             <!-- Main Image Viewport -->
             <div class="gallery-main-image-container relative">
-                <img id="galleryMainImage" src="{{ $allImages[$startIndex] ?? $allImages[0] }}" class="w-full h-full object-contain transition-all duration-700 ease-out">
+                <img id="galleryMainImage" src="{{ count($allImages) > 0 ? ($allImages[$startIndex] ?? $allImages[0]) : asset('images/placeholder.png') }}" class="w-full h-full object-contain transition-all duration-700 ease-out">
                 
                 <!-- Bottom Gradient Shadow -->
                 <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
@@ -143,7 +143,7 @@
             <!-- Image Counter -->
             <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
                 <div class="bg-black/50 backdrop-blur-md text-white px-6 py-2 rounded-full font-black text-lg tracking-wider">
-                    <span id="galleryCounter">{{ $startIndex + 1 }} / {{ count($allImages) }}</span>
+                    <span id="galleryCounter">{{ count($allImages) > 0 ? ($startIndex + 1) : 0 }} / {{ count($allImages) }}</span>
                 </div>
             </div>
         </div>
@@ -173,7 +173,7 @@
 @push('scripts')
 <script>
     const allImages = {!! json_encode($allImages) !!};
-    let currentIndex = {{ $startIndex }};
+    let currentIndex = {{ count($allImages) > 0 ? $startIndex : 0 }};
 
     // Initialize gallery state on load
     document.addEventListener('DOMContentLoaded', () => {

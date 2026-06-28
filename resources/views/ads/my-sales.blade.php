@@ -967,10 +967,13 @@
                                                     @endif
                                                 </span>
                                             @else
-                                                <span class="p-badge-pill status-expired">
-                                                    @if($ad->status == 'finished') منتهي
-                                                    @elseif($ad->status == 'upcoming') قادم
-                                                    @else قائم @endif
+                                                @php
+                                                    $is_finished = ($ad->status == 'finished' || ($ad->end_date && \Carbon\Carbon::parse($ad->end_date)->isPast()));
+                                                    $status_class = $is_finished ? 'status-expired' : ($ad->status == 'upcoming' ? 'status-receiving' : 'status-received');
+                                                    $status_text = $is_finished ? 'منتهي' : ($ad->status == 'upcoming' ? 'قادم' : 'قائم');
+                                                @endphp
+                                                <span class="p-badge-pill {{ $status_class }}">
+                                                    {{ $status_text }}
                                                 </span>
                                             @endif
                                         </div>
@@ -1030,7 +1033,7 @@
                                                 </span>
                                                 <span style="font-size: 0.8rem; color: #64748B; font-weight: 700;">
                                                     <i class="fa-solid fa-gavel" style="margin-left: 0.25rem;"></i>
-                                                    {{ $ad->bids()->count() }} مزايدين
+                                                    {{ $ad->bids()->where('type', '!=', 'deposit')->count() }} مزايدين
                                                 </span>
                                             </div>
                                         @endif

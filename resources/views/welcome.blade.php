@@ -156,7 +156,13 @@
                         <div class="info-value">
                             <span class="value">{{ number_format($totalRevenue) }}</span>
                             <span class="currency">ر.س</span>
-                            <span class="trend up"><i class="fa-solid fa-arrow-up"></i> 0.43%</span>
+                            @if($trendDirection === 'up')
+                                <span class="trend up"><i class="fa-solid fa-arrow-up"></i> {{ number_format($revenueTrend, 2) }}%</span>
+                            @elseif($trendDirection === 'down')
+                                <span class="trend down"><i class="fa-solid fa-arrow-down"></i> {{ number_format($revenueTrend, 2) }}%</span>
+                            @else
+                                <span class="trend flat"><i class="fa-solid fa-minus"></i> {{ number_format($revenueTrend, 2) }}%</span>
+                            @endif
                         </div>
                     </div>
                     <div class="reports-filter">
@@ -551,7 +557,7 @@
             fetch('{{ route("location.update") }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                body: JSON.stringify({ latitude: lat, longitude: lng, address: address })
+                body: JSON.stringify({ latitude: lat, longitude: lng, address: address, city: city })
             })
             .then(response => response.json())
             .then(data => {

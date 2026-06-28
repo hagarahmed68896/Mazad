@@ -157,7 +157,6 @@
                         <th class="px-4 py-4 w-12 text-center">#</th>
                         <th class="px-4 py-4">اسم المستخدم</th>
                         <th class="px-4 py-4">نوع الحساب</th>
-                        <th class="px-4 py-4 text-center">رقم الطلب</th>
                         <th class="px-4 py-4">اسم الإعلان</th>
                         <th class="px-4 py-4">اسم المعلن</th>
                         <th class="px-4 py-4">نوع المعلن</th>
@@ -182,9 +181,6 @@
                                 $accType = $review->reviewer->account_type ?? 'individual';
                             @endphp
                             <span>{{ $types[$accType] ?? $accType }}</span>
-                        </td>
-                        <td class="px-4 py-4 text-center">
-                            <span class="bg-slate-100 px-3 py-1 rounded-lg text-slate-600 font-bold font-mono">#{{ $review->order_id ?? '---' }}</span>
                         </td>
                         <td class="px-4 py-4 text-[#1C1C1C] font-bold">{{ $review->ad->title ?? '---' }}</td>
                         <td class="px-4 py-4 text-[#1A73E8] font-black">{{ $review->ratedUser->name ?? '---' }}</td>
@@ -215,7 +211,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="12" class="text-center py-16 text-[#6F6F6F] font-bold italic">لا يوجد تقييمات مطابقة للبحث.</td>
+                        <td colspan="11" class="text-center py-16 text-[#6F6F6F] font-bold italic">لا يوجد تقييمات مطابقة للبحث.</td>
                     </tr>
                     @endforelse
                 </tbody>

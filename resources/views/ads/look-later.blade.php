@@ -602,7 +602,7 @@
                                             @endif
                                         </div>
                                     </div>
-                                </endforeach
+                                @endforeach
                             @endif
                         @endif
                     </form>

@@ -183,7 +183,7 @@
                         <td class="px-4 py-4 text-center">{{ $loop->iteration + ($ads->currentPage() - 1) * $ads->perPage() }}</td>
                         <td class="px-4 py-4">
                             <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-100">
-                                <img src="https://ui-avatars.com/api/?name={{ urlencode($ad->title) }}&background=F1F5F9&color=64748B" class="w-full h-full object-cover" alt="">
+                                <img src="{{ $ad->image ? (Str::startsWith($ad->image, 'http') ? $ad->image : asset($ad->image)) : 'https://ui-avatars.com/api/?name=' . urlencode($ad->title) . '&background=F1F5F9&color=64748B' }}" class="w-full h-full object-cover" alt="">
                             </div>
                         </td>
                         <td class="px-4 py-4 text-[#1C1C1C] font-black">{{ $ad->title }}</td>

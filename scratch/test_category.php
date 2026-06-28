@@ -3,26 +3,14 @@ require __DIR__ . '/../vendor/autoload.php';
 $app = require_once __DIR__ . '/../bootstrap/app.php';
 $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
+use App\Models\Ad;
 use App\Models\Category;
 
-try {
-    $category = Category::with('pages.properties', 'properties')->find(2);
-    if (!$category) {
-        echo "Category 2 not found.\n";
-        exit;
-    }
-    echo "Category: " . $category->name . "\n";
-    echo "Pages:\n";
-    foreach ($category->pages as $page) {
-        echo "  Page: " . $page->name . "\n";
-        foreach ($page->properties as $prop) {
-            echo "    Property: ID={$prop->id} | Label={$prop->label} | Type={$prop->input_type}\n";
-        }
-    }
-    echo "Global Category Properties:\n";
-    foreach ($category->properties as $prop) {
-        echo "  Property: ID={$prop->id} | Label={$prop->label} | Type={$prop->input_type}\n";
-    }
-} catch (\Throwable $e) {
-    echo "Error: " . $e->getMessage() . "\n";
+$activeCategory = Category::with('subCategories')->find(1);
+$categoryIds = $activeCategory->subCategories->pluck('id')->push($activeCategory->id)->toArray();
+
+$ads = Ad::whereIn('category_id', $categoryIds)->get();
+echo "Total Ads in Category 1 & subcategories: " . $ads->count() . "\n";
+foreach ($ads as $ad) {
+    echo "- ID: {$ad->id}, Title: {$ad->title}, City ID: " . ($ad->city_id ?? 'NULL') . "\n";
 }

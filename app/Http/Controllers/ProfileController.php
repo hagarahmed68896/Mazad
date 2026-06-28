@@ -168,21 +168,33 @@ class ProfileController extends Controller
 
     public function interestsIndex()
     {
-        // Category views shared in AppServiceProvider, but let's fetch here just in case or for cleaner explicit flow
-        $categories = \App\Models\Category::whereNull('parent_id')->get();
+        $user = Auth::user();
+        if ($user->parent_id && $user->company && $user->company->interests->isNotEmpty()) {
+            $categories = $user->company->interests;
+        } else {
+            $categories = \App\Models\Category::whereNull('parent_id')->get();
+        }
         return view('users.settings.interests', compact('categories'));
     }
 
     public function updateInterests(Request $request)
     {
+        $user = Auth::user();
+        if ($user->parent_id && $user->company && $user->company->interests->isNotEmpty()) {
+            $allowedCategoryIds = $user->company->interests()->pluck('categories.id')->toArray();
+        } else {
+            $allowedCategoryIds = \App\Models\Category::whereNull('parent_id')->pluck('id')->toArray();
+        }
+
         $request->validate([
             'category_ids' => 'required|array',
-            'category_ids.*' => 'exists:categories,id',
+            'category_ids.*' => 'exists:categories,id|in:' . implode(',', $allowedCategoryIds),
         ], [
             'category_ids.required' => 'يرجى اختيار اهتمام واحد على الأقل.',
+            'category_ids.*.in' => 'يجب اختيار اهتمام من ضمن اهتمامات الشركة التابع لها.',
         ]);
 
-        Auth::user()->interests()->sync($request->category_ids);
+        $user->interests()->sync($request->category_ids);
 
         return redirect()->route('profile.interests.index')->with('success', 'تم حفظ اهتماماتك بنجاح.');
     }

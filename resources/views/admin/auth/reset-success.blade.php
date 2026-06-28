@@ -69,7 +69,7 @@
                     يمكنك الآن تسجيل الدخول باستخدام كلمة المرور الجديدة.
                 </p>
 
-                <a href="{{ route('login') }}" class="block w-full py-4 bg-[#1A73E8] hover:bg-blue-700 text-white rounded-xl text-lg font-bold transition-all shadow-lg shadow-blue-500/25">
+                <a href="{{ route('admin.login') }}" class="block w-full py-4 bg-[#1A73E8] hover:bg-blue-700 text-white rounded-xl text-lg font-bold transition-all shadow-lg shadow-blue-500/25">
                     تسجيل الدخول
                 </a>
             </div>

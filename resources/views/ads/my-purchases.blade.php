@@ -921,7 +921,7 @@
                                                     <span>تم التقييم بنجاح</span>
                                                 </button>
                                             @else
-                                                <button type="button" onclick="openRatingModal('{{ $seller->id ?? '' }}', '{{ $seller->name ?? 'البائع' }}')" class="btn" style="width: 100%; border: 1.5px solid #1A73E8; color: #1A73E8; background: white; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 42px; cursor: pointer; font-weight: bold; transition: all 0.2s;">
+                                                <button type="button" onclick="openRatingModal('{{ $seller->id ?? '' }}', '{{ $seller->name ?? 'البائع' }}', '{{ $order->ad_id ?? '' }}')" class="btn" style="width: 100%; border: 1.5px solid #1A73E8; color: #1A73E8; background: white; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 42px; cursor: pointer; font-weight: bold; transition: all 0.2s;">
                                                     <span>أقيم تجربتك</span>
                                                 </button>
                                             @endif
@@ -946,6 +946,7 @@
 <form id="purchasesReviewForm" action="{{ route('reviews.store') }}" method="POST" style="display: none;">
     @csrf
     <input type="hidden" name="rated_user_id" id="review_seller_id">
+    <input type="hidden" name="ad_id" id="review_ad_id">
     <input type="hidden" name="rating" id="review_rating_val">
     <input type="hidden" name="comment" id="review_comment_val">
 </form>
@@ -1077,7 +1078,7 @@
     };
 
     // Open Interactive Star Rating Modal for the Buyer to rate the Seller
-    window.openRatingModal = function(sellerId, sellerName) {
+    window.openRatingModal = function(sellerId, sellerName, adId = '') {
         let currentRating = 5;
         
         Swal.fire({
@@ -1131,6 +1132,7 @@
             if (result.isConfirmed) {
                 // Populate forms and submit
                 document.getElementById('review_seller_id').value = sellerId;
+                document.getElementById('review_ad_id').value = adId;
                 document.getElementById('review_rating_val').value = result.value.rating;
                 document.getElementById('review_comment_val').value = result.value.comment;
                 

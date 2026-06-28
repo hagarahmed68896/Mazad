@@ -111,7 +111,7 @@
 
                 <!-- Welcome Title -->
                 <div class="flex-1">
-                    <h1 class="text-xl sm:text-[1.75rem] font-black text-[#1C1C1C] mb-0 sm:mb-1 tracking-tight truncate">مرحباً، {{ auth()->user()->name ?? 'أحمد' }}</h1>
+                    <h1 class="text-xl sm:text-[1.75rem] font-black text-[#1C1C1C] mb-0 sm:mb-1 tracking-tight truncate">مرحباً، {{ auth('admin')->user()->name ?? 'أحمد' }}</h1>
                     <p class="text-[10px] sm:text-xs md:text-sm font-semibold text-[#6F6F6F] hidden sm:block">يمكنك هنا متابعة أداء المنصة وإدارة المستخدمين بسهولة.</p>
                 </div>
 
@@ -121,7 +121,7 @@
                     <div x-data='{ 
                         notificationOpen: false,
                         limit: 4,
-                        notifications: {!! auth()->user()->notifications()->latest()->limit(50)->get()->map(fn($n) => [
+                        notifications: {!! auth('admin')->check() ? auth('admin')->user()->notifications()->latest()->limit(50)->get()->map(fn($n) => [
                             'id' => $n->id,
                             'title' => $n->title,
                             'desc' => $n->content,
@@ -132,7 +132,7 @@
                                 : (str_contains($n->title, 'مالي') || str_contains($n->title, 'رصيد') 
                                     ? route('admin.payments.index') 
                                     : route('admin.notifications.index'))
-                        ])->toJson() !!},
+                        ])->toJson() : "[]" !!},
                         get unreadCount() {
                             return this.notifications.filter(n => n.unread).length;
                         },
@@ -237,14 +237,14 @@
                     <div x-data="{ dropdownOpen: false }" class="relative">
                         <button @click="dropdownOpen = !dropdownOpen" class="flex items-center gap-2 sm:gap-3 focus:outline-none group">
                             <div class="text-left desktop-only" style="display: block;">
-                                <p class="text-sm font-bold text-[#1C1C1C] group-hover:text-[#1A73E8] transition-colors" style="max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ auth()->user()->name ?? 'أحمد محمد' }}</p>
+                                <p class="text-sm font-bold text-[#1C1C1C] group-hover:text-[#1A73E8] transition-colors" style="max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ auth('admin')->user()->name ?? 'أحمد محمد' }}</p>
                                 <p class="text-xs font-semibold text-[#6F6F6F] text-left">أدمن</p>
                             </div>
                             <div class="rounded-full bg-[#1A73E8] text-white flex items-center justify-center font-black text-base shadow-lg shadow-blue-500/30 overflow-hidden" style="width: 44px; height: 44px; min-width: 44px;">
-                                @if(auth()->user()->avatar)
-                                    <img src="{{ asset(auth()->user()->avatar) }}" class="w-full h-full object-cover">
+                                @if(auth('admin')->check() && auth('admin')->user()->avatar)
+                                    <img src="{{ asset(auth('admin')->user()->avatar) }}" class="w-full h-full object-cover">
                                 @else
-                                    {{ mb_substr(auth()->user()->name ?? 'A', 0, 1) }}
+                                    {{ mb_substr(auth('admin')->user()->name ?? 'A', 0, 1) }}
                                 @endif
                             </div>
                         </button>

@@ -9,21 +9,33 @@
                 </div>
                 <p>منصة موثوقة للمزادات والشراء الفوري، تجمعك بفرص مميزة على السيارات والعقارات وغيرها.<br>شارك، زايد، أو اشترِ بكل سهولة وأمان.</p>
                 <div class="social-links" style="justify-content: flex-start;">
-                    @if(!empty($settings['youtube']))
-                        <a href="{{ $settings['youtube'] }}" class="social-icon"><i class="fa-brands fa-youtube"></i></a>
-                    @endif
-                    @if(!empty($settings['twitter']))
-                        <a href="{{ $settings['twitter'] }}" class="social-icon">
-                            <!-- X icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" viewBox="0 0 512 512" fill="currentColor"><path d="M389.2 48h70.6L305.6 224.2 487 464H345L233.7 318.6 106.5 464H35.8L200.7 275.5 26.8 48H172.4L272.9 180.9 389.2 48zM364.4 421.8h39.1L151.1 88h-42L364.4 421.8z"/></svg>
-                        </a>
-                    @endif
-                    @if(!empty($settings['instagram']))
-                        <a href="{{ $settings['instagram'] }}" class="social-icon"><i class="fa-brands fa-instagram"></i></a>
-                    @endif
-                    @if(!empty($settings['facebook']))
-                        <a href="{{ $settings['facebook'] }}" class="social-icon"><i class="fa-brands fa-facebook-f"></i></a>
-                    @endif
+                    @php
+                        $socialLinks = [];
+                        if (!empty($settings['social_links'])) {
+                            $decoded = json_decode($settings['social_links'], true);
+                            if (is_array($decoded)) {
+                                $socialLinks = $decoded;
+                            }
+                        }
+                    @endphp
+                    
+                    @foreach($socialLinks as $link)
+                        @if(!empty($link['url']))
+                            @if($link['platform'] === 'فيسبوك')
+                                <a href="{{ $link['url'] }}" class="social-icon" target="_blank"><i class="fa-brands fa-facebook-f"></i></a>
+                            @elseif($link['platform'] === 'إنستغرام')
+                                <a href="{{ $link['url'] }}" class="social-icon" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+                            @elseif($link['platform'] === 'تويتر')
+                                <a href="{{ $link['url'] }}" class="social-icon" target="_blank">
+                                    <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" viewBox="0 0 512 512" fill="currentColor"><path d="M389.2 48h70.6L305.6 224.2 487 464H345L233.7 318.6 106.5 464H35.8L200.7 275.5 26.8 48H172.4L272.9 180.9 389.2 48zM364.4 421.8h39.1L151.1 88h-42L364.4 421.8z"/></svg>
+                                </a>
+                            @elseif($link['platform'] === 'لينكدان')
+                                <a href="{{ $link['url'] }}" class="social-icon" target="_blank"><i class="fa-brands fa-linkedin-in"></i></a>
+                            @elseif($link['platform'] === 'الموقع')
+                                <a href="{{ $link['url'] }}" class="social-icon" target="_blank"><i class="fa-solid fa-globe"></i></a>
+                            @endif
+                        @endif
+                    @endforeach
                 </div>
             </div>
 

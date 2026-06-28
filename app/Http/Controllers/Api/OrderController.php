@@ -32,11 +32,11 @@ class OrderController extends Controller
             ], 404);
         }
 
-        // Prevent buying own ad
-        if ($ad->user_id === Auth::id()) {
+        // Prevent buying own or team member's ad
+        if (Auth::user()->isSameTeam($ad->user_id)) {
             return response()->json([
                 'success' => false,
-                'message' => 'لا يمكنك شراء إعلانك الخاص.'
+                'message' => 'لا يمكنك شراء إعلان خاص بك أو بأحد مناديبك/شركتك.'
             ], 403);
         }
 
@@ -199,7 +199,7 @@ class OrderController extends Controller
             $query->orderBy('created_at', 'desc');
         }
         
-        $ads = $query->paginate($request->get('per_page', 24));
+        $ads = $query->paginate($request->get('per_page', 12));
         
         return response()->json([
             'success' => true,
@@ -651,12 +651,52 @@ class OrderController extends Controller
             $query->orderBy('created_at', 'desc');
         }
         
-        $orders = $query->paginate($request->get('per_page', 24));
+        $orders = $query->paginate($request->get('per_page', 12));
         
         return response()->json([
             'success' => true,
             'message' => 'قائمة مشترياتي',
             'data' => $orders
+        ]);
+    }
+
+    /**
+     * Buyer submits payment confirmation via API.
+     */
+    public function submitPayment(Request $request, $orderId)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مصرح'
+            ], 401);
+        }
+
+        $order = Order::findOrFail($orderId);
+
+        // Only the buyer can confirm payment
+        if ($order->buyer_id !== $user->id) {
+            return response()->json(['success' => false, 'message' => 'غير مصرح لك بهذه العملية.'], 403);
+        }
+
+        // Only pending_payment orders can be submitted
+        if ($order->status !== 'pending_payment') {
+            return response()->json(['success' => false, 'message' => 'هذا الطلب لا يحتاج إلى تأكيد دفع.'], 422);
+        }
+
+        $order->update(['status' => 'under_review']);
+
+        // Log a transaction for tracking
+        Transaction::updateOrCreate(
+            ['user_id' => $user->id, 'ad_id' => $order->ad_id, 'type' => 'purchase'],
+            ['status' => 'under_review', 'payment_method' => $request->payment_method ?? 'card']
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إرسال تأكيد الدفع بنجاح! سيقوم الفريق بمراجعته قريباً.',
+            'data' => $order
         ]);
     }
 }

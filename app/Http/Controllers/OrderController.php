@@ -20,9 +20,9 @@ class OrderController extends Controller
         $quantity = (int) ($request->quantity ?? 1);
         $ad = Ad::findOrFail($adId);
 
-        // Prevent buying own ad
-        if ($ad->user_id === Auth::id()) {
-            return back()->with('error', 'لا يمكنك شراء إعلانك الخاص.');
+        // Prevent buying own or team member's ad
+        if (Auth::user()->isSameTeam($ad->user_id)) {
+            return back()->with('error', 'لا يمكنك شراء إعلان خاص بك أو بأحد مناديبك/شركتك.');
         }
 
         // Prevent duplicate orders for the same ad (only for auctions)
@@ -170,7 +170,7 @@ class OrderController extends Controller
             $query->orderBy('created_at', 'desc');
         }
         
-        $ads = $query->paginate(24)->appends($request->query());
+        $ads = $query->paginate(12)->appends($request->query());
         
         $cities = \App\Models\City::orderBy('name')->get();
         $categories = \App\Models\Category::whereNull('parent_id')->with('subCategories')->get();
@@ -266,7 +266,7 @@ class OrderController extends Controller
             $query->orderBy('created_at', 'desc');
         }
         
-        $orders = $query->paginate(24)->appends($request->query());
+        $orders = $query->paginate(12)->appends($request->query());
         
         $cities = \App\Models\City::orderBy('name')->get();
         $categories = \App\Models\Category::whereNull('parent_id')->with('subCategories')->get();
@@ -291,6 +291,33 @@ class OrderController extends Controller
         $order->update(['status' => 'received']);
         
         return back()->with('success', 'تم توثيق استلام الطلب بنجاح! 🎉');
+    }
+
+    /**
+     * Buyer submits payment confirmation — moves order to under_review.
+     * Admin will then manually verify and approve.
+     */
+    public function submitPayment(Request $request, Order $order)
+    {
+        // Only the buyer can confirm payment
+        if ($order->buyer_id !== Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'غير مصرح لك بهذه العملية.'], 403);
+        }
+
+        // Only pending_payment orders can be submitted
+        if ($order->status !== 'pending_payment') {
+            return response()->json(['success' => false, 'message' => 'هذا الطلب لا يحتاج إلى تأكيد دفع.'], 422);
+        }
+
+        $order->update(['status' => 'under_review']);
+
+        // Log a transaction for tracking
+        Transaction::updateOrCreate(
+            ['user_id' => Auth::id(), 'ad_id' => $order->ad_id, 'type' => 'purchase'],
+            ['status' => 'under_review', 'payment_method' => $request->payment_method ?? 'card']
+        );
+
+        return response()->json(['success' => true, 'message' => 'تم إرسال تأكيد الدفع بنجاح! سيقوم الفريق بمراجعته قريباً.']);
     }
 
     public function seedMySales()

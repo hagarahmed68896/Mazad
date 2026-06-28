@@ -1011,14 +1011,14 @@
                                             
                                             <!-- Price Pill -->
                                             <div class="bo-price-pill" id="bo-price-pill-{{ $bid->id }}">
-                                                <span>قيمة السومة</span>
+                                                <span>{{ $bid->status === 'counter' ? 'قيمة العرض المضاد' : 'قيمة السومة' }}</span>
                                                 <strong>{{ number_format($bid->amount) }}</strong>
                                                 <x-riyal-icon class="w-4 h-4" />
                                             </div>
 
                                             <!-- Date -->
                                             @php
-                                                $formattedDate = $bid->created_at->format('Y/m/d - h:i:s a');
+                                                $formattedDate = $bid->updated_at->format('Y/m/d - h:i:s a');
                                                 $formattedDate = str_replace(['am', 'pm'], ['ص', 'م'], $formattedDate);
                                             @endphp
                                             <div class="bo-date">
@@ -1061,6 +1061,11 @@
                                                         <i class="fa-solid fa-circle-xmark"></i> رفض العرض
                                                     </button>
                                                 @endif
+                                            @elseif($bid->status === 'counter')
+                                                <div class="text-center py-2 px-4 rounded-xl text-slate-500 font-bold bg-slate-50 border border-slate-200 w-full" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; height: 42px;">
+                                                    <i class="fa-solid fa-clock-rotate-left"></i>
+                                                    <span>بانتظار رد المشتري</span>
+                                                </div>
                                             @else
                                                 <!-- Finished Bids show Details -->
                                                 <button class="btn-bo-primary w-full" onclick="showDetailsModal({{ $bid->id }})" style="flex: auto;">
@@ -1074,6 +1079,17 @@
                                                     <i class="fa-solid fa-clock-rotate-left"></i>
                                                     <span>بانتظار رد البائع</span>
                                                 </div>
+                                            @elseif($bid->status === 'counter')
+                                                <!-- Counter Offer from Seller -->
+                                                <button class="btn-bo-primary" onclick="acceptBidOffer({{ $bid->id }})">
+                                                    <i class="fa-solid fa-circle-check"></i> قبول العرض
+                                                </button>
+                                                <button class="btn-bo-outline" onclick="openCounterOfferModal({{ $bid->id }}, {{ $bid->amount }})">
+                                                    <i class="fa-solid fa-handshake"></i> تفاوض
+                                                </button>
+                                                <button class="btn-bo-grey" onclick="rejectBidOffer({{ $bid->id }})">
+                                                    <i class="fa-solid fa-circle-xmark"></i> رفض العرض
+                                                </button>
                                             @elseif($bid->status === 'accepted')
                                                 <a href="{{ route('purchases.my') }}" class="btn-bo-primary w-full text-center py-2 rounded-xl" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; height: 42px; width: 100%;">
                                                     <i class="fa-solid fa-credit-card"></i> إتمام الدفع

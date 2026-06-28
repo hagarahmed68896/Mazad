@@ -383,7 +383,7 @@ class AuthController extends Controller
     public function showPartnerServicesForm()
     {
         $user = Auth::user();
-        $categoryIds = $user->interests()->pluck('categories.id')->toArray();
+        $categoryIds = $user->resolvedInterests()->pluck('id')->toArray();
         $services = \App\Models\Service::where('user_id', 1)
             ->whereIn('category_id', $categoryIds)
             ->get();

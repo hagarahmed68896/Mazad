@@ -125,6 +125,30 @@ class User extends Authenticatable
         return $this->belongsToMany(Category::class);
     }
 
+    public function resolvedInterests()
+    {
+        if ($this->parent_id) {
+            $companyInterests = $this->company ? $this->company->interests : collect();
+            $myInterests = $this->interests;
+            
+            if ($companyInterests->isNotEmpty()) {
+                if ($myInterests->isNotEmpty()) {
+                    return $myInterests->intersect($companyInterests);
+                }
+                return $companyInterests;
+            }
+            
+            return $myInterests;
+        }
+        
+        return $this->interests;
+    }
+
+    public function getResolvedInterestsAttribute()
+    {
+        return $this->resolvedInterests();
+    }
+
     public function favorites(): HasMany
     {
         return $this->hasMany(Favorite::class);
@@ -158,14 +182,41 @@ class User extends Authenticatable
     public function getAvatarAttribute($value)
     {
         if (!$value) {
-            if (in_array($this->account_type, ['representative', 'partner'])) {
-                return null;
-            }
-            return asset('images/chart.svg');
+            return asset('images/default-avatar.svg');
         }
         if (\Illuminate\Support\Str::startsWith($value, 'http')) {
             return $value;
         }
         return asset($value);
+    }
+
+    /**
+     * Check if this user belongs to the same team/company as another user.
+     *
+     * @param int $otherUserId
+     * @return bool
+     */
+    public function isSameTeam($otherUserId): bool
+    {
+        if ($this->id == $otherUserId) {
+            return true;
+        }
+
+        $otherUser = self::find($otherUserId);
+        if (!$otherUser) {
+            return false;
+        }
+
+        // If one is the parent of the other (Company and Representative)
+        if (($this->parent_id && $this->parent_id == $otherUser->id) || ($otherUser->parent_id && $otherUser->parent_id == $this->id)) {
+            return true;
+        }
+
+        // If both have the same parent (Representatives of the same company)
+        if ($this->parent_id && $this->parent_id == $otherUser->parent_id) {
+            return true;
+        }
+
+        return false;
     }
 }

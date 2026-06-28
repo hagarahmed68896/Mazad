@@ -221,11 +221,61 @@ class ChatController extends Controller
         return response()->json(['success' => true, 'is_blocked' => $isBlocked]);
     }
 
+    public function chatWithUser($userId)
+    {
+        $authUser = auth()->user();
+
+        if ($authUser->id == $userId) {
+            return redirect()->route('chats.index')->with('error', 'لا يمكنك بدء دردشة مع نفسك.');
+        }
+
+        $recipientUser = \App\Models\User::findOrFail($userId);
+
+        // Check if blocked
+        $isBlocked = \App\Models\BlockedUser::where(function($q) use ($authUser, $userId) {
+            $q->where('user_id', $authUser->id)->where('blocked_user_id', $userId)
+              ->orWhere('user_id', $userId)->where('blocked_user_id', $authUser->id);
+        })->exists();
+
+        if ($isBlocked) {
+            return redirect()->route('chats.index')->with('error', 'لا يمكنك التواصل مع هذا المستخدم.');
+        }
+
+        // Find existing conversation (any conversation between the two users)
+        $conversation = Conversation::where(function($q) use ($authUser, $userId) {
+            $q->where(function($sq) use ($authUser, $userId) {
+                $sq->where('user_one_id', $authUser->id)->where('user_two_id', $userId);
+            })->orWhere(function($sq) use ($authUser, $userId) {
+                $sq->where('user_one_id', $userId)->where('user_two_id', $authUser->id);
+            });
+        })->whereNull('ad_id')->first();
+
+        // Create new conversation if not found
+        if (!$conversation) {
+            $conversation = Conversation::create([
+                'user_one_id' => $authUser->id,
+                'user_two_id' => $userId,
+                'ad_id'       => null,
+                'last_message_at' => now(),
+            ]);
+
+            Message::create([
+                'conversation_id' => $conversation->id,
+                'sender_id'       => $authUser->id,
+                'content'         => 'مرحباً، أود التواصل معك.',
+                'type'            => 'text',
+            ]);
+        }
+
+        return redirect()->route('chats.index', ['id' => $conversation->id]);
+    }
+
     public function startConversation(Request $request)
     {
         $request->validate([
             'ad_id' => 'nullable|exists:ads,id',
             'service_id' => 'nullable|exists:services,id',
+            'recipient_id' => 'nullable|exists:users,id',
         ]);
 
         $user = auth()->user();
@@ -242,10 +292,13 @@ class ChatController extends Controller
             $service = \App\Models\Service::findOrFail($request->service_id);
             $recipientId = $service->user_id;
             $initialMessage = "مرحباً، أود طلب خدمتك: " . $service->title;
+        } elseif ($request->filled('recipient_id')) {
+            $recipientId = $request->recipient_id;
+            $initialMessage = "مرحباً، أود التواصل معك.";
         }
 
         if (!$recipientId) {
-            return back()->with('error', 'يجب تحديد إعلان أو خدمة لبدء المحادثة.');
+            return back()->with('error', 'يجب تحديد إعلان أو خدمة أو مستلم لبدء المحادثة.');
         }
 
         if ($recipientId == $user->id) {

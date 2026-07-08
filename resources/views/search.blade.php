@@ -486,7 +486,7 @@
                                     <i class="fa-solid fa-location-dot"></i>
                                 </button>
                                 @php
-                                    $selectedCityId = request('city') ?: (Auth::check() ? Auth::user()->city_id : session('user_city_id'));
+                                    $selectedCityId = request('city') ?: (Auth::check() ? Auth::user()->city_id : null);
                                 @endphp
                                 <select name="city" class="filter-select" onchange="this.form.submit()">
                                     <option value="">حدد الموقع</option>
@@ -496,7 +496,7 @@
                                 </select>
                             </div>
                             @php
-                                $currentAddr = Auth::check() ? Auth::user()->address : session('user_address');
+                                $currentAddr = Auth::check() ? Auth::user()->address : null;
                             @endphp
                             @if($currentAddr)
                                 <div class="current-location-status">
@@ -1090,14 +1090,19 @@
         let currentLocationMarker = null;
 
         function handleLocationClick() {
+            if (!isLoggedIn) {
+                showAuthModal();
+                return;
+            }
+
             const modal = document.getElementById('locationModal');
             if (modal) {
                 modal.style.display = 'flex';
                 
                 // Small delay to ensure modal is visible for Leaflet
                 setTimeout(() => {
-                    const savedLat = {{ Auth::check() ? (Auth::user()->latitude ?? 'null') : (session('user_latitude') ?? 'null') }};
-                    const savedLng = {{ Auth::check() ? (Auth::user()->longitude ?? 'null') : (session('user_longitude') ?? 'null') }};
+                    const savedLat = {{ Auth::check() ? (Auth::user()->latitude ?? 'null') : 'null' }};
+                    const savedLng = {{ Auth::check() ? (Auth::user()->longitude ?? 'null') : 'null' }};
                     
                     if (!locationMapInstance) {
                         locationMapInstance = L.map('locationMap').setView([savedLat || 24.7136, savedLng || 46.6753], savedLat ? 13 : 6);
@@ -1109,8 +1114,10 @@
                             navigator.geolocation.getCurrentPosition(pos => {
                                 const lat = pos.coords.latitude;
                                 const lng = pos.coords.longitude;
-                                locationMapInstance.setView([lat, lng], 13);
-                                currentLocationMarker.setLatLng([lat, lng]);
+                                if (lat >= 16 && lat <= 32.5 && lng >= 34 && lng <= 56) {
+                                    locationMapInstance.setView([lat, lng], 13);
+                                    currentLocationMarker.setLatLng([lat, lng]);
+                                }
                             });
                         }
                     } else {
@@ -1133,6 +1140,13 @@
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.lat}&lon=${pos.lng}&accept-language=ar`)
                 .then(res => res.json())
                 .then(data => {
+                    const isSaudi = data.address && (data.address.country_code === 'sa' || (data.address.country && data.address.country.includes('السعودية')));
+                    if (!isSaudi) {
+                        alert("الرجاء اختيار موقع داخل المملكة العربية السعودية فقط.");
+                        if(btn) { btn.innerHTML = 'تأكيد هذا الموقع'; btn.disabled = false; }
+                        return;
+                    }
+
                     let cityOnly = "السعودية";
                     if (data.address) {
                         const addr = data.address;

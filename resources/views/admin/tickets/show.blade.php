@@ -133,13 +133,13 @@
         @if($ticket->type == 'report')
             <!-- Actions Buttons for Reports -->
             <div class="flex items-center justify-start gap-4 pt-10 flex-wrap">
-                <button @click="modalWarning = true" class="h-14 px-8 bg-[#1B4066] text-white rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-[#142f4b] transition-all active:scale-95 text-[15px]">
+                <button @click="modalWarning = true" class="h-14 px-8 rounded-2xl font-black transition-all active:scale-95 text-[15px] hover:opacity-90" style="background-color: #1B4066; color: white; box-shadow: 0 10px 15px -3px rgba(27, 64, 102, 0.3);">
                     إرسال تنبيه للمستخدم
                 </button>
-                <button @click="modalSuspend = true" class="h-14 px-8 border-2 border-[#1B4066] text-[#1B4066] rounded-2xl font-black hover:bg-blue-50 transition-all active:scale-95 text-[15px]">
+                <button @click="modalSuspend = true" class="h-14 px-8 rounded-2xl font-black transition-all active:scale-95 text-[15px] hover:bg-blue-50" style="border: 2px solid #1B4066; color: #1B4066; background-color: transparent;">
                     إيقاف الحساب مؤقتًا
                 </button>
-                <button @click="modalReject = true" class="h-14 px-8 bg-rose-800 text-white rounded-2xl font-black shadow-xl shadow-red-100 hover:bg-rose-900 transition-all active:scale-95 text-[15px]">
+                <button @click="modalReject = true" class="h-14 px-8 rounded-2xl font-black transition-all active:scale-95 text-[15px] hover:opacity-90" style="background-color: #9F1239; color: white; box-shadow: 0 10px 15px -3px rgba(159, 18, 57, 0.3);">
                     رفض الطلب
                 </button>
             </div>

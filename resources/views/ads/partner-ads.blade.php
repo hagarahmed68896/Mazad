@@ -116,6 +116,42 @@
     .filter-drawer-content.active {
         right: 0; /* Slide in to the right edge */
     }
+
+    /* Filter Tabs */
+    .filter-tabs-container {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 2.5rem;
+        background: #F1F5F9;
+        padding: 0.5rem;
+        border-radius: 20px;
+        width: fit-content;
+    }
+
+    .filter-tab {
+        padding: 0.85rem 1.75rem;
+        border-radius: 16px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #64748B;
+        text-decoration: none;
+        transition: all 0.25s ease;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+    }
+
+    .filter-tab:hover {
+        color: #1E293B;
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .filter-tab.active {
+        background-color: #1A73E8;
+        color: white;
+        box-shadow: 0 8px 20px rgba(26, 115, 232, 0.2);
+    }
 </style>
 @endpush
 
@@ -133,7 +169,8 @@
                             'description' => $item['description'] ?? $b->description,
                             'image' => $item['image'] ?? $b->image,
                             'button_text' => $item['button_text'] ?? $b->button_text,
-                            'show_button' => $item['show_button'] ?? true
+                            'show_button' => $item['show_button'] ?? true,
+                            'url' => $item['url'] ?? $b->url ?? route('services.create')
                         ];
                     }
                 } else {
@@ -142,7 +179,8 @@
                         'description' => $b->description,
                         'image' => $b->image,
                         'button_text' => $b->button_text,
-                        'show_button' => true
+                        'show_button' => true,
+                        'url' => $b->url ?? route('services.create')
                     ];
                 }
             }
@@ -155,7 +193,8 @@
                 'description' => 'وصل خدمتك مباشرة للمستخدمين المهتمين بالسلعة. اعرض خدماتك مثل الفحص، الشحن أو أي خدمة متخصصة، وخلي إعلانك يظهر بجانب المنتجات ذات الصلة لفرص أعلى وتحويل أسرع.',
                 'image' => 'images/hero_car.png',
                 'button_text' => '',
-                'show_button' => false
+                'show_button' => false,
+                'url' => route('services.create')
             ];
         }
     @endphp
@@ -173,7 +212,7 @@
                         </p>
                         @if(!empty($item['show_button']) && !empty($item['button_text']))
                             <div style="margin-top: 1.5rem;">
-                                <a href="{{ route('ads.create') }}" style="display: inline-block; padding: 0.75rem 2rem; background: white; color: #1A73E8; border-radius: 12px; font-weight: 800; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">{{ $item['button_text'] }}</a>
+                                <a href="{{ $item['url'] }}" style="display: inline-block; padding: 0.75rem 2rem; background: white; color: #1A73E8; border-radius: 12px; font-weight: 800; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">{{ $item['button_text'] }}</a>
                             </div>
                         @endif
                     </div>
@@ -209,11 +248,18 @@
     </div>
 
     <!-- Section Title -->
-    <div style="margin-bottom: 2rem;">
-        <h2 style="font-size: 1.9rem; font-weight: 900; color: #1C1C1C; margin: 0;">الإعلانات</h2>
+    <div class="flex flex-col gap-4 mb-6">
+        <h2 style="font-size: 1.9rem; font-weight: 900; color: #1C1C1C; margin: 0;">الخدمات</h2>
+        
+        <div class="filter-tabs-container">
+            <a href="{{ route('ads.my', ['status' => 'all'] + request()->except('status', 'page')) }}" class="filter-tab {{ $status === 'all' ? 'active' : '' }}">الكل</a>
+            <a href="{{ route('ads.my', ['status' => 'active'] + request()->except('status', 'page')) }}" class="filter-tab {{ $status === 'active' ? 'active' : '' }}">نشطة</a>
+            <a href="{{ route('ads.my', ['status' => 'pending'] + request()->except('status', 'page')) }}" class="filter-tab {{ $status === 'pending' ? 'active' : '' }}">قيد المراجعة</a>
+            <a href="{{ route('ads.my', ['status' => 'rejected'] + request()->except('status', 'page')) }}" class="filter-tab {{ $status === 'rejected' ? 'active' : '' }}">المرفوضة</a>
+        </div>
     </div>
 
-    @if($ads->isEmpty() && !request('q') && !request('services'))
+    @if($ads->isEmpty() && !request('q') && !request('services') && $status === 'all')
         <!-- Custom Empty State matching design -->
         <div class="empty-state-container" style="text-align: center; padding: 5rem 2rem; background: white; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); border: 1px solid #E2E8F0; max-width: 700px; margin: 0 auto 4rem;">
             <div style="width: 140px; height: 140px; background-color: #F1F5F9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem; border: 4px solid #F8FAFC;">
@@ -316,6 +362,17 @@
                         <a href="{{ route('services.show', $ad->id) }}" class="ad-image-container" style="position: relative; height: 200px; width: 100%; overflow: hidden; background: #F8FAFC; display: block;">
                             <img src="{{ $ad->image ? asset($ad->image) : asset('images/login-illustration.png') }}" alt="{{ $ad->title }}" style="width: 100%; height: 100%; object-fit: cover;">
                             
+                            <!-- Status Badge -->
+                            <div style="position: absolute; top: 1rem; left: 1rem; z-index: 10;">
+                                @if(($ad->status ?? 'pending') === 'active')
+                                    <span style="background-color: #DEF7EC; color: #03543F; padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 800; font-size: 0.8rem; display: inline-flex; align-items: center; border: 1px solid #BCF0DA;">نشط</span>
+                                @elseif(($ad->status ?? 'pending') === 'pending')
+                                    <span style="background-color: #FEF3C7; color: #92400E; padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 800; font-size: 0.8rem; display: inline-flex; align-items: center; border: 1px solid #FDE68A;">قيد المراجعة</span>
+                                @elseif(($ad->status ?? 'pending') === 'rejected')
+                                    <span style="background-color: #FDE8E8; color: #9B1C1C; padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 800; font-size: 0.8rem; display: inline-flex; align-items: center; border: 1px solid #FBD5D5;">مرفوض</span>
+                                @endif
+                            </div>
+
                             <!-- Price Badge -->
                             <span style="position: absolute; bottom: 1rem; right: 1rem; background-color: #E8F1FE; color: #1A73E8; padding: 0.5rem 1rem; border-radius: 12px; font-weight: 800; font-size: 0.9rem; box-shadow: 0 4px 10px rgba(26,115,232,0.15); display: inline-flex; align-items: center; gap: 0.25rem;">
                                 {{ number_format($ad->price) }}
@@ -339,13 +396,13 @@
                             <!-- Card Footer Action Buttons -->
                             <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: auto;">
                                 <!-- Edit Button -->
-                                <a href="{{ route('ads.edit', $ad->id) }}" style="flex: 2; text-align: center; padding: 0.8rem; background-color: #1A73E8; color: white; border-radius: 14px; font-weight: 800; font-size: 0.95rem; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.2s;">
+                                <a href="{{ route('services.edit', $ad->id) }}" style="flex: 2; text-align: center; padding: 0.8rem; background-color: #1A73E8; color: white; border-radius: 14px; font-weight: 800; font-size: 0.95rem; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.2s;">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                     <span>تعديل</span>
                                 </a>
                                 
                                 <!-- Delete Button -->
-                                <form id="delete-form-{{ $ad->id }}" action="{{ route('ads.destroy', $ad->id) }}" method="POST" style="flex: 1; margin: 0;">
+                                <form id="delete-form-{{ $ad->id }}" action="{{ route('services.destroy', $ad->id) }}" method="POST" style="flex: 1; margin: 0;">
                                     @csrf
                                     @method('DELETE')
                                     <button type="button" onclick="confirmDeletePartnerAd({{ $ad->id }})" style="width: 100%; padding: 0.8rem; background-color: #F1F5F9; color: #475569; border: none; border-radius: 14px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s;">

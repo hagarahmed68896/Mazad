@@ -214,6 +214,11 @@
                                     <i class="fa-solid fa-building text-primary/40"></i>
                                     {{ $user->company_name }}
                                 </p>
+                            @elseif($user->account_type == 'partner')
+                                <p class="text-lg text-gray-400 font-bold flex items-center justify-center md:justify-start gap-2">
+                                    <i class="fa-solid fa-handshake text-primary/40"></i>
+                                    شريك المنصة
+                                </p>
                             @elseif($isProfileRep && $profileParentCompany)
                                 <p class="text-lg font-bold flex items-center justify-center md:justify-start gap-2 flex-wrap">
                                     <span style="background:#EBF3FD; color:#1A73E8; border-radius:8px; padding:3px 12px; font-size:0.82rem; font-weight:800; display:inline-flex; align-items:center; gap:0.3rem;">
@@ -453,7 +458,7 @@
                                         </div>
                                     </div>
                                     @php
-                                        $currentAddr = Auth::check() ? Auth::user()->address : session('user_address');
+                                        $currentAddr = Auth::check() ? Auth::user()->address : null;
                                         $selectedCity = request('city') ? $cities->firstWhere('id', request('city')) : null;
                                     @endphp
                                     

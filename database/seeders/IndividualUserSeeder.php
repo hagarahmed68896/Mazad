@@ -16,7 +16,7 @@ class IndividualUserSeeder extends Seeder
     public function run(): void
     {
         // Ensure some categories exist
-        $categories = ['السيارات', 'العقارات', 'الأجهزة', 'الخدمات'];
+        $categories = ['السيارات', 'العقارات', 'الأجهزة'];
         foreach ($categories as $catName) {
             Category::firstOrCreate(['name' => $catName], [
                 'ad_types' => ['electronic_auction', 'direct_purchase'],

@@ -36,6 +36,11 @@ class HomeController extends Controller
             if ($user->account_type === 'partner') {
                 $query = \App\Models\Service::where('user_id', $user->id);
 
+                // Status Filter (active, pending, rejected)
+                if ($request->filled('status') && in_array($request->status, ['active', 'pending', 'rejected'])) {
+                    $query->where('status', $request->status);
+                }
+
                 // Search Keyword Filter
                 if ($request->has('q') && !empty($request->q)) {
                     $query->where(function($q) use ($request) {
@@ -68,6 +73,7 @@ class HomeController extends Controller
                         'description' => $service->description,
                         'price' => (float)$service->price,
                         'image' => $service->image ? (\Illuminate\Support\Str::startsWith($service->image, 'http') ? $service->image : url('/' . ltrim($service->image, '/'))) : null,
+                        'status' => $service->status,
                         'created_at' => $service->created_at,
                     ];
                 });
@@ -290,6 +296,12 @@ class HomeController extends Controller
     public function serviceShow($id)
     {
         $service = \App\Models\Service::with(['user', 'category'])->find($id);
+        if ($service && $service->status !== 'active') {
+            $user = auth('sanctum')->user();
+            if (!$user || ($user->id !== $service->user_id && $user->account_type !== 'admin')) {
+                $service = null;
+            }
+        }
         if (!$service) {
             // Fallback for partner ads stored in the ads table
             $service = \App\Models\Ad::with(['user', 'category', 'city', 'images'])->find($id);
@@ -349,12 +361,12 @@ class HomeController extends Controller
         if ($service instanceof \App\Models\Ad) {
             $userServices = \App\Models\Ad::where('user_id', $service->user_id)
                 ->where('id', '!=', $service->id)
-                ->where('category_id', 4)
                 ->limit(4)
                 ->get();
         } else {
             $userServices = \App\Models\Service::where('user_id', $service->user_id)
                 ->where('id', '!=', $service->id)
+                ->where('status', 'active')
                 ->limit(4)
                 ->get();
         }
@@ -546,9 +558,43 @@ class HomeController extends Controller
             'reason' => 'required|string|max:500'
         ]);
 
+        $reportedUser = \App\Models\User::findOrFail($id);
+        $authUser = Auth::user();
+
+        if (!$authUser) {
+            return response()->json(['success' => false, 'message' => 'يجب تسجيل الدخول للإبلاغ عن مستخدم.'], 401);
+        }
+
+        if ($authUser->id == $reportedUser->id) {
+            return response()->json(['success' => false, 'message' => 'لا يمكنك الإبلاغ عن نفسك.'], 400);
+        }
+
+        // 1. Create a Ticket of type 'report'
+        $ticket = \App\Models\Ticket::create([
+            'ticket_number' => 'TCK-' . strtoupper(\Illuminate\Support\Str::random(8)),
+            'type' => 'report',
+            'user_id' => $authUser->id,
+            'phone' => $authUser->phone,
+            'reported_about' => 'بلاغ عن مستخدم: ' . $reportedUser->name . ' (ID: ' . $reportedUser->id . ')',
+            'description' => $request->reason,
+            'status' => 'under_review',
+        ]);
+
+        // Create log for the ticket
+        $ticket->logs()->create([
+            'action' => 'ticket_created',
+            'note' => 'تم إنشاء بلاغ ضد المستخدم ' . $reportedUser->name . ' بنجاح.'
+        ]);
+
+        // 2. Automatically Block the reported user for the auth user
+        \App\Models\BlockedUser::firstOrCreate([
+            'user_id' => $authUser->id,
+            'blocked_user_id' => $reportedUser->id
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'تم إرسال البلاغ بنجاح'
+            'message' => 'تم إرسال البلاغ وحظر المستخدم بنجاح'
         ]);
     }
 }

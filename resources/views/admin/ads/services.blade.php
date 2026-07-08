@@ -84,6 +84,22 @@
                                         </div>
                                     </div>
 
+                                    <!-- Status Section -->
+                                    <div class="space-y-3">
+                                        <h3 class="text-[12px] font-black text-slate-400 uppercase tracking-widest">الحالة:</h3>
+                                        <div class="grid gap-2">
+                                            @foreach(['all' => 'الكل', 'active' => 'نشط', 'pending' => 'قيد الانتظار', 'rejected' => 'مرفوض'] as $key => $label)
+                                            <label class="flex items-center group cursor-pointer transition-all gap-2">
+                                                <input type="radio" name="status" value="{{ $key }}" {{ $status == $key ? 'checked' : '' }} class="hidden peer">
+                                                <div class="w-6 h-6 border-2 border-slate-200 rounded-full flex items-center justify-center peer-checked:border-[#1A73E8] peer-checked:bg-[#1A73E8] transition-all duration-300">
+                                                    <div class="w-2 h-2 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform duration-300"></div>
+                                                </div>
+                                                <span class="text-[15px] font-bold text-[#6F6F6F] group-hover:text-[#1A73E8] transition-colors">{{ $label }}</span>
+                                            </label>
+                                            @endforeach
+                                        </div>
+                                    </div>
+
                                     <!-- Actions -->
                                     <div class="flex items-center gap-4 pt-6 border-t border-slate-100">
                                         <a href="{{ route('admin.ads.services') }}" class="flex-1 bg-slate-100 px-4 py-3 text-slate-500 rounded-2xl text-[13px] font-black text-center hover:bg-slate-200 transition-all">إعادة تعيين</a>
@@ -136,7 +152,9 @@
                         <th class="px-4 py-4">الوصف</th>
                         <th class="px-4 py-4">اسم المعلن</th>
                         <th class="px-4 py-4">السعر</th>
-                        <th class="px-4 py-4 rounded-l-2xl">التاريخ</th>
+                        <th class="px-4 py-4">حالة الخدمة</th>
+                        <th class="px-4 py-4">التاريخ</th>
+                        <th class="px-4 py-4 rounded-l-2xl text-center">العمليات</th>
                     </tr>
                 </thead>
                 <tbody class="font-semibold text-[#6F6F6F]">
@@ -161,13 +179,39 @@
                                 <x-riyal-icon class="w-4 h-4 opacity-70 inline-block" />
                             </div>
                         </td>
-                        <td class="px-4 py-4 rounded-l-2xl text-slate-400 text-xs font-bold" dir="ltr">
+                        <td class="px-4 py-4">
+                            @if($service->status == 'active')
+                                <span class="bg-emerald-50 text-emerald-600 border border-emerald-100 px-3 py-1 rounded-full text-xs font-black">نشط</span>
+                            @elseif($service->status == 'pending')
+                                <span class="bg-amber-50 text-amber-600 border border-amber-100 px-3 py-1 rounded-full text-xs font-black">قيد الانتظار</span>
+                            @else
+                                <span class="bg-rose-50 text-rose-600 border border-rose-100 px-3 py-1 rounded-full text-xs font-black">مرفوض</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-4 text-slate-400 text-xs font-bold" dir="ltr">
                             {{ $service->created_at->format('Y/m/d') }}
+                        </td>
+                        <td class="px-4 py-4 rounded-l-2xl text-center">
+                            @if($service->status == 'pending')
+                                <div class="flex items-center justify-center gap-2" @click.stop>
+                                    <form action="{{ route('admin.ads.services.approve', $service->id) }}" method="POST" class="inline">
+                                        @csrf
+                                        <button type="submit" class="bg-[#10B981] hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95" style="background-color: #10B981;">
+                                            قبول
+                                        </button>
+                                    </form>
+                                    <button type="button" onclick="rejectService(event, '{{ $service->id }}')" class="bg-[#EF4444] hover:bg-rose-600 text-white px-3 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95" style="background-color: #EF4444;">
+                                        رفض
+                                    </button>
+                                </div>
+                            @else
+                                -
+                            @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="text-center py-24">
+                        <td colspan="11" class="text-center py-24">
                             <div class="flex flex-col items-center gap-3 text-slate-400">
                                 <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0l-4 4m0 0l-4-4m4 4V13"></path></svg>
                                 <p class="text-lg font-bold">لا يوجد خدمات</p>
@@ -189,5 +233,55 @@
 </div>
 @endsection
 
-
-
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function rejectService(event, id) {
+        event.preventDefault();
+        Swal.fire({
+            title: 'سبب الرفض',
+            text: 'يرجى إدخال سبب رفض الخدمة لإرساله للشريك:',
+            input: 'textarea',
+            inputPlaceholder: 'أدخل سبب الرفض هنا...',
+            showCancelButton: true,
+            confirmButtonText: 'إرسال الرفض',
+            cancelButtonText: 'إلغاء',
+            confirmButtonColor: '#EF4444',
+            cancelButtonColor: '#6B7280',
+            customClass: {
+                title: 'font-black font-cairo',
+                popup: 'rounded-[20px]',
+                confirmButton: 'rounded-xl font-bold font-cairo',
+                cancelButton: 'rounded-xl font-bold font-cairo mr-2'
+            },
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'يجب إدخال سبب الرفض!';
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Create a form dynamically and submit it
+                const form = document.createElement('form');
+                form.action = `/admin/ads/services/${id}/reject`;
+                form.method = 'POST';
+                
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '_token';
+                csrfInput.value = '{{ csrf_token() }}';
+                form.appendChild(csrfInput);
+                
+                const reasonInput = document.createElement('input');
+                reasonInput.type = 'hidden';
+                reasonInput.name = 'reject_reason';
+                reasonInput.value = result.value;
+                form.appendChild(reasonInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+</script>
+@endpush

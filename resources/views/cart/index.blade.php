@@ -158,7 +158,7 @@
                                                     اطلع لاحقًا
                                                 </button>
                                                 <span class="text-gray-200">|</span>
-                                                <form action="{{ route('cart.remove', $item->id) }}" method="POST" class="inline">
+                                                <form action="{{ route('cart.remove', $item->id) }}" method="POST" class="inline" onsubmit="confirmDeleteCart(event, this)">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="text-rose-500 hover:text-rose-700 hover:underline bg-transparent border-none cursor-pointer p-0 font-bold">
@@ -358,6 +358,27 @@
 </div>
 
 <script>
+    function confirmDeleteCart(event, form) {
+        event.preventDefault();
+        Swal.fire({
+            title: 'هل أنت متأكد؟',
+            text: 'هل تريد حذف هذا المنتج من السلة؟',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#EF4444',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: 'نعم، احذف',
+            cancelButtonText: 'إلغاء',
+            customClass: {
+                popup: 'rounded-[32px]'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    }
+
     function updateCartQty(itemId, val) {
         const qtyEl = document.getElementById('qty-' + itemId);
         if (!qtyEl) return;

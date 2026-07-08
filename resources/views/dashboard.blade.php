@@ -3,6 +3,7 @@
 @section('title', 'لوحة التحكم - مزاد')
 
 @section('content')
+<div id="dashboardChartsData" data-charts="{{ json_encode($charts) }}"></div>
 <div class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000">
 
     <!-- Top Title area -->
@@ -185,7 +186,21 @@
                         <tr class="hover:bg-slate-50 transition-colors bg-white shadow-sm ring-1 ring-slate-100 rounded-2xl group overflow-hidden">
                             <td class="px-6 py-4 rounded-r-2xl text-[#6F6F6F]">{{ $loop->iteration }}</td>
                             <td class="px-6 py-4">{{ $tx->user->name ?? 'غير معروف' }}</td>
-                            <td class="px-6 py-4">{{ $tx->user ? ($tx->user->account_type == 'company' ? 'شركة' : 'فرد') : '-' }}</td>
+                            <td class="px-6 py-4">
+                                @if($tx->user)
+                                    @php
+                                        $typeTranslations = [
+                                            'individual' => 'فرد',
+                                            'company' => 'شركة',
+                                            'representative' => 'مندوب',
+                                            'partner' => 'شريك'
+                                        ];
+                                    @endphp
+                                    {{ $typeTranslations[$tx->user->account_type] ?? 'فرد' }}
+                                @else
+                                    -
+                                @endif
+                            </td>
                             <td class="px-6 py-4">{{ $tx->ad->title ?? 'إعلان عام' }}</td>
                             <td class="px-6 py-4 text-xs font-bold text-slate-500">{{ $tx->ad->type ?? '-' }}</td>
                             <td class="px-6 py-4">{{ $tx->type ?? 'عملية مالية' }}</td>
@@ -213,138 +228,160 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        
-        const chartVars = @json($charts);
+    window.initDashboardCharts = function() {
+        const dataEl = document.getElementById('dashboardChartsData');
+        if (!dataEl) return;
+        const chartVars = JSON.parse(dataEl.getAttribute('data-charts'));
 
         Chart.defaults.font.family = "'Cairo', sans-serif";
         Chart.defaults.color = "#a1a1aa";
-        Chart.defaults.scale.grid.color = "#f1f5f9";
         
-        // 1. Users Bar Chart
-        new Chart(document.getElementById('usersChart').getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: chartVars.usersChart.labels,
-                datasets: [
-                    {
-                        label: 'الأفراد',
-                        data: chartVars.usersChart.individuals,
-                        backgroundColor: '#1A73E8',
-                        borderRadius: 4,
-                        barPercentage: 0.6,
-                        categoryPercentage: 0.4
-                    },
-                    {
-                        label: 'الشركات',
-                        data: chartVars.usersChart.companies,
-                        backgroundColor: '#93C5FD',
-                        borderRadius: 4,
-                        barPercentage: 0.6,
-                        categoryPercentage: 0.4
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, border: { display: false }, ticks: { precision: 0 } },
-                    x: { border: { display: false }, grid: { display: false } }
-                }
-            }
+        // Destroy existing chart instances first to avoid overlay bugs
+        const ids = ['usersChart', 'adsLineChart', 'statusChart', 'revenueChart'];
+        ids.forEach(id => {
+            const chartStatus = Chart.getChart(id);
+            if (chartStatus) chartStatus.destroy();
         });
+
+        // 1. Users Bar Chart
+        const usersEl = document.getElementById('usersChart');
+        if (usersEl) {
+            new Chart(usersEl.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: chartVars.usersChart.labels,
+                    datasets: [
+                        {
+                            label: 'الأفراد',
+                            data: chartVars.usersChart.individuals,
+                            backgroundColor: '#1A73E8',
+                            borderRadius: 4,
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.4
+                        },
+                        {
+                            label: 'الشركات',
+                            data: chartVars.usersChart.companies,
+                            backgroundColor: '#93C5FD',
+                            borderRadius: 4,
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, border: { display: false }, ticks: { precision: 0 }, grid: { color: '#f1f5f9' } },
+                        x: { border: { display: false }, grid: { display: false } }
+                    }
+                }
+            });
+        }
 
         // 2. Ads Line Chart
-        new Chart(document.getElementById('adsLineChart').getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: chartVars.adsChart.labels,
-                datasets: [
-                    {
-                        label: 'مزادات',
-                        data: chartVars.adsChart.auctions,
-                        borderColor: '#1A73E8',
-                        backgroundColor: '#1A73E8',
-                        tension: 0.4,
-                        borderWidth: 3,
-                        pointRadius: 4,
-                        pointBackgroundColor: '#1A73E8'
-                    },
-                    {
-                        label: 'شراء فوري',
-                        data: chartVars.adsChart.direct_purchase,
-                        borderColor: '#93C5FD',
-                        backgroundColor: '#93C5FD',
-                        tension: 0.4,
-                        borderWidth: 3,
-                        pointRadius: 4,
-                        pointBackgroundColor: '#93C5FD'
+        const adsEl = document.getElementById('adsLineChart');
+        if (adsEl) {
+            new Chart(adsEl.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: chartVars.adsChart.labels,
+                    datasets: [
+                        {
+                            label: 'مزادات',
+                            data: chartVars.adsChart.auctions,
+                            borderColor: '#1A73E8',
+                            backgroundColor: '#1A73E8',
+                            tension: 0.4,
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#1A73E8'
+                        },
+                        {
+                            label: 'شراء فوري',
+                            data: chartVars.adsChart.direct_purchase,
+                            borderColor: '#93C5FD',
+                            backgroundColor: '#93C5FD',
+                            tension: 0.4,
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#93C5FD'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, border: { display: false }, ticks: { precision: 0 }, grid: { color: '#f1f5f9' } },
+                        x: { border: { display: false }, grid: { display: false } }
                     }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, border: { display: false }, ticks: { precision: 0 } },
-                    x: { border: { display: false }, grid: { display: false } }
                 }
-            }
-        });
+            });
+        }
 
         // 3. Ad Status Donut Chart
-        new Chart(document.getElementById('statusChart').getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: ['قائم', 'قيد المراجعة', 'مستقبلي', 'منتهي'],
-                datasets: [{
-                    data: [
-                        chartVars.statusChart.active, 
-                        chartVars.statusChart.pending, 
-                        chartVars.statusChart.upcoming, 
-                        chartVars.statusChart.finished
-                    ],
-                    backgroundColor: ['#10B981', '#F59E0B', '#9CA3AF', '#EF4444'],
-                    borderWidth: 3,
-                    borderColor: '#ffffff',
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '70%',
-                plugins: { legend: { display: false } }
-            }
-        });
+        const statusEl = document.getElementById('statusChart');
+        if (statusEl) {
+            new Chart(statusEl.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['قائم', 'قيد المراجعة', 'مستقبلي', 'منتهي'],
+                    datasets: [{
+                        data: [
+                            chartVars.statusChart.active, 
+                            chartVars.statusChart.pending, 
+                            chartVars.statusChart.upcoming, 
+                            chartVars.statusChart.finished
+                        ],
+                        backgroundColor: ['#10B981', '#F59E0B', '#9CA3AF', '#EF4444'],
+                        borderWidth: 3,
+                        borderColor: '#ffffff',
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
 
         // 4. Revenue Bar Chart
-        new Chart(document.getElementById('revenueChart').getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: chartVars.revenueChart.labels,
-                datasets: [{
-                    data: chartVars.revenueChart.revenue,
-                    backgroundColor: '#BFDBFE',
-                    hoverBackgroundColor: '#1A73E8',
-                    borderRadius: 4,
-                    barPercentage: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, border: { display: false }, ticks: { precision: 0 } },
-                    x: { border: { display: false }, grid: { display: false } }
+        const revEl = document.getElementById('revenueChart');
+        if (revEl) {
+            new Chart(revEl.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: chartVars.revenueChart.labels,
+                    datasets: [{
+                        data: chartVars.revenueChart.revenue,
+                        backgroundColor: '#BFDBFE',
+                        hoverBackgroundColor: '#1A73E8',
+                        borderRadius: 4,
+                        barPercentage: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, border: { display: false }, ticks: { precision: 0 }, grid: { color: '#f1f5f9' } },
+                        x: { border: { display: false }, grid: { display: false } }
+                    }
                 }
-            }
-        });
+            });
+        }
+    };
 
+    document.addEventListener('DOMContentLoaded', function() {
+        window.initDashboardCharts();
     });
 </script>
 @endpush

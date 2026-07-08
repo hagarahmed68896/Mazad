@@ -25,6 +25,17 @@
 @endpush
 
 @section('content')
+<div id="reportsChartsData" 
+     data-days="{{ json_encode($days) }}" 
+     data-user-data="{{ json_encode($userData) }}" 
+     data-city-distribution="{{ json_encode($cityDistribution) }}" 
+     data-ads-trend="{{ json_encode($adsTrend) }}" 
+     data-top-categories="{{ json_encode($topCategories) }}" 
+     data-ad-statuses="{{ json_encode($adStatuses) }}" 
+     data-ratings="{{ json_encode($ratings) }}" 
+     data-purchases="{{ json_encode($purchasesByCategory) }}" 
+     data-revenue="{{ json_encode($revenueData) }}">
+</div>
 <div class="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-10">
     
     <!-- Title & Main Filters Bar -->
@@ -275,11 +286,166 @@
 function setQueryParam(key, value) {
     const url = new URL(window.location.href);
     url.searchParams.set(key, value);
-    window.location.href = url.toString();
+    if (window.loadUrlViaAjax) {
+        window.loadUrlViaAjax(url.toString());
+    } else {
+        window.location.href = url.toString();
+    }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+window.initReportsCharts = function() {
+    const dataEl = document.getElementById('reportsChartsData');
+    if (!dataEl) return;
     
+    const days = JSON.parse(dataEl.getAttribute('data-days'));
+    const userData = JSON.parse(dataEl.getAttribute('data-user-data'));
+    const cityDistribution = JSON.parse(dataEl.getAttribute('data-city-distribution'));
+    const adsTrend = JSON.parse(dataEl.getAttribute('data-ads-trend'));
+    const topCategories = JSON.parse(dataEl.getAttribute('data-top-categories'));
+    const adStatuses = JSON.parse(dataEl.getAttribute('data-ad-statuses'));
+    const ratings = JSON.parse(dataEl.getAttribute('data-ratings'));
+    const purchases = JSON.parse(dataEl.getAttribute('data-purchases'));
+    const revenue = JSON.parse(dataEl.getAttribute('data-revenue'));
+
+    // Destroy existing chart instances first to avoid overlay bugs
+    const ids = ['userTrendChart', 'userCityChart', 'adsTrendChart', 'categoryChart', 'adStatusChart', 'ratingGaugeChart', 'purchasesChart', 'revenueChart'];
+    ids.forEach(id => {
+        const chartStatus = Chart.getChart(id);
+        if (chartStatus) chartStatus.destroy();
+    });
+
+    Chart.defaults.font.family = 'Cairo';
+    Chart.defaults.color = '#94A3B8';
+    Chart.defaults.font.weight = 'bold';
+
+    // 1. User Trend
+    const userTrendEl = document.getElementById('userTrendChart');
+    if (userTrendEl) {
+        new Chart(userTrendEl, {
+            type: 'bar',
+            data: {
+                labels: days,
+                datasets: [
+                    { label: 'أفراد', data: userData.individual || [], backgroundColor: '#1A73E8', borderRadius: 6, barThickness: 12 },
+                    { label: 'شركات', data: userData.company || [], backgroundColor: '#10B981', borderRadius: 6, barThickness: 12 },
+                    { label: 'مندوبين', data: userData.representative || [], backgroundColor: '#F59E0B', borderRadius: 6, barThickness: 12 },
+                    { label: 'شركاء', data: userData.partner || [], backgroundColor: '#94A3B8', borderRadius: 6, barThickness: 12 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, grid: { color: '#F1F5F9' } } } }
+        });
+    }
+
+    // 2. City
+    const userCityEl = document.getElementById('userCityChart');
+    if (userCityEl) {
+        const labels = cityDistribution.map(item => item.name);
+        const data = cityDistribution.map(item => item.count);
+        new Chart(userCityEl, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ data: data, backgroundColor: '#F1F5F9', hoverBackgroundColor: '#1A73E8', borderRadius: 8, barThickness: 30 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#F1F5F9' } } } }
+        });
+    }
+
+    // 3. Ads Trend
+    const adsTrendEl = document.getElementById('adsTrendChart');
+    if (adsTrendEl) {
+        new Chart(adsTrendEl, {
+            type: 'line',
+            data: {
+                labels: days,
+                datasets: [
+                    { label: 'مزادات', data: adsTrend.auction || [], borderColor: '#1A73E8', tension: 0.4, borderWidth: 3, pointRadius: 0 },
+                    { label: 'شراء فوري', data: adsTrend.direct || [], borderColor: '#10B981', tension: 0.4, borderWidth: 3, pointRadius: 0 },
+                    { label: 'مناقصات', data: adsTrend.tender || [], borderColor: '#F59E0B', tension: 0.4, borderWidth: 3, pointRadius: 0 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#F1F5F9' } } } }
+        });
+    }
+
+    // 4. Categories
+    const catEl = document.getElementById('categoryChart');
+    if (catEl) {
+        const labels = topCategories.map(item => item.name);
+        const data = topCategories.map(item => item.ads_count);
+        new Chart(catEl, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ data: data, backgroundColor: ['#1A73E8', '#10B981', '#F59E0B', '#6366F1', '#EC4899', '#94A3B8'], borderRadius: 6, barThickness: 20 }]
+            },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { color: '#F1F5F9' } }, y: { grid: { display: false } } } }
+        });
+    }
+
+    // 5. Ad Status
+    const adStatusEl = document.getElementById('adStatusChart');
+    if (adStatusEl) {
+        new Chart(adStatusEl, {
+            type: 'doughnut',
+            data: {
+                labels: ['نشط', 'تحت المراجعة', 'منتهي', 'قادم'],
+                datasets: [{
+                    data: [adStatuses.active, adStatuses.pending, adStatuses.finished, adStatuses.upcoming],
+                    backgroundColor: ['#10B981', '#6366F1', '#94A3B8', '#F59E0B'],
+                    borderWidth: 0, cutout: '85%'
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    // 6. Gauge
+    const gaugeEl = document.getElementById('ratingGaugeChart');
+    if (gaugeEl) {
+        new Chart(gaugeEl, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [ratings.percentage, 100 - ratings.percentage],
+                    backgroundColor: ['#1A73E8', '#F1F5F9'],
+                    borderWidth: 0, cutout: '88%', circumference: 180, rotation: 270, borderRadius: 5
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    // 7. Purchases
+    const purchasesEl = document.getElementById('purchasesChart');
+    if (purchasesEl) {
+        const labels = purchases.map(item => item.name);
+        const data = purchases.map(item => item.orders_count);
+        new Chart(purchasesEl, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ label: 'تم الدفع', data: data, backgroundColor: '#1A73E8', borderRadius: 8, barThickness: 25 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#F1F5F9' } } } }
+        });
+    }
+
+    // 8. Revenue
+    const revenueEl = document.getElementById('revenueChart');
+    if (revenueEl) {
+        new Chart(revenueEl, {
+            type: 'bar',
+            data: {
+                labels: days,
+                datasets: [{ data: revenue, backgroundColor: '#A5C9FF', hoverBackgroundColor: '#6366F1', borderRadius: 6, barThickness: 25 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#F1F5F9' } } } }
+        });
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
     // Initialize Date Range Picker
     flatpickr("#dateRangePicker", {
         mode: "range",
@@ -293,111 +459,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const url = new URL(window.location.href);
                 url.searchParams.set('start_date', start);
                 url.searchParams.set('end_date', end);
-                window.location.href = url.toString();
+                
+                if (window.loadUrlViaAjax) {
+                    window.loadUrlViaAjax(url.toString());
+                } else {
+                    window.location.href = url.toString();
+                }
             }
         }
     });
 
-    Chart.defaults.font.family = 'Cairo';
-    Chart.defaults.color = '#94A3B8';
-    Chart.defaults.font.weight = 'bold';
-    Chart.defaults.scale.grid.color = '#F1F5F9';
-
-    // 1. User Trend
-    new Chart(document.getElementById('userTrendChart'), {
-        type: 'bar',
-        data: {
-            labels: @json($days),
-            datasets: [
-                { label: 'أفراد', data: @json($userData['individual']), backgroundColor: '#1A73E8', borderRadius: 6, barThickness: 12 },
-                { label: 'شركات', data: @json($userData['company']), backgroundColor: '#10B981', borderRadius: 6, barThickness: 12 },
-                { label: 'مندوبين', data: @json($userData['representative']), backgroundColor: '#F59E0B', borderRadius: 6, barThickness: 12 },
-                { label: 'شركاء', data: @json($userData['partner']), backgroundColor: '#94A3B8', borderRadius: 6, barThickness: 12 }
-            ]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true } } }
-    });
-
-    // 2. City
-    new Chart(document.getElementById('userCityChart'), {
-        type: 'bar',
-        data: {
-            labels: @json($cityDistribution->pluck('name')),
-            datasets: [{ data: @json($cityDistribution->pluck('count')), backgroundColor: '#F1F5F9', hoverBackgroundColor: '#1A73E8', borderRadius: 8, barThickness: 30 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true } } }
-    });
-
-    // 3. Ads Trend
-    new Chart(document.getElementById('adsTrendChart'), {
-        type: 'line',
-        data: {
-            labels: @json($days),
-            datasets: [
-                { label: 'مزادات', data: @json($adsTrend['auction']), borderColor: '#1A73E8', tension: 0.4, borderWidth: 3, pointRadius: 0 },
-                { label: 'شراء فوري', data: @json($adsTrend['direct']), borderColor: '#10B981', tension: 0.4, borderWidth: 3, pointRadius: 0 },
-                { label: 'مناقصات', data: @json($adsTrend['tender']), borderColor: '#F59E0B', tension: 0.4, borderWidth: 3, pointRadius: 0 }
-            ]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true } } }
-    });
-
-    // 4. Categories
-    new Chart(document.getElementById('categoryChart'), {
-        type: 'bar',
-        data: {
-            labels: @json($topCategories->pluck('name')),
-            datasets: [{ data: @json($topCategories->pluck('ads_count')), backgroundColor: ['#1A73E8', '#10B981', '#F59E0B', '#6366F1', '#EC4899', '#94A3B8'], borderRadius: 6, barThickness: 20 }]
-        },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true }, y: { grid: { display: false } } } }
-    });
-
-    // 5. Ad Status
-    new Chart(document.getElementById('adStatusChart'), {
-        type: 'doughnut',
-        data: {
-            labels: ['نشط', 'تحت المراجعة', 'منتهي', 'قادم'],
-            datasets: [{
-                data: [@json($adStatuses['active']), @json($adStatuses['pending']), @json($adStatuses['finished']), @json($adStatuses['upcoming'])],
-                backgroundColor: ['#10B981', '#6366F1', '#94A3B8', '#F59E0B'],
-                borderWidth: 0, cutout: '85%'
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
-
-    // 6. Gauge
-    new Chart(document.getElementById('ratingGaugeChart'), {
-        type: 'doughnut',
-        data: {
-            datasets: [{
-                data: [@json($ratings['percentage']), 100 - @json($ratings['percentage'])],
-                backgroundColor: ['#1A73E8', '#F1F5F9'],
-                borderWidth: 0, cutout: '88%', circumference: 180, rotation: 270, borderRadius: 5
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
-
-    // 7. Purchases
-    new Chart(document.getElementById('purchasesChart'), {
-        type: 'bar',
-        data: {
-            labels: @json($purchasesByCategory->pluck('name')),
-            datasets: [{ label: 'تم الدفع', data: @json($purchasesByCategory->pluck('orders_count')), backgroundColor: '#1A73E8', borderRadius: 8, barThickness: 25 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true } } }
-    });
-
-    // 8. Revenue
-    new Chart(document.getElementById('revenueChart'), {
-        type: 'bar',
-        data: {
-            labels: @json($days),
-            datasets: [{ data: @json($revenueData), backgroundColor: '#A5C9FF', hoverBackgroundColor: '#6366F1', borderRadius: 6, barThickness: 25 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true } } }
-    });
+    window.initReportsCharts();
 });
 </script>
 @endpush

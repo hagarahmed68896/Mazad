@@ -977,7 +977,7 @@
                                 @php
                                     $cardUser = ($role === 'buyer') ? ($bid->ad->user ?? null) : ($bid->user ?? null);
                                     $firstLetter = mb_substr($cardUser->name ?? 'أ', 0, 1);
-                                    $userType = $cardUser ? ($cardUser->account_type == 'company' ? 'شركة' : ($cardUser->account_type == 'partner' ? 'مندوب شركة' : 'فرد')) : 'مجهول';
+                                    $userType = $cardUser ? ($cardUser->account_type == 'company' ? 'شركة' : ($cardUser->account_type == 'partner' ? 'شريك' : ($cardUser->account_type == 'representative' ? 'مندوب' : 'فرد'))) : 'مجهول';
                                 @endphp
                                 <div class="bo-card" id="bo-card-{{ $bid->id }}">
                                     <div>
@@ -1053,13 +1053,17 @@
                                                         <i class="fa-solid fa-handshake"></i> قدم عرض
                                                     </button>
                                                 @else
-                                                    <!-- Auction buttons: Accept & Reject -->
-                                                    <button class="btn-bo-primary" onclick="acceptBidOffer({{ $bid->id }})">
-                                                        <i class="fa-solid fa-circle-check"></i> قبول العرض
-                                                    </button>
-                                                    <button class="btn-bo-grey" onclick="rejectBidOffer({{ $bid->id }})">
-                                                        <i class="fa-solid fa-circle-xmark"></i> رفض العرض
-                                                    </button>
+                                                    <!-- Auctions/Tenders: No accept/reject buttons for the seller during the auction/tender -->
+                                                    <div class="text-center py-2 px-4 rounded-xl text-slate-500 font-bold bg-slate-50 border border-slate-200 w-full" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; height: 42px;">
+                                                        <i class="fa-solid fa-circle-info"></i>
+                                                        <span>
+                                                            @if(($bid->ad->type ?? '') === 'tender')
+                                                                مناقصة قائمة
+                                                            @else
+                                                                مزايدة قائمة
+                                                            @endif
+                                                        </span>
+                                                    </div>
                                                 @endif
                                             @elseif($bid->status === 'counter')
                                                 <div class="text-center py-2 px-4 rounded-xl text-slate-500 font-bold bg-slate-50 border border-slate-200 w-full" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; height: 42px;">

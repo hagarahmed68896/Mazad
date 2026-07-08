@@ -186,6 +186,13 @@ class ChatController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
+        if ($request->content && \App\Models\Message::hasContactInfo($request->content)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'عذراً، غير مسموح بمشاركة وسائل التواصل داخل المحادثات للحفاظ على أمانك.'
+            ], 422);
+        }
+
         $attachmentPath = null;
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
@@ -325,9 +332,11 @@ class ChatController extends Controller
 
         if ($adId) {
             $conversationQuery->where('ad_id', $adId);
+        } else {
+            $conversationQuery->orderByRaw('CASE WHEN ad_id IS NULL THEN 0 ELSE 1 END');
         }
 
-        $conversation = $conversationQuery->first();
+        $conversation = $conversationQuery->orderBy('last_message_at', 'desc')->first();
 
         if (!$conversation) {
             $conversation = Conversation::create([

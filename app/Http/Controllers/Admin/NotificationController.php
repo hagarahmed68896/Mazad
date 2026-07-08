@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Jobs\SendBulkNotificationsJob;
 
 class NotificationController extends Controller
 {
@@ -123,13 +124,17 @@ class NotificationController extends Controller
     {
         User::where('email', '!=', 'admin@mazad.com')->chunk(100, function ($users) use ($notification) {
             foreach ($users as $user) {
-                Notification::create([
-                    'type' => $notification->type,
-                    'title' => $notification->title,
-                    'content' => $notification->content,
-                    'user_id' => $user->id,
-                    'status' => 'sent',
-                ]);
+                try {
+                    Notification::create([
+                        'type' => $notification->type,
+                        'title' => $notification->title,
+                        'content' => $notification->content,
+                        'user_id' => $user->id,
+                        'status' => 'sent',
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error("Failed to send notification to user {$user->id}: " . $e->getMessage());
+                }
             }
         });
     }

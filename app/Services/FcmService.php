@@ -53,7 +53,7 @@ class FcmService
                     'body' => $body,
                 ],
                 'android' => [
-                    'priority' => 'high',
+                    'priority' => 'HIGH',
                     'notification' => [
                         'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
                         'sound' => 'default',

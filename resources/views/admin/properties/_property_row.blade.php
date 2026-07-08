@@ -9,6 +9,7 @@
         helpText: '{{ addslashes($property->help_text) }}',
         type: '{{ $property->input_type ?: 'text' }}',
         req: '{{ $property->is_required ? '1' : '0' }}',
+        hideable: '{{ $property->is_hideable ? '1' : '0' }}',
         options: {{ json_encode($opts) }},
      }">
 
@@ -78,9 +79,10 @@
         <div x-show="mode === 'edit'">
             <form action="{{ route('admin.categories.properties.update', [$category->id, $property->id]) }}" method="POST">
                 @csrf @method('PUT')
-                {{-- Always submit input_type and is_required even if user didn't interact with the dropdowns --}}
+                {{-- Always submit input_type, is_required and is_hideable even if user didn't interact with the dropdowns --}}
                 <input type="hidden" name="input_type" :value="type">
                 <input type="hidden" name="is_required" :value="req">
+                <input type="hidden" name="is_hideable" :value="hideable">
                 <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-8">
                     <div>
                         <label class="block text-sm font-black text-[#6F6F6F] mb-3 text-right">عنوان حقل الادخال</label>
@@ -101,7 +103,7 @@
                             <label class="block text-sm font-black text-[#6F6F6F] mb-3 text-right">نص المساعدة</label>
                             <input type="text" name="help_text" x-model="helpText" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-[#1C1C1C]">
                         </div>
-                        <div class="grid grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div class="relative" x-data="{ openT: false }">
                                 <label class="block text-xs font-black text-[#6F6F6F] mb-3 text-right">النوع</label>
                                 <div @click="openT = !openT" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl flex justify-between items-center cursor-pointer">
@@ -134,6 +136,25 @@
                                         <input type="radio" name="is_required" value="0" x-model="req" @change="openS = false" class="hidden">
                                         <div class="w-3 h-3 rounded-full border-2 border-slate-200" :class="req === '0' ? 'border-[#1A73E8]' : ''"></div>
                                         <span class="text-xs font-bold">اختياري</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="relative" x-data="{ openH: false }">
+                                <label class="block text-xs font-black text-[#6F6F6F] mb-3 text-right">إمكانية الإخفاء</label>
+                                <div @click="openH = !openH" class="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl flex justify-between items-center cursor-pointer">
+                                    <span class="text-xs font-bold" x-text="getHideableLabel(hideable)"></span>
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                </div>
+                                <div x-show="openH" @click.away="openH = false" class="absolute z-30 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-xl p-2">
+                                    <label class="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
+                                        <input type="radio" name="is_hideable" value="1" x-model="hideable" @change="openH = false" class="hidden">
+                                        <div class="w-3 h-3 rounded-full border-2 border-slate-200" :class="hideable === '1' ? 'border-[#1A73E8]' : ''"></div>
+                                        <span class="text-xs font-bold">مسموح بالإخفاء عن المستخدمين</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
+                                        <input type="radio" name="is_hideable" value="0" x-model="hideable" @change="openH = false" class="hidden">
+                                        <div class="w-3 h-3 rounded-full border-2 border-slate-200" :class="hideable === '0' ? 'border-[#1A73E8]' : ''"></div>
+                                        <span class="text-xs font-bold">غير مسموح بالإخفاء (تظهر دائماً)</span>
                                     </label>
                                 </div>
                             </div>

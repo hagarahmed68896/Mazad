@@ -50,7 +50,7 @@ Route::get('/socialMediaLinks', [\App\Http\Controllers\Api\SupportController::cl
 Route::post('/contact-us', [\App\Http\Controllers\Api\SupportController::class, 'storeTicket']);
 
 // Protected Routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'check.banned'])->group(function () {
     // Auth
     Route::get('/profile', [AuthController::class, 'profile']);
     Route::post('/profile/update', [AuthController::class, 'updateProfile']);

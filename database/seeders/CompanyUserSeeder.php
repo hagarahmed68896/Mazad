@@ -17,7 +17,7 @@ class CompanyUserSeeder extends Seeder
     {
         $categoryIds = Category::pluck('id')->toArray();
         if (empty($categoryIds)) {
-            $categories = ['السيارات', 'العقارات', 'الأجهزة', 'الخدمات'];
+            $categories = ['السيارات', 'العقارات', 'الأجهزة'];
             foreach ($categories as $catName) {
                 $c = Category::create([
                     'name' => $catName,

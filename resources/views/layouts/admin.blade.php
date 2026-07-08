@@ -182,9 +182,8 @@
                              x-transition:enter-start="opacity-0 translate-y-1 scale-95" 
                              x-transition:enter-end="opacity-100 translate-y-0 scale-100"
                              class="absolute left-0 mt-3 w-[400px] bg-white border border-slate-100 rounded-[28px] shadow-2xl z-50 overflow-hidden" x-cloak>
-                            
                             <div class="p-6 border-b border-slate-50 flex items-center justify-between">
-                                <button @click="markAllAsRead()" class="text-xs font-black text-[#1A73E8] hover:underline transition-all">تمييز الكل كمقروء</button>
+                                <button @click="markAllAsRead()" class="text-xs font-black text-primary hover:underline transition-all">تمييز الكل كمقروء</button>
                                 <h3 class="text-[17px] font-black text-[#1C1C1C]">الإشعارات</h3>
                             </div>
 
@@ -199,7 +198,7 @@
                                             <!-- Avatar & Unread Indicator -->
                                             <div class="relative flex-shrink-0">
                                                 <div class="w-11 h-11 rounded-full flex items-center justify-center font-black transition-colors"
-                                                     :class="notif.unread ? 'bg-[#1A73E8] text-white' : 'bg-slate-100 text-slate-400'">
+                                                     :class="notif.unread ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'">
                                                     أ
                                                 </div>
                                                 <div x-show="notif.unread" class="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></div>
@@ -208,14 +207,14 @@
                                             <!-- Content -->
                                             <div class="flex-1 text-right min-w-0">
                                                 <div class="flex items-center justify-between mb-1 gap-2">
-                                                    <h4 class="text-[14px] font-black text-[#1C1C1C] group-hover:text-[#1A73E8] transition-colors truncate" x-text="notif.title"></h4>
+                                                    <h4 class="text-[14px] font-black text-[#1C1C1C] group-hover:text-primary transition-colors truncate" x-text="notif.title"></h4>
                                                     <span class="text-[10px] font-bold text-slate-400 whitespace-nowrap" x-text="notif.time"></span>
                                                 </div>
                                                 <p class="text-[11px] font-bold leading-relaxed text-slate-500 mb-2 truncate" x-text="notif.desc"></p>
                                                 
                                                 <!-- Action: Mark as Read (Individual) -->
                                                 <div x-show="notif.unread" class="flex justify-start">
-                                                    <button @click.stop="markAsRead(notif.id)" class="text-[10px] font-black text-[#1A73E8] bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-[#1A73E8] hover:text-white transition-all">
+                                                    <button @click.stop="markAsRead(notif.id)" class="text-[10px] font-black text-primary bg-blue-50 px-3 py-1.5 rounded-lg">
                                                         تمييز كمقروء
                                                     </button>
                                                 </div>
@@ -226,7 +225,7 @@
                             </div>
 
                             <div class="p-5 text-center bg-slate-50 border-t border-slate-100" x-show="limit < notifications.length">
-                                <button @click="limit += 4" class="text-[14px] font-black text-[#1A73E8] hover:text-blue-700 transition-colors">
+                                <button @click="limit += 4" class="text-[14px] font-black text-primary hover:text-blue-700 transition-colors">
                                     عرض المزيد
                                 </button>
                             </div>
@@ -237,10 +236,10 @@
                     <div x-data="{ dropdownOpen: false }" class="relative">
                         <button @click="dropdownOpen = !dropdownOpen" class="flex items-center gap-2 sm:gap-3 focus:outline-none group">
                             <div class="text-left desktop-only" style="display: block;">
-                                <p class="text-sm font-bold text-[#1C1C1C] group-hover:text-[#1A73E8] transition-colors" style="max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ auth('admin')->user()->name ?? 'أحمد محمد' }}</p>
+                                <p class="text-sm font-bold text-[#1C1C1C] group-hover:text-primary transition-colors" style="max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ auth('admin')->user()->name ?? 'أحمد محمد' }}</p>
                                 <p class="text-xs font-semibold text-[#6F6F6F] text-left">أدمن</p>
                             </div>
-                            <div class="rounded-full bg-[#1A73E8] text-white flex items-center justify-center font-black text-base shadow-lg shadow-blue-500/30 overflow-hidden" style="width: 44px; height: 44px; min-width: 44px;">
+                            <div class="rounded-full bg-primary text-white flex items-center justify-center font-black text-base shadow-lg shadow-blue-500/30 overflow-hidden" style="width: 44px; height: 44px; min-width: 44px;">
                                 @if(auth('admin')->check() && auth('admin')->user()->avatar)
                                     <img src="{{ asset(auth('admin')->user()->avatar) }}" class="w-full h-full object-cover">
                                 @else
@@ -257,7 +256,7 @@
             </header>
 
             <!-- Inner Canvas Content Page -->
-            <div class="flex-1 p-4 sm:p-8 lg:p-12 pt-4 sm:pt-0 pb-20">
+            <div id="admin-main-content" class="flex-1 p-4 sm:p-8 lg:p-12 pt-4 sm:pt-0 pb-20">
                 @yield('content')
             </div>
             
@@ -265,5 +264,176 @@
     </div>
 
     @stack('scripts')
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainContent = document.getElementById('admin-main-content');
+            if (!mainContent) return;
+
+            let debounceTimer;
+
+            // 1. Live search on input
+            mainContent.addEventListener('input', (event) => {
+                const input = event.target;
+                if (input.tagName === 'INPUT' && (input.name === 'search' || input.name === 'q')) {
+                    const form = input.closest('form');
+                    if (!form || form.getAttribute('method')?.toUpperCase() !== 'GET') return;
+
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        performLiveSearch(form, input);
+                    }, 300);
+                }
+            });
+
+            // 2. Intercept GET form submits (includes search Enter press & select dropdown changes)
+            mainContent.addEventListener('submit', (event) => {
+                const form = event.target;
+                if (form.getAttribute('method')?.toUpperCase() === 'GET') {
+                    event.preventDefault();
+                    
+                    const activeElement = document.activeElement;
+                    let input = null;
+                    if (activeElement && activeElement.tagName === 'INPUT' && (activeElement.name === 'search' || activeElement.name === 'q')) {
+                        input = activeElement;
+                    } else {
+                        input = form.querySelector('input[name="search"], input[name="q"]');
+                    }
+
+                    clearTimeout(debounceTimer);
+                    performLiveSearch(form, input, true); // true to force pushState on explicit submit
+                }
+            });
+
+            // 3. Intercept pagination & filter links clicks
+            mainContent.addEventListener('click', (event) => {
+                const link = event.target.closest('a');
+                if (link && link.href) {
+                    const url = new URL(link.href);
+                    // Only intercept local GET links inside the main container
+                    if (
+                        url.origin === window.location.origin && 
+                        !url.pathname.includes('/download') && 
+                        !link.hasAttribute('download') && 
+                        !link.classList.contains('no-ajax') &&
+                        !link.getAttribute('href').startsWith('#') &&
+                        !link.getAttribute('href').startsWith('javascript:')
+                    ) {
+                        event.preventDefault();
+                        loadUrlViaAjax(link.href);
+                    }
+                }
+            });
+
+            // 4. Handle browser Back/Forward navigation
+            window.addEventListener('popstate', (event) => {
+                loadUrlViaAjax(window.location.href, false);
+            });
+
+            async function performLiveSearch(form, activeInput, forcePushState = false) {
+                const formData = new FormData(form);
+                const params = new URLSearchParams(formData);
+                
+                // Clean empty params
+                for (const [key, value] of [...params.entries()]) {
+                    if (!value) params.delete(key);
+                }
+
+                let baseUrl = form.getAttribute('action') || window.location.pathname;
+                const finalUrl = baseUrl + (params.toString() ? '?' + params.toString() : '');
+
+                try {
+                    const response = await fetch(finalUrl, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!response.ok) return;
+                    const html = await response.text();
+
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newContent = doc.getElementById('admin-main-content');
+
+                    if (newContent) {
+                        let selectionStart = 0;
+                        let selectionEnd = 0;
+                        let inputName = '';
+
+                        if (activeInput) {
+                            selectionStart = activeInput.selectionStart;
+                            selectionEnd = activeInput.selectionEnd;
+                            inputName = activeInput.name;
+                        }
+
+                        // Swap HTML content
+                        mainContent.innerHTML = newContent.innerHTML;
+
+                        // Update Browser URL (use replaceState for typing, pushState for explicit submit)
+                        if (forcePushState) {
+                            window.history.pushState({ path: finalUrl }, '', finalUrl);
+                        } else {
+                            window.history.replaceState({ path: finalUrl }, '', finalUrl);
+                        }
+
+                        // Re-initialize Alpine.js on the swapped elements
+                        if (window.Alpine) {
+                            window.Alpine.initTree(mainContent);
+                        }
+
+                        // Re-initialize Charts
+                        if (window.initDashboardCharts) window.initDashboardCharts();
+                        if (window.initReportsCharts) window.initReportsCharts();
+
+                        // Restore Focus & Cursor Selection position
+                        if (activeInput && inputName) {
+                            const newInput = mainContent.querySelector(`input[name="${inputName}"]`);
+                            if (newInput) {
+                                newInput.focus();
+                                newInput.setSelectionRange(selectionStart, selectionEnd);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Live search failed:', error);
+                }
+            }
+
+            async function loadUrlViaAjax(url, shouldPushState = true) {
+                try {
+                    const response = await fetch(url, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!response.ok) {
+                        window.location.href = url;
+                        return;
+                    }
+                    const html = await response.text();
+
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newContent = doc.getElementById('admin-main-content');
+
+                    if (newContent) {
+                        mainContent.innerHTML = newContent.innerHTML;
+                        
+                        if (shouldPushState) {
+                            window.history.pushState({ path: url }, '', url);
+                        }
+                        
+                        if (window.Alpine) {
+                            window.Alpine.initTree(mainContent);
+                        }
+
+                        // Re-initialize Charts
+                        if (window.initDashboardCharts) window.initDashboardCharts();
+                        if (window.initReportsCharts) window.initReportsCharts();
+                    }
+                } catch (error) {
+                    console.error('AJAX page load failed:', error);
+                    window.location.href = url;
+                }
+            }
+            window.loadUrlViaAjax = loadUrlViaAjax;
+        });
+    </script>
 </body>
 </html>

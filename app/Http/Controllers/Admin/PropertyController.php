@@ -39,12 +39,13 @@ class PropertyController extends Controller
             'properties.*.placeholder' => 'nullable|string|max:255',
             'properties.*.help_text'   => 'nullable|string|max:500',
             'properties.*.is_required' => 'nullable|in:0,1',
+            'properties.*.is_hideable' => 'nullable|in:0,1',
             'properties.*.options'     => 'nullable|array',
             'properties.*.options.*'   => 'nullable|string|max:255',
-            'category_page_id'         => 'nullable|exists:category_pages,id',
+            'category_page_id'         => 'required|exists:category_pages,id',
         ]);
 
-        $pageId = $request->category_page_id ?: null;
+        $pageId = $request->category_page_id;
 
         foreach ($request->properties as $data) {
             $options = null;
@@ -62,6 +63,7 @@ class PropertyController extends Controller
                 'input_type'       => $data['input_type'] ?? 'text',
                 'options'          => $options,
                 'is_required'      => isset($data['is_required']) && $data['is_required'] == '1',
+                'is_hideable'      => isset($data['is_hideable']) && $data['is_hideable'] == '1',
             ]);
         }
 
@@ -83,6 +85,7 @@ class PropertyController extends Controller
             'input_type' => 'required|string|in:text,number,price,select,checkbox,radio,textarea,date,file,map',
             'options'    => 'nullable|string',
             'is_required'=> 'nullable|in:0,1',
+            'is_hideable'=> 'nullable|in:0,1',
         ]);
 
         // If options were submitted as a comma-separated string, parse them.
@@ -102,6 +105,7 @@ class PropertyController extends Controller
             'input_type'  => $request->input_type,
             'options'     => $options,
             'is_required' => $request->boolean('is_required'),
+            'is_hideable' => $request->boolean('is_hideable'),
         ]);
 
         return redirect()->route('admin.categories.properties.index', $category)

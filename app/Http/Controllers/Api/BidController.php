@@ -108,6 +108,34 @@ class BidController extends Controller
         $type = $request->type ?? 'bid';
 
         if ($type === 'bid') {
+            $hasJoined = Bid::where('ad_id', $ad->id)
+                ->where('user_id', $request->user()->id)
+                ->where('type', 'deposit')
+                ->where('status', 'active')
+                ->exists();
+
+            if (!$hasJoined) {
+                $depositAmount = $ad->deposit_amount > 0 ? $ad->deposit_amount : 1000;
+                DB::transaction(function () use ($ad, $request, $depositAmount) {
+                    Bid::create([
+                        'ad_id' => $ad->id,
+                        'user_id' => $request->user()->id,
+                        'amount' => $depositAmount,
+                        'type' => 'deposit',
+                        'status' => 'active',
+                    ]);
+                    \App\Models\Transaction::create([
+                        'transaction_number' => 'TRX-' . strtoupper(\Illuminate\Support\Str::random(10)),
+                        'user_id' => $request->user()->id,
+                        'ad_id' => $ad->id,
+                        'type' => 'deposit',
+                        'amount' => $depositAmount,
+                        'payment_method' => 'bank_transfer',
+                        'status' => 'completed',
+                    ]);
+                });
+            }
+
             return $this->handleBid($request, $ad);
         } elseif ($type === 'offer') {
             return $this->handleOffer($request, $ad);
@@ -196,6 +224,8 @@ class BidController extends Controller
             'type' => 'offer',
             'status' => 'active',
         ]);
+
+        $this->notifyAdOwner($ad->user_id, $ad, (float) $request->amount, 'offer');
 
         return response()->json([
             'success' => true,
@@ -666,21 +696,30 @@ class BidController extends Controller
     }
 
     /**
-     * Notify ad owner about new bid or tender
+     * Notify ad owner about new bid, tender, or offer
      */
     private function notifyAdOwner(int $userId, Ad $ad, float $amount, string $type): void
     {
         try {
-            $title = $type === 'tender' ? 'تم تقديم مناقصة جديدة 📝' : 'مزايدة جديدة على إعلانك 🔨';
-            $content = $type === 'tender' 
-                ? 'تم تقديم مناقصة بقيمة ' . number_format($amount) . ' ريال على إعلانك "' . $ad->title . '".'
-                : 'تم تقديم مزايدة جديدة بقيمة ' . number_format($amount) . ' ريال على إعلانك "' . $ad->title . '".';
+            if ($type === 'tender') {
+                $title = 'تم تقديم مناقصة جديدة 📝';
+                $content = 'تم تقديم مناقصة بقيمة ' . number_format($amount) . ' ريال على إعلانك "' . $ad->title . '".';
+                $notifType = 'notification';
+            } elseif ($type === 'offer') {
+                $title = 'عرض جديد على إعلانك 💰';
+                $content = 'تم تقديم عرض جديد بقيمة ' . number_format($amount) . ' ريال على إعلانك "' . $ad->title . '".';
+                $notifType = 'offer';
+            } else {
+                $title = 'مزايدة جديدة على إعلانك 🔨';
+                $content = 'تم تقديم مزايدة جديدة بقيمة ' . number_format($amount) . ' ريال على إعلانك "' . $ad->title . '".';
+                $notifType = 'notification';
+            }
 
             \App\Models\Notification::create([
                 'user_id' => $userId,
                 'title' => $title,
                 'content' => $content,
-                'type' => 'notification',
+                'type' => $notifType,
                 'status' => 'sent',
             ]);
         } catch (\Exception $e) {

@@ -64,6 +64,10 @@ class AuthController extends Controller
             return $this->apiResponse(false, 'بيانات الدخول غير صحيحة', null, 401);
         }
 
+        if ($user->status === 'banned') {
+            return $this->apiResponse(false, 'تم إيقاف هذا الحساب من قبل الإدارة.', null, 403);
+        }
+
         if ($user->status !== 'active') {
             return $this->apiResponse(false, 'هذا الحساب معطل أو بانتظار التفعيل', null, 403);
         }
@@ -92,10 +96,16 @@ class AuthController extends Controller
             ]);
         }
 
+        if ($request->filled('fcm_token')) {
+            $user->update([
+                'fcm_token' => $request->fcm_token
+            ]);
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return $this->apiResponse(true, 'تم تسجيل الدخول بنجاح', [
-            'user' => $user,
+            'user' => $user->fresh(),
             'access_token' => $token,
             'token_type' => 'Bearer',
         ]);
@@ -168,6 +178,10 @@ class AuthController extends Controller
         if ($request->account_type === 'company') {
             $userData['company_name'] = $request->company_name;
             $userData['commercial_register'] = $request->commercial_register;
+        }
+
+        if ($request->filled('fcm_token')) {
+            $userData['fcm_token'] = $request->fcm_token;
         }
 
         $user = User::create($userData);

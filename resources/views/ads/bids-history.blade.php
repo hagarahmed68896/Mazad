@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'سجل المزايدات | ' . $ad->title)
+@section('title', ($ad->type == 'tender' ? 'سجل المناقصات' : ($ad->type == 'direct_purchase' ? 'سجل العروض' : 'سجل المزايدات')) . ' | ' . $ad->title)
 
 @push('styles')
 <style>
@@ -153,7 +153,15 @@
         </div>
 
         <!-- Page Title -->
-        <h1 class="page-title">سجل العروض</h1>
+        <h1 class="page-title">
+            @if($ad->type == 'tender')
+                سجل المناقصات
+            @elseif($ad->type == 'direct_purchase')
+                سجل العروض
+            @else
+                سجل المزايدات
+            @endif
+        </h1>
 
         <!-- Bids Card -->
         <div class="bids-card">
@@ -162,7 +170,15 @@
                     <div class="mx-auto flex items-center justify-center text-slate-300 mb-4" style="width: 100px; height: 100px; background: #F8FAFC; border-radius: 50%; border: 4px solid #F1F5F9;">
                         <i class="fa-solid fa-gavel text-5xl"></i>
                     </div>
-                    <h3 class="empty-text">لا توجد عروض مسجلة على هذا الإعلان حالياً</h3>
+                    <h3 class="empty-text">
+                        @if($ad->type == 'tender')
+                            لا توجد مناقصات مسجلة على هذا الإعلان حالياً
+                        @elseif($ad->type == 'direct_purchase')
+                            لا توجد عروض مسجلة على هذا الإعلان حالياً
+                        @else
+                            لا توجد مزايدات مسجلة على هذا الإعلان حالياً
+                        @endif
+                    </h3>
                 </div>
             @else
                 <table class="bids-table">

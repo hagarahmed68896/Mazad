@@ -20,6 +20,14 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\ForceJsonResponse::class,
         ]);
 
+        $middleware->web(append: [
+            \App\Http\Middleware\CheckBanned::class,
+        ]);
+
+        $middleware->alias([
+            'check.banned' => \App\Http\Middleware\CheckBanned::class,
+        ]);
+
         $middleware->redirectTo(
             guests: 'login',
             users: function ($request) {

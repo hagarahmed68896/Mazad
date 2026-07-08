@@ -35,7 +35,7 @@
             
             <h1 class="text-4xl font-black text-slate-800 text-center mb-10 tracking-tight">تعديل الخدمة</h1>
             
-            <form action="{{ route('ads.update', $ad->id) }}" method="POST" id="partnerAdForm" enctype="multipart/form-data" class="space-y-6">
+            <form action="{{ route('services.update', $ad->id) }}" method="POST" id="partnerAdForm" enctype="multipart/form-data" class="space-y-6">
                 @csrf
                 @method('PUT')
                 
@@ -82,6 +82,19 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+
+                <!-- Category Field -->
+                <div>
+                    <label class="text-slate-700 font-bold mb-2.5 block text-sm">التصنيف</label>
+                    <select name="category_id" required
+                            class="w-full px-5 py-4 border border-slate-200 rounded-2xl bg-slate-50/30 hover:bg-slate-50/50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200 text-slate-800 font-semibold outline-none text-right shadow-sm">
+                        <option value="" disabled>اختر التصنيف</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}" {{ old('category_id', $ad->category_id) == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <!-- Ad Title Field -->

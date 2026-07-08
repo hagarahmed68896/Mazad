@@ -132,6 +132,12 @@ class AuthController extends Controller
         $user = User::where('phone', $phone)->first();
 
         if ($user && app('hash')->check($credentials['password'], $user->password)) {
+            if ($user->status === 'banned') {
+                return back()->withErrors([
+                    'phone' => 'تم إيقاف هذا الحساب من قبل الإدارة.',
+                ])->onlyInput('phone');
+            }
+
             session()->put('pending_user_id', $user->id);
             session()->put('remember_login', $request->boolean('remember'));
             session(['is_registering' => false]);
@@ -166,6 +172,13 @@ class AuthController extends Controller
             $user = User::find($userId);
 
             if ($user) {
+                if ($user->status === 'banned') {
+                    session()->forget('pending_user_id');
+                    return redirect()->route('login')->withErrors([
+                        'phone' => 'تم إيقاف هذا الحساب من قبل الإدارة.',
+                    ]);
+                }
+
                 $remember = session()->pull('remember_login', false);
                 session()->forget('pending_user_id');
 
@@ -377,7 +390,8 @@ class AuthController extends Controller
         $user = Auth::user();
         $user->interests()->sync($request->category_ids);
 
-        return redirect()->route('register.partner.services');
+        session()->forget('show_interests');
+        return redirect()->route('home')->with('success', 'تم تسجيل اهتماماتك وتنشيط حسابك كشريك بنجاح! 🎉');
     }
 
     public function showPartnerServicesForm()

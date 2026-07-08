@@ -122,25 +122,7 @@
             @endforelse
         </div>
 
-        <!-- Extra Services Mockup -->
-        @if($services->isNotEmpty())
-        <div class="px-8 space-y-4">
-            <h3 class="text-sm font-black text-[#6F6F6F] px-2 flex items-center gap-2">
-                <div class="w-1.5 h-4 bg-[#1A73E8] rounded-full"></div>
-                الخدمات المقدمة مع هذه الفئة
-            </h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                @foreach($services as $service)
-                    <div class="bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between group hover:border-[#1A73E8] transition-all">
-                        <span class="text-xs font-bold text-[#1C1C1C] truncate">{{ $service->title }}</span>
-                        <div class="w-6 h-6 bg-[#E8F1FE] text-[#1A73E8] rounded-lg flex items-center justify-center flex-shrink-0">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
+
 
     </div>
 </div>

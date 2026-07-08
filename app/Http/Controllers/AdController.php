@@ -16,7 +16,11 @@ class AdController extends Controller
     public function create(Request $request)
     {
         if (Auth::check() && Auth::user()->account_type === 'partner') {
-            return view('ads.partner-create');
+            $categories = Auth::user()->resolvedInterests;
+            if ($categories->isEmpty()) {
+                $categories = Category::whereNull('parent_id')->get();
+            }
+            return view('ads.partner-create', compact('categories'));
         }
 
         $type = $request->query('type', 'direct_purchase');
@@ -49,6 +53,7 @@ class AdController extends Controller
             $request->validate([
                 'title'       => 'required|string|max:255',
                 'description' => 'required|string',
+                'category_id' => 'required|exists:categories,id',
                 'price'       => 'required|numeric|min:0',
                 'phone'       => 'required|string',
                 'email'       => 'required|email|max:255',
@@ -56,6 +61,8 @@ class AdController extends Controller
             ], [
                 'title.required'       => 'عنوان الإعلان مطلوب.',
                 'description.required' => 'وصف الإعلان مطلوب.',
+                'category_id.required' => 'التصنيف مطلوب.',
+                'category_id.exists'   => 'التصنيف المختار غير صالح.',
                 'price.required'       => 'سعر الخدمة مطلوب.',
                 'price.numeric'        => 'يجب أن يكون السعر رقماً صالحاً.',
                 'phone.required'       => 'رقم الجوال مطلوب.',
@@ -80,7 +87,7 @@ class AdController extends Controller
             try {
                 $ad = Ad::create([
                     'user_id'     => $user->id,
-                    'category_id' => 4, // Services / الخدمات
+                    'category_id' => $request->category_id,
                     'city_id'     => $user->city_id ?? 1,
                     'title'       => $request->title,
                     'description' => $request->description,
@@ -116,26 +123,44 @@ class AdController extends Controller
             }
         }
 
+        $maxDuration = (int) (\App\Models\Setting::where('key', 'max_ad_duration')->value('value') ?? 7);
+        $maxStartDate = \Carbon\Carbon::now()->addDays($maxDuration)->toDateTimeString();
+        
+        $parsedStartDate = null;
+        if ($request->filled('start_date') && is_string($request->start_date)) {
+            try {
+                $parsedStartDate = \Carbon\Carbon::parse($request->start_date);
+            } catch (\Exception $e) {
+            }
+        }
+        
+        $maxEndDate = ($parsedStartDate ? $parsedStartDate->copy() : \Carbon\Carbon::now())->addDays($maxDuration)->toDateTimeString();
+        $defaultEndDate = ($parsedStartDate ? $parsedStartDate->copy() : \Carbon\Carbon::now())->addDays($maxDuration);
+
         $rules = [
-            'title'       => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'category_id' => 'required|exists:categories,id',
-            'address'     => 'required_without_all:lat,lng|nullable|string',
-            'lat'         => 'required_without:address|nullable|numeric|between:-90,90',
-            'lng'         => 'required_without:address|nullable|numeric|between:-180,180',
-            'images.*'    => 'nullable|image|mimes:jpeg,png,jpg|max:20480',
-            'start_date'  => 'nullable|date',
+            'title'        => 'required|string|max:255',
+            'description'  => 'nullable|string',
+            'category_id'  => 'required|exists:categories,id',
+            'address'      => 'required_without_all:lat,lng|nullable|string',
+            'lat'          => 'required_without:address|nullable|numeric|between:-90,90',
+            'lng'          => 'required_without:address|nullable|numeric|between:-180,180',
+            'images.*'     => 'nullable|image|mimes:jpeg,png,jpg|max:20480',
+            'image_urls'   => 'nullable|array',
+            'image_urls.*' => 'nullable|url',
+            'start_date'   => 'nullable|date|before_or_equal:' . $maxStartDate,
         ];
 
         if ($request->filled('start_date')) {
-            $rules['end_date'] = 'required|date|after:start_date';
+            $rules['end_date'] = 'required|date|after:start_date|before_or_equal:' . $maxEndDate;
         } else {
-            $rules['end_date'] = 'required|date|after:now';
+            $rules['end_date'] = 'required|date|after:now|before_or_equal:' . $maxEndDate;
         }
 
         $request->validate($rules, [
             'end_date.after' => 'يجب أن يكون تاريخ الانتهاء بعد تاريخ البدء.',
             'end_date.required' => 'تاريخ الانتهاء مطلوب إجباريًا.',
+            'end_date.before_or_equal' => "تاريخ الانتهاء لا يمكن أن يتجاوز الحد الأقصى لمدة عرض الإعلان ($maxDuration يومًا).",
+            'start_date.before_or_equal' => "تاريخ البدء لا يمكن أن يتجاوز الحد الأقصى المسموح به ($maxDuration يومًا من الآن).",
             'images.*.max' => 'يجب ألا يتجاوز حجم أي صورة 20 ميجابايت.',
             'images.*.image' => 'يجب أن يكون الملف المرفوع صورة صالحة.',
             'images.*.mimes' => 'يجب أن تكون الصور بصيغة jpeg أو png أو jpg فقط.',
@@ -220,10 +245,45 @@ class AdController extends Controller
                     $file->move(public_path('uploads/ads'), $filename);
                     $path = 'uploads/ads/' . $filename;
                     $imagePaths[] = $path;
-                    if ($index === 0) {
-                        $mainImage = $path;
+                }
+            }
+
+            // Download images from URLs
+            if ($request->has('image_urls') && is_array($request->image_urls)) {
+                foreach ($request->image_urls as $index => $url) {
+                    if (filter_var($url, FILTER_VALIDATE_URL)) {
+                        try {
+                            $imageContent = @file_get_contents($url);
+                            if ($imageContent) {
+                                // Detect the extension using FILEINFO
+                                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                                $mimeType = $finfo->buffer($imageContent);
+                                $mimeMap = [
+                                    'image/jpeg' => 'jpg',
+                                    'image/jpg'  => 'jpg',
+                                    'image/png'  => 'png',
+                                    'image/gif'  => 'gif',
+                                    'image/webp' => 'webp',
+                                    'image/svg+xml' => 'svg',
+                                    'image/bmp'  => 'bmp',
+                                    'image/x-icon' => 'ico',
+                                    'image/tiff' => 'tiff',
+                                ];
+                                $extension = $mimeMap[$mimeType] ?? (pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg');
+                                $filename = time() . '_url_' . $index . '_' . uniqid() . '.' . $extension;
+                                @file_put_contents(public_path('uploads/ads/' . $filename), $imageContent);
+                                $path = 'uploads/ads/' . $filename;
+                                $imagePaths[] = $path;
+                            }
+                        } catch (\Exception $e) {
+                            // ignore download failures
+                        }
                     }
                 }
+            }
+
+            if (count($imagePaths) > 0) {
+                $mainImage = $imagePaths[0];
             }
 
             $ad = Ad::create([
@@ -243,7 +303,7 @@ class AdController extends Controller
                 'price'          => $price,
                 'status'         => $request->status === 'incomplete' ? 'incomplete' : (($request->start_date && $this->parseSafeDate($request->start_date, 'Y-m-d H:i:s') && \Carbon\Carbon::parse($this->parseSafeDate($request->start_date, 'Y-m-d H:i:s'))->isFuture()) ? 'upcoming' : 'active'),
                 'start_date'     => $this->parseSafeDate($request->start_date, 'Y-m-d H:i:s'),
-                'end_date'       => $request->end_date ? $this->parseSafeDate($request->end_date, 'Y-m-d H:i:s') : now()->addDays(7),
+                'end_date'       => $request->end_date ? $this->parseSafeDate($request->end_date, 'Y-m-d H:i:s') : $defaultEndDate->format('Y-m-d H:i:s'),
                 'image'          => $mainImage,
                 'is_featured'    => $request->input('is_featured', 0),
                 'is_enfaz'       => $request->is_enfaz ?? 0,
@@ -282,10 +342,15 @@ class AdController extends Controller
                     }
                     if ($value !== null && $value !== '') {
                         if (\App\Models\Property::where('id', $propertyId)->exists()) {
+                            $isHidden = false;
+                            if (isset($request->properties_hidden[$propertyId]) && $request->properties_hidden[$propertyId] == '1') {
+                                $isHidden = true;
+                            }
                             AdProperty::create([
                                 'ad_id'       => $ad->id,
                                 'property_id' => $propertyId,
                                 'value'       => $value,
+                                'is_hidden'   => $isHidden,
                             ]);
                         }
                     }
@@ -365,7 +430,11 @@ class AdController extends Controller
         }
 
         if (Auth::check() && Auth::user()->account_type === 'partner') {
-            return view('ads.partner-edit', compact('ad'));
+            $categories = Auth::user()->resolvedInterests;
+            if ($categories->isEmpty()) {
+                $categories = Category::whereNull('parent_id')->get();
+            }
+            return view('ads.partner-edit', compact('ad', 'categories'));
         }
 
         $category = Category::with(['pages' => function($q) {
@@ -392,6 +461,7 @@ class AdController extends Controller
             $request->validate([
                 'title'       => 'required|string|max:255',
                 'description' => 'required|string',
+                'category_id' => 'required|exists:categories,id',
                 'price'       => 'required|numeric|min:0',
                 'phone'       => 'required|string',
                 'email'       => 'required|email|max:255',
@@ -399,6 +469,8 @@ class AdController extends Controller
             ], [
                 'title.required'       => 'عنوان الإعلان مطلوب.',
                 'description.required' => 'وصف الإعلان مطلوب.',
+                'category_id.required' => 'التصنيف مطلوب.',
+                'category_id.exists'   => 'التصنيف المختار غير صالح.',
                 'price.required'       => 'سعر الخدمة مطلوب.',
                 'price.numeric'        => 'يجب أن يكون السعر رقماً صالحاً.',
                 'phone.required'       => 'رقم الجوال مطلوب.',
@@ -428,6 +500,7 @@ class AdController extends Controller
                 $ad->update([
                     'title'       => $request->title,
                     'description' => $request->description,
+                    'category_id' => $request->category_id,
                     'price'       => $request->price,
                     'image'       => $mainImage,
                 ]);
@@ -460,25 +533,43 @@ class AdController extends Controller
             }
         }
 
+        $maxDuration = (int) (\App\Models\Setting::where('key', 'max_ad_duration')->value('value') ?? 7);
+        $startDateStr = $request->filled('start_date') ? $request->start_date : $ad->start_date;
+        
+        $parsedStartDate = null;
+        if ($startDateStr && is_string($startDateStr)) {
+            try {
+                $parsedStartDate = \Carbon\Carbon::parse($startDateStr);
+            } catch (\Exception $e) {
+            }
+        }
+        
+        $maxStartDate = \Carbon\Carbon::now()->addDays($maxDuration)->toDateTimeString();
+        $maxEndDate = ($parsedStartDate ? $parsedStartDate->copy() : \Carbon\Carbon::now())->addDays($maxDuration)->toDateTimeString();
+
         $rules = [
-            'title'       => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'address'     => 'required_without_all:lat,lng|nullable|string',
-            'lat'         => 'sometimes|required_without:address|nullable|numeric|between:-90,90',
-            'lng'         => 'sometimes|required_without:address|nullable|numeric|between:-180,180',
-            'images.*'    => 'nullable|image|mimes:jpeg,png,jpg|max:20480',
-            'start_date'  => 'nullable|date',
+            'title'        => 'required|string|max:255',
+            'description'  => 'nullable|string',
+            'address'      => 'required_without_all:lat,lng|nullable|string',
+            'lat'          => 'sometimes|required_without:address|nullable|numeric|between:-90,90',
+            'lng'          => 'sometimes|required_without:address|nullable|numeric|between:-180,180',
+            'images.*'     => 'nullable|image|mimes:jpeg,png,jpg|max:20480',
+            'image_urls'   => 'nullable|array',
+            'image_urls.*' => 'nullable|url',
+            'start_date'   => 'nullable|date|before_or_equal:' . $maxStartDate,
         ];
 
         if ($request->filled('start_date')) {
-            $rules['end_date'] = 'required|date|after:start_date';
+            $rules['end_date'] = 'required|date|after:start_date|before_or_equal:' . $maxEndDate;
         } else {
-            $rules['end_date'] = 'required|date|after:now';
+            $rules['end_date'] = 'required|date|after:now|before_or_equal:' . $maxEndDate;
         }
 
         $request->validate($rules, [
             'end_date.after' => 'يجب أن يكون تاريخ الانتهاء بعد تاريخ البدء.',
             'end_date.required' => 'تاريخ الانتهاء مطلوب إجباريًا.',
+            'end_date.before_or_equal' => "تاريخ الانتهاء لا يمكن أن يتجاوز الحد الأقصى لمدة عرض الإعلان ($maxDuration يومًا).",
+            'start_date.before_or_equal' => "تاريخ البدء لا يمكن أن يتجاوز الحد الأقصى المسموح به ($maxDuration يومًا من الآن).",
             'images.*.max' => 'يجب ألا يتجاوز حجم أي صورة 20 ميجابايت.',
             'images.*.image' => 'يجب أن يكون الملف المرفوع صورة صالحة.',
             'images.*.mimes' => 'يجب أن تكون الصور بصيغة jpeg أو png أو jpg فقط.',
@@ -551,20 +642,58 @@ class AdController extends Controller
         try {
             // Update main image if new ones are uploaded
             $mainImagePath = $ad->image;
+            $newImagePaths = [];
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $index => $file) {
                     $filename = time() . '_edit_' . $index . '.' . $file->getClientOriginalExtension();
                     $file->move(public_path('uploads/ads'), $filename);
                     $path = 'uploads/ads/' . $filename;
-                    
-                    if (!$mainImagePath) {
-                        $mainImagePath = $path;
-                    } else {
-                        AdImage::create([
-                            'ad_id' => $ad->id,
-                            'image' => $path,
-                        ]);
+                    $newImagePaths[] = $path;
+                }
+            }
+
+            // Download images from URLs
+            if ($request->has('image_urls') && is_array($request->image_urls)) {
+                foreach ($request->image_urls as $index => $url) {
+                    if (filter_var($url, FILTER_VALIDATE_URL)) {
+                        try {
+                            $imageContent = @file_get_contents($url);
+                            if ($imageContent) {
+                                // Detect the extension using FILEINFO
+                                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                                $mimeType = $finfo->buffer($imageContent);
+                                $mimeMap = [
+                                    'image/jpeg' => 'jpg',
+                                    'image/jpg'  => 'jpg',
+                                    'image/png'  => 'png',
+                                    'image/gif'  => 'gif',
+                                    'image/webp' => 'webp',
+                                    'image/svg+xml' => 'svg',
+                                    'image/bmp'  => 'bmp',
+                                    'image/x-icon' => 'ico',
+                                    'image/tiff' => 'tiff',
+                                ];
+                                $extension = $mimeMap[$mimeType] ?? (pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg');
+                                $filename = time() . '_url_edit_' . $index . '_' . uniqid() . '.' . $extension;
+                                @file_put_contents(public_path('uploads/ads/' . $filename), $imageContent);
+                                $path = 'uploads/ads/' . $filename;
+                                $newImagePaths[] = $path;
+                            }
+                        } catch (\Exception $e) {
+                            // ignore
+                        }
                     }
+                }
+            }
+
+            foreach ($newImagePaths as $path) {
+                if (!$mainImagePath) {
+                    $mainImagePath = $path;
+                } else {
+                    AdImage::create([
+                        'ad_id' => $ad->id,
+                        'image' => $path,
+                    ]);
                 }
             }
 
@@ -612,9 +741,16 @@ class AdController extends Controller
                     }
                     if ($value !== null && $value !== '') {
                         if (\App\Models\Property::where('id', $propertyId)->exists()) {
+                            $isHidden = false;
+                            if (isset($request->properties_hidden[$propertyId]) && $request->properties_hidden[$propertyId] == '1') {
+                                $isHidden = true;
+                            }
                             AdProperty::updateOrCreate(
                                 ['ad_id' => $ad->id, 'property_id' => $propertyId],
-                                ['value' => $value]
+                                [
+                                    'value' => $value,
+                                    'is_hidden' => $isHidden
+                                ]
                             );
                         }
                     }
@@ -656,6 +792,55 @@ class AdController extends Controller
         $status = $request->query('status', 'all'); // 'all', 'incomplete', 'active', 'upcoming', 'finished'
         $user = Auth::user();
         
+        if ($user->account_type === 'partner') {
+            $query = \App\Models\Service::where('user_id', $user->id);
+            
+            if ($status === 'active') {
+                $query->where('status', 'active');
+            } elseif ($status === 'pending') {
+                $query->where('status', 'pending');
+            } elseif ($status === 'rejected') {
+                $query->where('status', 'rejected');
+            }
+            
+            // 2. Search Keyword Filter
+            if ($request->has('q') && !empty($request->q)) {
+                $query->where(function($q) use ($request) {
+                    $q->where('title', 'like', '%' . $request->q . '%')
+                      ->orWhere('description', 'like', '%' . $request->q . '%');
+                });
+            }
+
+            // 2.1 Selected Services Filter
+            if ($request->has('services') && is_array($request->services) && !empty($request->services)) {
+                $query->whereIn('title', $request->services);
+            }
+            
+            // 6. Sorting
+            $sort = $request->get('sort', 'newest');
+            if ($sort === 'price_high') {
+                $query->orderBy('price', 'desc');
+            } elseif ($sort === 'price_low') {
+                $query->orderBy('price', 'asc');
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+            
+            $ads = $query->paginate(12)->appends($request->query());
+            
+            $cities = \App\Models\City::orderBy('name')->get();
+            $categories = \App\Models\Category::whereNull('parent_id')->with('subCategories')->get();
+            $activeCategory = null;
+            
+            $banners = \App\Models\Banner::where('status', true)->where('for_user_type', 'partner')->get();
+            $filterServices = \App\Models\Service::where('user_id', $user->id)
+                ->pluck('title')
+                ->unique()
+                ->toArray();
+                
+            return view('ads.partner-ads', compact('ads', 'status', 'cities', 'categories', 'activeCategory', 'banners', 'filterServices'));
+        }
+
         $query = Ad::where('user_id', $user->id);
         
         // 1. Tab Status Filter
@@ -735,16 +920,6 @@ class AdController extends Controller
         
         $cities = \App\Models\City::orderBy('name')->get();
         $categories = \App\Models\Category::whereNull('parent_id')->with('subCategories')->get();
-        
-        if ($user->account_type === 'partner') {
-            $banners = \App\Models\Banner::where('status', true)->where('for_user_type', 'partner')->get();
-            $filterServices = \App\Models\Ad::where('user_id', $user->id)
-                ->where('category_id', 4)
-                ->pluck('title')
-                ->unique()
-                ->toArray();
-            return view('ads.partner-ads', compact('ads', 'status', 'cities', 'categories', 'activeCategory', 'banners', 'filterServices'));
-        }
         
         return view('ads.my-ads', compact('ads', 'status', 'cities', 'categories', 'activeCategory'));
     }
@@ -936,6 +1111,220 @@ class AdController extends Controller
             }
         }
 
-        return null;
+    }
+
+    /**
+     * Web Partner Service Management Methods
+     */
+    public function partnerCreateService()
+    {
+        $categories = Auth::user()->resolvedInterests;
+        if ($categories->isEmpty()) {
+            $categories = Category::whereNull('parent_id')->get();
+        }
+        return view('ads.partner-create', compact('categories'));
+    }
+
+    public function partnerStoreService(Request $request)
+    {
+        $request->validate([
+            'title'       => 'required|string|max:255',
+            'description' => 'required|string',
+            'category_id' => 'required|exists:categories,id',
+            'price'       => 'required|numeric|min:0',
+            'phone'       => 'required|string',
+            'email'       => 'required|email|max:255',
+            'image'       => 'required_without:image_url|nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
+            'image_url'   => 'required_without:image|nullable|url',
+        ], [
+            'title.required'       => 'عنوان الخدمة مطلوب.',
+            'description.required' => 'وصف الخدمة مطلوب.',
+            'category_id.required' => 'التصنيف مطلوب.',
+            'category_id.exists'   => 'التصنيف المختار غير صالح.',
+            'price.required'       => 'سعر الخدمة مطلوب.',
+            'price.numeric'        => 'يجب أن يكون السعر رقماً صالحاً.',
+            'phone.required'       => 'رقم الجوال مطلوب.',
+            'email.required'       => 'البريد الإلكتروني مطلوب.',
+            'email.email'          => 'البريد الإلكتروني غير صالح.',
+            'image.required_without' => 'صورة الخدمة مطلوبة (ملف أو رابط).',
+            'image.image'          => 'يجب أن يكون الملف صورة صالحة.',
+            'image.max'            => 'يجب ألا يتجاوز حجم الصورة 20 ميجابايت.',
+        ]);
+
+        $user = Auth::user();
+        $mainImage = null;
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/services'), $filename);
+            $mainImage = 'uploads/services/' . $filename;
+        } elseif ($request->filled('image_url')) {
+            $url = $request->image_url;
+            try {
+                $imageContent = @file_get_contents($url);
+                if ($imageContent) {
+                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                    $mimeType = $finfo->buffer($imageContent);
+                    $mimeMap = [
+                        'image/jpeg' => 'jpg',
+                        'image/jpg'  => 'jpg',
+                        'image/png'  => 'png',
+                        'image/gif'  => 'gif',
+                        'image/webp' => 'webp',
+                        'image/svg+xml' => 'svg',
+                        'image/bmp'  => 'bmp',
+                        'image/x-icon' => 'ico',
+                        'image/tiff' => 'tiff',
+                    ];
+                    $extension = $mimeMap[$mimeType] ?? (pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg');
+                    $filename = time() . '_url_' . uniqid() . '.' . $extension;
+                    @file_put_contents(public_path('uploads/services/' . $filename), $imageContent);
+                    $mainImage = 'uploads/services/' . $filename;
+                }
+            } catch (\Exception $e) {
+                // ignore
+            }
+        }
+
+        \App\Models\Service::create([
+            'user_id'     => $user->id,
+            'category_id' => $request->category_id,
+            'title'       => $request->title,
+            'description' => $request->description,
+            'price'       => $request->price,
+            'image'       => $mainImage,
+            'phone'       => $request->phone,
+            'email'       => $request->email,
+        ]);
+
+        // Update contact details on user model if changed
+        $user->update([
+            'phone' => $request->phone,
+            'email' => $request->email,
+        ]);
+
+        return redirect()->route('ads.my')->with('success', 'تم إضافة الخدمة بنجاح! وهي قيد المراجعة حالياً من قبل الإدارة. 🎉');
+    }
+
+    public function partnerEditService($id)
+    {
+        $ad = \App\Models\Service::findOrFail($id);
+        if ($ad->user_id !== Auth::id()) {
+            abort(403);
+        }
+        $categories = Auth::user()->resolvedInterests;
+        if ($categories->isEmpty()) {
+            $categories = Category::whereNull('parent_id')->get();
+        }
+        return view('ads.partner-edit', compact('ad', 'categories'));
+    }
+
+    public function partnerUpdateService(Request $request, $id)
+    {
+        $service = \App\Models\Service::findOrFail($id);
+        if ($service->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'title'       => 'required|string|max:255',
+            'description' => 'required|string',
+            'category_id' => 'required|exists:categories,id',
+            'price'       => 'required|numeric|min:0',
+            'phone'       => 'required|string',
+            'email'       => 'required|email|max:255',
+            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
+            'image_url'   => 'nullable|url',
+        ], [
+            'title.required'       => 'عنوان الخدمة مطلوب.',
+            'description.required' => 'وصف الخدمة مطلوب.',
+            'category_id.required' => 'التصنيف مطلوب.',
+            'category_id.exists'   => 'التصنيف المختار غير صالح.',
+            'price.required'       => 'سعر الخدمة مطلوب.',
+            'price.numeric'        => 'يجب أن يكون السعر رقماً صالحاً.',
+            'phone.required'       => 'رقم الجوال مطلوب.',
+            'email.required'       => 'البريد الإلكتروني مطلوب.',
+            'email.email'          => 'البريد الإلكتروني غير صالح.',
+            'image.image'          => 'يجب أن يكون الملف صورة صالحة.',
+            'image.max'            => 'يجب ألا يتجاوز حجم الصورة 20 ميجابايت.',
+        ]);
+
+        $user = Auth::user();
+        $mainImage = $service->image;
+
+        if ($request->hasFile('image')) {
+            // Delete old image if it exists
+            if ($service->image && !str_starts_with($service->image, 'http')) {
+                @unlink(public_path($service->image));
+            }
+            
+            $file = $request->file('image');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/services'), $filename);
+            $mainImage = 'uploads/services/' . $filename;
+        } elseif ($request->filled('image_url')) {
+            $url = $request->image_url;
+            try {
+                $imageContent = @file_get_contents($url);
+                if ($imageContent) {
+                    // Delete old image if it exists
+                    if ($service->image && !str_starts_with($service->image, 'http')) {
+                        @unlink(public_path($service->image));
+                    }
+                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                    $mimeType = $finfo->buffer($imageContent);
+                    $mimeMap = [
+                        'image/jpeg' => 'jpg',
+                        'image/jpg'  => 'jpg',
+                        'image/png'  => 'png',
+                        'image/gif'  => 'gif',
+                        'image/webp' => 'webp',
+                        'image/svg+xml' => 'svg',
+                        'image/bmp'  => 'bmp',
+                        'image/x-icon' => 'ico',
+                        'image/tiff' => 'tiff',
+                    ];
+                    $extension = $mimeMap[$mimeType] ?? (pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg');
+                    $filename = time() . '_url_edit_' . uniqid() . '.' . $extension;
+                    @file_put_contents(public_path('uploads/services/' . $filename), $imageContent);
+                    $mainImage = 'uploads/services/' . $filename;
+                }
+            } catch (\Exception $e) {
+                // ignore
+            }
+        }
+
+        $service->update([
+            'title'       => $request->title,
+            'description' => $request->description,
+            'category_id' => $request->category_id,
+            'price'       => $request->price,
+            'image'       => $mainImage,
+            'phone'       => $request->phone,
+            'email'       => $request->email,
+            'status'      => 'pending',
+        ]);
+
+        // Update contact details on user model if changed
+        $user->update([
+            'phone' => $request->phone,
+            'email' => $request->email,
+        ]);
+
+        return redirect()->route('ads.my')->with('success', 'تم تعديل الخدمة بنجاح! وسيتم عرضها بعد مراجعة الإدارة. 🎉');
+    }
+
+    public function partnerDestroyService($id)
+    {
+        $service = \App\Models\Service::findOrFail($id);
+        if ($service->user_id !== Auth::id()) {
+            abort(403);
+        }
+        if ($service->image && !str_starts_with($service->image, 'http')) {
+            @unlink(public_path($service->image));
+        }
+        $service->delete();
+        return redirect()->route('ads.my')->with('success', 'تم حذف الخدمة بنجاح.');
     }
 }

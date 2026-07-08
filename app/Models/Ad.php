@@ -102,4 +102,138 @@ class Ad extends Model
     {
         return $this->hasMany(AdAttachment::class);
     }
+
+    protected static $userOrderedAdIds = null;
+
+    public function isRealEstate(): bool
+    {
+        if (!$this->category_id) {
+            return false;
+        }
+
+        if (!$this->relationLoaded('category')) {
+            $this->load('category');
+        }
+        
+        $cat = $this->category;
+        while ($cat) {
+            $name = mb_strtolower($cat->name);
+            if (
+                str_contains($name, 'عقار') || 
+                str_contains($name, 'العقارات') || 
+                str_contains($name, 'عقارات') || 
+                str_contains($name, 'real estate') || 
+                str_contains($name, 'realestate') ||
+                str_contains($name, 'property') ||
+                str_contains($name, 'properties')
+            ) {
+                return true;
+            }
+            $cat = $cat->parent_id ? ($cat->parent ?: $cat->load('parent')->parent) : null;
+        }
+        return false;
+    }
+
+    public function hasUserOrderedAd($userId): bool
+    {
+        if (self::$userOrderedAdIds === null) {
+            self::$userOrderedAdIds = \Illuminate\Support\Facades\DB::table('orders')
+                ->where('buyer_id', $userId)
+                ->pluck('ad_id')
+                ->toArray();
+        }
+        return in_array($this->id, self::$userOrderedAdIds);
+    }
+
+    private function obfuscateAddress($address): string
+    {
+        if (empty($address)) {
+            return '';
+        }
+        
+        $segments = preg_split('/[,-\x{060C}]/u', $address);
+        if (count($segments) >= 2) {
+            return trim($segments[0]) . '، ' . trim($segments[1]);
+        }
+        
+        if (preg_match('/^(.*?\bحي\s+\S+)/ui', $address, $matches)) {
+            return trim($matches[1]);
+        }
+        
+        $words = explode(' ', $address);
+        return implode(' ', array_slice($words, 0, 3));
+    }
+
+    private function getFuzzedLat($lat): float
+    {
+        $hash = md5($this->id);
+        $latSign = (hexdec(substr($hash, 0, 1)) % 2 === 0) ? 1 : -1;
+        $latOffset = $latSign * (0.0015 + (hexdec(substr($hash, 2, 4)) / 0xFFFF) * 0.0025);
+        return (float)($lat + $latOffset);
+    }
+
+    private function getFuzzedLng($lng): float
+    {
+        $hash = md5($this->id);
+        $lngSign = (hexdec(substr($hash, 1, 1)) % 2 === 0) ? 1 : -1;
+        $lngOffset = $lngSign * (0.0015 + (hexdec(substr($hash, 6, 4)) / 0xFFFF) * 0.0025);
+        return (float)($lng + $lngOffset);
+    }
+
+    public function getAddressAttribute($value)
+    {
+        if ($this->isRealEstate()) {
+            return $value;
+        }
+        
+        $user = auth('sanctum')->user() ?: (auth()->user() ?: \Illuminate\Support\Facades\Auth::user());
+        if ($user) {
+            if ($user->account_type === 'admin' || $user->id === $this->user_id) {
+                return $value;
+            }
+            if ($this->hasUserOrderedAd($user->id)) {
+                return $value;
+            }
+        }
+        
+        return $this->obfuscateAddress($value);
+    }
+
+    public function getLatAttribute($value)
+    {
+        if (!$value || $this->isRealEstate()) {
+            return $value;
+        }
+        
+        $user = auth('sanctum')->user() ?: (auth()->user() ?: \Illuminate\Support\Facades\Auth::user());
+        if ($user) {
+            if ($user->account_type === 'admin' || $user->id === $this->user_id) {
+                return $value;
+            }
+            if ($this->hasUserOrderedAd($user->id)) {
+                return $value;
+            }
+        }
+        
+        return $this->getFuzzedLat($value);
+    }
+
+    public function getLngAttribute($value)
+    {
+        if (!$value || $this->isRealEstate()) {
+            return $value;
+        }
+        
+        $user = auth('sanctum')->user() ?: (auth()->user() ?: \Illuminate\Support\Facades\Auth::user());
+        if ($user) {
+            if ($user->account_type === 'admin' || $user->id === $this->user_id) {
+                return $value;
+            }
+            if ($this->hasUserOrderedAd($user->id)) {
+                return $value;
+            }
+        }
+        
+        return $this->getFuzzedLng($value);
+    }
 }

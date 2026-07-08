@@ -231,29 +231,7 @@ class SupportController extends Controller
             ->latest()
             ->get();
 
-        // Seed mock tickets for display if empty
-        if ($tickets->isEmpty()) {
-            $sampleTickets = [
-                [
-                    'ticket_number' => 'TCK-' . strtoupper(Str::random(8)),
-                    'type' => 'inquiry',
-                    'user_id' => $user->id,
-                    'phone' => $user->phone ?? '0512345678',
-                    'reported_about' => 'كيف تختار العقار؟',
-                    'description' => 'أريد معرفة المعايير الأساسية لاختيار العقار المناسب في المزادات وكيفية التثبت من الصكوك.',
-                    'status' => 'resolved',
-                    'notes' => 'تم الرد: لاختيار العقار المناسب، يرجى مراجعة الصك الإلكتروني المرفق في صفحة المزاد، والتنسيق لمعاينة العقار على الطبيعة من خلال رقم ممثل البيع الموضح.'
-                ]
-            ];
-            foreach ($sampleTickets as $st) {
-                $t = Ticket::create($st);
-                $t->logs()->create([
-                    'action' => 'resolved',
-                    'note' => 'تم الرد على استفسارك وتزويدك بكافة النصائح المطلوبة.'
-                ]);
-            }
-            $tickets = Ticket::where('user_id', $user->id)->with(['logs'])->latest()->get();
-        }
+
 
         $formattedTickets = $tickets->map(function ($ticket) {
             return [

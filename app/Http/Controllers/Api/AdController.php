@@ -14,7 +14,7 @@ class AdController extends Controller
 {
     public function show(Request $request, $id)
     {
-        $ad = Ad::with(['category', 'user.reviewsReceived.reviewer', 'city', 'adProperties.property', 'images', 'attachments', 'questions.user'])
+        $ad = Ad::with(['category', 'user', 'reviews.reviewer', 'city', 'adProperties.property', 'images', 'attachments', 'questions.user'])
                 ->withCount('bids')
                 ->find($id);
 
@@ -25,11 +25,16 @@ class AdController extends Controller
             ], 404);
         }
 
-        // Filter questions: ad owner sees all, others only see visible questions or their own
+        // Filter questions: ad owner sees all, others only see visible questions
         $currentUser = auth('sanctum')->user();
         if (!$currentUser || $currentUser->id !== $ad->user_id) {
-            $ad->setRelation('questions', $ad->questions->filter(function ($q) use ($currentUser) {
-                return $q->is_visible || ($currentUser && $q->user_id === $currentUser->id);
+            $ad->setRelation('questions', $ad->questions->filter(function ($q) {
+                return $q->is_visible;
+            })->values());
+
+            // Filter hidden properties: ad owner sees all, others only see non-hidden ones
+            $ad->setRelation('adProperties', $ad->adProperties->filter(function ($ap) {
+                return !$ap->is_hidden;
             })->values());
         }
 
@@ -62,7 +67,7 @@ class AdController extends Controller
         $bidIncrement = (float) ($ad->bid_increment ?? 500);
         $minimumBid = (float) $ad->price + $bidIncrement;
 
-        $suggestedServices = \App\Models\Service::where('category_id', $ad->category_id)->limit(4)->get();
+        $suggestedServices = \App\Models\Service::where('category_id', $ad->category_id)->where('status', 'active')->limit(4)->get();
 
         return response()->json([
             'success' => true,
@@ -83,11 +88,20 @@ class AdController extends Controller
     public function createMetadata(Request $request)
     {
         $categories = \App\Models\Category::whereNull('parent_id')
-            ->with(['subCategories', 'pages' => function($q) {
-                $q->with('properties');
-            }, 'properties' => function($q) {
-                $q->whereNull('category_page_id'); 
-            }])
+            ->with([
+                'subCategories.pages' => function($q) {
+                    $q->has('properties')->with('properties');
+                },
+                'subCategories.properties' => function($q) {
+                    $q->whereNull('category_page_id');
+                },
+                'pages' => function($q) {
+                    $q->has('properties')->with('properties');
+                },
+                'properties' => function($q) {
+                    $q->whereNull('category_page_id'); 
+                }
+            ])
             ->get();
 
         $cities = \App\Models\City::orderBy('name')->get();
@@ -98,12 +112,27 @@ class AdController extends Controller
             'data' => [
                 'categories' => $categories,
                 'cities' => $cities,
+                'max_ad_duration' => (int) (\App\Models\Setting::where('key', 'max_ad_duration')->value('value') ?? 7),
             ]
         ]);
     }
 
     public function store(Request $request)
     {
+        $maxDuration = (int) (\App\Models\Setting::where('key', 'max_ad_duration')->value('value') ?? 7);
+        $maxStartDate = \Carbon\Carbon::now()->addDays($maxDuration)->toDateTimeString();
+        
+        $parsedStartDate = null;
+        if ($request->filled('start_date') && is_string($request->start_date)) {
+            try {
+                $parsedStartDate = \Carbon\Carbon::parse($request->start_date);
+            } catch (\Exception $e) {
+            }
+        }
+        
+        $maxEndDate = ($parsedStartDate ? $parsedStartDate->copy() : \Carbon\Carbon::now())->addDays($maxDuration)->toDateTimeString();
+        $defaultEndDate = ($parsedStartDate ? $parsedStartDate->copy() : \Carbon\Carbon::now())->addDays($maxDuration);
+
         $rules = [
             'title' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
@@ -113,18 +142,22 @@ class AdController extends Controller
             'lat' => 'required_without:address|nullable|numeric|between:-90,90',
             'lng' => 'required_without:address|nullable|numeric|between:-180,180',
             'images.*' => 'image|mimes:jpeg,png,jpg|max:20480',
-            'start_date' => 'nullable|date',
+            'image_urls' => 'nullable|array',
+            'image_urls.*' => 'nullable|url',
+            'start_date' => 'nullable|date|before_or_equal:' . $maxStartDate,
         ];
 
         if ($request->filled('start_date')) {
-            $rules['end_date'] = 'required|date|after:start_date';
+            $rules['end_date'] = 'required|date|after:start_date|before_or_equal:' . $maxEndDate;
         } else {
-            $rules['end_date'] = 'required|date|after:now';
+            $rules['end_date'] = 'required|date|after:now|before_or_equal:' . $maxEndDate;
         }
 
         $request->validate($rules, [
             'end_date.after' => 'يجب أن يكون تاريخ الانتهاء بعد تاريخ البدء.',
             'end_date.required' => 'تاريخ الانتهاء مطلوب إجباريًا.',
+            'end_date.before_or_equal' => "تاريخ الانتهاء لا يمكن أن يتجاوز الحد الأقصى لمدة عرض الإعلان ($maxDuration يومًا).",
+            'start_date.before_or_equal' => "تاريخ البدء لا يمكن أن يتجاوز الحد الأقصى المسموح به ($maxDuration يومًا من الآن).",
             'images.*.max' => 'يجب ألا يتجاوز حجم أي صورة 20 ميجابايت.',
             'images.*.image' => 'يجب أن يكون الملف المرفوع صورة صالحة.',
             'images.*.mimes' => 'يجب أن تكون الصور بصيغة jpeg أو png أو jpg فقط.',
@@ -204,10 +237,44 @@ class AdController extends Controller
                     $file->move(public_path('uploads/ads'), $filename);
                     $path = 'uploads/ads/' . $filename;
                     $imagePaths[] = $path;
-                    if ($index === 0) {
-                        $mainImage = $path;
+                }
+            }
+
+            // Download images from URLs
+            if ($request->has('image_urls') && is_array($request->image_urls)) {
+                foreach ($request->image_urls as $index => $url) {
+                    if (filter_var($url, FILTER_VALIDATE_URL)) {
+                        try {
+                            $imageContent = @file_get_contents($url);
+                            if ($imageContent) {
+                                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                                $mimeType = $finfo->buffer($imageContent);
+                                $mimeMap = [
+                                    'image/jpeg' => 'jpg',
+                                    'image/jpg'  => 'jpg',
+                                    'image/png'  => 'png',
+                                    'image/gif'  => 'gif',
+                                    'image/webp' => 'webp',
+                                    'image/svg+xml' => 'svg',
+                                    'image/bmp'  => 'bmp',
+                                    'image/x-icon' => 'ico',
+                                    'image/tiff' => 'tiff',
+                                ];
+                                $extension = $mimeMap[$mimeType] ?? (pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg');
+                                $filename = time() . '_url_' . $index . '_' . uniqid() . '.' . $extension;
+                                @file_put_contents(public_path('uploads/ads/' . $filename), $imageContent);
+                                $path = 'uploads/ads/' . $filename;
+                                $imagePaths[] = $path;
+                            }
+                        } catch (\Exception $e) {
+                            // ignore
+                        }
                     }
                 }
+            }
+
+            if (count($imagePaths) > 0) {
+                $mainImage = $imagePaths[0];
             }
 
             $ad = Ad::create([
@@ -227,7 +294,7 @@ class AdController extends Controller
                 'price'          => $price,
                 'bid_increment'  => $bidIncrement,
                 'status'         => 'active',
-                'end_date'       => $request->end_date ? $this->parseSafeDate($request->end_date, 'Y-m-d H:i:s') : now()->addDays(7),
+                'end_date'       => $request->end_date ? $this->parseSafeDate($request->end_date, 'Y-m-d H:i:s') : $defaultEndDate->format('Y-m-d H:i:s'),
                 'image'          => $mainImage,
                 'is_featured'    => $request->is_featured ? 1 : 0,
                 'is_enfaz'       => $request->is_enfaz ?? 0,
@@ -261,7 +328,16 @@ class AdController extends Controller
                     }
                     if ($value !== null && $value !== '') {
                         if (\App\Models\Property::where('id', $propertyId)->exists()) {
-                            AdProperty::create(['ad_id' => $ad->id, 'property_id' => $propertyId, 'value' => $value]);
+                            $isHidden = false;
+                            if (isset($request->properties_hidden[$propertyId]) && $request->properties_hidden[$propertyId] == '1') {
+                                $isHidden = true;
+                            }
+                            AdProperty::create([
+                                'ad_id' => $ad->id, 
+                                'property_id' => $propertyId, 
+                                'value' => $value,
+                                'is_hidden' => $isHidden
+                            ]);
                         }
                     }
                 }
@@ -282,16 +358,35 @@ class AdController extends Controller
             return response()->json(['success' => false, 'message' => 'غير مصرح'], 403);
         }
 
+        $maxDuration = (int) (\App\Models\Setting::where('key', 'max_ad_duration')->value('value') ?? 7);
+        $startDateStr = $request->filled('start_date') ? $request->start_date : $ad->start_date;
+        
+        $parsedStartDate = null;
+        if ($startDateStr && is_string($startDateStr)) {
+            try {
+                $parsedStartDate = \Carbon\Carbon::parse($startDateStr);
+            } catch (\Exception $e) {
+            }
+        }
+        
+        $maxStartDate = \Carbon\Carbon::now()->addDays($maxDuration)->toDateTimeString();
+        $maxEndDate = ($parsedStartDate ? $parsedStartDate->copy() : \Carbon\Carbon::now())->addDays($maxDuration)->toDateTimeString();
+
         $request->validate([
             'address' => 'sometimes|required_without_all:lat,lng|nullable|string',
             'lat' => 'sometimes|required_without:address|nullable|numeric|between:-90,90',
             'lng' => 'sometimes|required_without:address|nullable|numeric|between:-180,180',
             'title' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|nullable|string',
-            'end_date' => 'sometimes|required|date|after:now',
+            'image_urls' => 'sometimes|nullable|array',
+            'image_urls.*' => 'sometimes|nullable|url',
+            'start_date' => 'sometimes|nullable|date|before_or_equal:' . $maxStartDate,
+            'end_date' => 'sometimes|required|date|after:now|before_or_equal:' . $maxEndDate,
         ], [
             'end_date.after' => 'يجب أن يكون تاريخ الانتهاء بعد تاريخ البدء.',
             'end_date.required' => 'تاريخ الانتهاء مطلوب إجباريًا.',
+            'end_date.before_or_equal' => "تاريخ الانتهاء لا يمكن أن يتجاوز الحد الأقصى لمدة عرض الإعلان ($maxDuration يومًا).",
+            'start_date.before_or_equal' => "تاريخ البدء لا يمكن أن يتجاوز الحد الأقصى المسموح به ($maxDuration يومًا من الآن).",
         ]);
 
         // Dynamically extract city_id from address text or coordinates if updated
@@ -360,15 +455,56 @@ class AdController extends Controller
         DB::beginTransaction();
         try {
             $mainImagePath = $ad->image;
+            $newImagePaths = [];
             if ($request->hasFile('images')) {
-                // Delete old images first
-                $ad->images()->delete();
-
                 foreach ($request->file('images') as $index => $file) {
                     $filename = time() . '_edit_' . $index . '.' . $file->getClientOriginalExtension();
                     $file->move(public_path('uploads/ads'), $filename);
                     $path = 'uploads/ads/' . $filename;
-                    if ($index === 0) $mainImagePath = $path;
+                    $newImagePaths[] = $path;
+                }
+            }
+
+            // Download images from URLs
+            if ($request->has('image_urls') && is_array($request->image_urls)) {
+                foreach ($request->image_urls as $index => $url) {
+                    if (filter_var($url, FILTER_VALIDATE_URL)) {
+                        try {
+                            $imageContent = @file_get_contents($url);
+                            if ($imageContent) {
+                                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                                $mimeType = $finfo->buffer($imageContent);
+                                $mimeMap = [
+                                    'image/jpeg' => 'jpg',
+                                    'image/jpg'  => 'jpg',
+                                    'image/png'  => 'png',
+                                    'image/gif'  => 'gif',
+                                    'image/webp' => 'webp',
+                                    'image/svg+xml' => 'svg',
+                                    'image/bmp'  => 'bmp',
+                                    'image/x-icon' => 'ico',
+                                    'image/tiff' => 'tiff',
+                                ];
+                                $extension = $mimeMap[$mimeType] ?? (pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg');
+                                $filename = time() . '_url_edit_' . $index . '_' . uniqid() . '.' . $extension;
+                                @file_put_contents(public_path('uploads/ads/' . $filename), $imageContent);
+                                $path = 'uploads/ads/' . $filename;
+                                $newImagePaths[] = $path;
+                            }
+                        } catch (\Exception $e) {
+                            // ignore
+                        }
+                    }
+                }
+            }
+
+            if (count($newImagePaths) > 0) {
+                // Delete old images first if new ones are uploaded
+                $ad->images()->delete();
+                foreach ($newImagePaths as $index => $path) {
+                    if ($index === 0) {
+                        $mainImagePath = $path;
+                    }
                     AdImage::create(['ad_id' => $ad->id, 'image' => $path]);
                 }
             }
@@ -415,7 +551,17 @@ class AdController extends Controller
                     }
                     if ($value !== null && $value !== '') {
                         if (\App\Models\Property::where('id', $propertyId)->exists()) {
-                            AdProperty::updateOrCreate(['ad_id' => $ad->id, 'property_id' => $propertyId], ['value' => $value]);
+                            $isHidden = false;
+                            if (isset($request->properties_hidden[$propertyId]) && $request->properties_hidden[$propertyId] == '1') {
+                                $isHidden = true;
+                            }
+                            AdProperty::updateOrCreate(
+                                ['ad_id' => $ad->id, 'property_id' => $propertyId],
+                                [
+                                    'value' => $value,
+                                    'is_hidden' => $isHidden
+                                ]
+                            );
                         }
                     }
                 }

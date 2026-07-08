@@ -84,6 +84,18 @@
                     <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1A73E8]"></div>
                 </label>
             </div>
+
+            <!-- Hideable Toggle -->
+            <div class="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                <div>
+                    <p class="text-sm font-black text-[#1C1C1C]">إمكانية الإخفاء</p>
+                    <p class="text-xs font-bold text-slate-400 mt-0.5">هل يسمح للمعلن بإخفاء هذه الخاصية عن المستخدمين الآخرين؟</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="is_hideable" value="1" class="sr-only peer" {{ old('is_hideable', $property->is_hideable) ? 'checked' : '' }}>
+                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1A73E8]"></div>
+                </label>
+            </div>
         </div>
 
         <!-- Actions -->

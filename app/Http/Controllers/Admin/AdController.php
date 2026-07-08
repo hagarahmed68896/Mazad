@@ -655,6 +655,7 @@ class AdController extends Controller
         $search = $request->get('search');
         $sort = $request->get('sort', 'newest');
         $category_id = $request->get('category_id', 'all');
+        $status = $request->get('status', 'all');
 
         $query = Service::with(['user', 'category']);
 
@@ -670,6 +671,10 @@ class AdController extends Controller
 
         if ($category_id !== 'all') {
             $query->where('category_id', $category_id);
+        }
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
         }
 
         switch ($sort) {
@@ -682,7 +687,7 @@ class AdController extends Controller
         $categories = Category::all();
 
         return view('admin.ads.services', compact(
-            'services', 'search', 'sort', 'category_id', 'categories'
+            'services', 'search', 'sort', 'category_id', 'status', 'categories'
         ));
     }
 
@@ -691,6 +696,7 @@ class AdController extends Controller
         $search = $request->get('search');
         $sort = $request->get('sort', 'newest');
         $category_id = $request->get('category_id', 'all');
+        $status = $request->get('status', 'all');
 
         $query = Service::with(['user', 'category']);
 
@@ -706,6 +712,10 @@ class AdController extends Controller
 
         if ($category_id !== 'all') {
             $query->where('category_id', $category_id);
+        }
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
         }
 
         switch ($sort) {
@@ -730,6 +740,7 @@ class AdController extends Controller
             __('الوصف'),
             __('اسم المعلن'), 
             __('السعر'), 
+            __('حالة الخدمة'),
             __('التاريخ')
         ];
 
@@ -738,6 +749,12 @@ class AdController extends Controller
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
             fputcsv($file, $columns);
 
+            $statusLabels = [
+                'active' => 'نشط',
+                'pending' => 'قيد الانتظار',
+                'rejected' => 'مرفوض'
+            ];
+
             foreach ($services as $service) {
                 fputcsv($file, [
                     $service->title,
@@ -745,6 +762,7 @@ class AdController extends Controller
                     $service->description,
                     $service->user->name ?? 'مستخدم غير معروف',
                     $service->price,
+                    $statusLabels[$service->status] ?? $service->status,
                     $service->created_at->format('Y-m-d')
                 ]);
             }
@@ -752,5 +770,41 @@ class AdController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    public function approveService($id)
+    {
+        $service = Service::findOrFail($id);
+        $service->update(['status' => 'active']);
+
+        // Create a notification for the user
+        \App\Models\Notification::create([
+            'user_id' => $service->user_id,
+            'title' => 'تم قبول خدمتك 🎉',
+            'content' => 'تمت الموافقة على خدمتك "' . $service->title . '" ونشرها بنجاح.',
+            'type' => 'system',
+            'status' => 'sent', // Set status to 'sent' to trigger FCM push notification!
+        ]);
+
+        return back()->with('success', 'تم قبول الخدمة ونشرها بنجاح.');
+    }
+
+    public function rejectService(Request $request, $id)
+    {
+        $service = Service::findOrFail($id);
+        $service->update(['status' => 'rejected']);
+
+        $reason = $request->get('reject_reason', 'لم يتم تحديد سبب.');
+
+        // Create a notification for the user
+        \App\Models\Notification::create([
+            'user_id' => $service->user_id,
+            'title' => 'تم رفض خدمتك ❌',
+            'content' => 'عذراً، تم رفض خدمتك "' . $service->title . '". السبب: ' . $reason,
+            'type' => 'system',
+            'status' => 'sent', // Set status to 'sent' to trigger FCM push notification!
+        ]);
+
+        return back()->with('success', 'تم رفض الخدمة وإرسال الإشعار بنجاح.');
     }
 }

@@ -155,51 +155,7 @@ class SupportController extends Controller
             ->latest()
             ->paginate(10);
 
-        // Seed some sample data for inquiries if empty to show a beautiful initial screen matching screenshot
-        if ($tickets->isEmpty()) {
-            $sampleTickets = [
-                [
-                    'ticket_number' => 'TCK-' . strtoupper(Str::random(8)),
-                    'type' => 'inquiry',
-                    'user_id' => Auth::id(),
-                    'phone' => Auth::user()->phone ?? '0512345678',
-                    'reported_about' => 'كيف تختار العقار؟',
-                    'description' => 'أريد معرفة المعايير الأساسية لاختيار العقار المناسب في المزادات الهجينة والإلكترونية وكيفية التثبت من الصكوك.',
-                    'status' => 'resolved',
-                    'notes' => 'تم الرد: لاختيار العقار المناسب، يرجى مراجعة الصك الإلكتروني المرفق في صفحة المزاد، والتنسيق لمعاينة العقار على الطبيعة من خلال رقم ممثل البيع الموضح.'
-                ],
-                [
-                    'ticket_number' => 'TCK-' . strtoupper(Str::random(8)),
-                    'type' => 'inquiry',
-                    'user_id' => Auth::id(),
-                    'phone' => Auth::user()->phone ?? '0512345678',
-                    'reported_about' => 'أفضل طريقة للمزايدة الفعالة؟',
-                    'description' => 'هل تنصحون باستخدام المزايد التلقائي أم المزايدة اليدوية في اللحظات الأخيرة من المزاد الإلكتروني؟',
-                    'status' => 'under_review',
-                    'notes' => 'طلبك قيد الدراسة حالياً من قبل قسم علاقات العملاء وسنوافيك بالرد الفوري.'
-                ]
-            ];
 
-            foreach ($sampleTickets as $st) {
-                $t = Ticket::create($st);
-                if ($st['status'] === 'resolved') {
-                    $t->logs()->create([
-                        'action' => 'resolved',
-                        'note' => 'تم الرد على استفسارك وتزويدك بكافة النصائح المطلوبة.'
-                    ]);
-                } else {
-                    $t->logs()->create([
-                        'action' => 'under_review',
-                        'note' => 'تذكرتك قيد الدراسة والمراجعة حالياً.'
-                    ]);
-                }
-            }
-
-            $tickets = Ticket::where('user_id', Auth::id())
-                ->with(['logs'])
-                ->latest()
-                ->paginate(10);
-        }
 
         return view('pages.inquiries', compact('tickets'));
     }

@@ -30,6 +30,11 @@ class ServiceController extends Controller
         $user = $request->user();
         $query = Service::where('user_id', $user->id);
 
+        // Status Filter (active, pending, rejected)
+        if ($request->filled('status') && in_array($request->status, ['active', 'pending', 'rejected'])) {
+            $query->where('status', $request->status);
+        }
+
         // Search Filter (by title or description)
         if ($request->filled('q')) {
             $query->where(function($q) use ($request) {
@@ -64,6 +69,7 @@ class ServiceController extends Controller
                 'image' => $service->image ? (\Illuminate\Support\Str::startsWith($service->image, 'http') ? $service->image : url('/' . ltrim($service->image, '/'))) : null,
                 'phone' => $service->phone,
                 'email' => $service->email,
+                'status' => $service->status,
                 'created_at' => $service->created_at,
             ];
         });
@@ -81,11 +87,13 @@ class ServiceController extends Controller
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
-            'category_id' => 'nullable|exists:categories,id',
+            'image_url' => 'nullable|url',
+            'category_id' => 'required|exists:categories,id',
             'phone' => 'nullable|string|max:30',
             'email' => 'nullable|email|max:255',
         ], [
             'title.required' => 'عنوان الخدمة مطلوب.',
+            'category_id.required' => 'التصنيف مطلوب.',
             'price.required' => 'سعر الخدمة مطلوب.',
             'price.numeric' => 'يجب أن يكون السعر قيمة رقمية.',
             'image.image' => 'يجب إدخال ملف صورة صالح للخدمة.',
@@ -108,11 +116,41 @@ class ServiceController extends Controller
             }
             $file->move($destinationPath, $filename);
             $imagePath = '/uploads/services/' . $filename;
+        } elseif ($request->filled('image_url')) {
+            $url = $request->image_url;
+            try {
+                $imageContent = @file_get_contents($url);
+                if ($imageContent) {
+                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                    $mimeType = $finfo->buffer($imageContent);
+                    $mimeMap = [
+                        'image/jpeg' => 'jpg',
+                        'image/jpg'  => 'jpg',
+                        'image/png'  => 'png',
+                        'image/gif'  => 'gif',
+                        'image/webp' => 'webp',
+                        'image/svg+xml' => 'svg',
+                        'image/bmp'  => 'bmp',
+                        'image/x-icon' => 'ico',
+                        'image/tiff' => 'tiff',
+                    ];
+                    $extension = $mimeMap[$mimeType] ?? (pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg');
+                    $filename = time() . '_url_' . uniqid() . '.' . $extension;
+                    $destinationPath = public_path('uploads/services');
+                    if (!file_exists($destinationPath)) {
+                        mkdir($destinationPath, 0777, true);
+                    }
+                    @file_put_contents($destinationPath . '/' . $filename, $imageContent);
+                    $imagePath = '/uploads/services/' . $filename;
+                }
+            } catch (\Exception $e) {
+                // ignore
+            }
         }
 
         $service = Service::create([
             'user_id' => $user->id,
-            'category_id' => $request->category_id ?? 4, // Default to Category 4 (الخدمات)
+            'category_id' => $request->category_id,
             'title' => $request->title,
             'description' => $request->description,
             'price' => $request->price,
@@ -121,7 +159,7 @@ class ServiceController extends Controller
             'email' => $request->email ?: $user->email,
         ]);
 
-        return $this->apiResponse(true, 'تم إضافة الخدمة بنجاح', [
+        return $this->apiResponse(true, 'تم إضافة الخدمة بنجاح، وهي قيد المراجعة حالياً من قبل الإدارة', [
             'id' => $service->id,
             'category_id' => $service->category_id,
             'title' => $service->title,
@@ -151,6 +189,7 @@ class ServiceController extends Controller
             'description' => 'nullable|string',
             'price' => 'sometimes|required|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'image_url' => 'nullable|url',
             'category_id' => 'nullable|exists:categories,id',
             'phone' => 'nullable|string|max:30',
             'email' => 'nullable|email|max:255',
@@ -181,6 +220,40 @@ class ServiceController extends Controller
             }
             $file->move($destinationPath, $filename);
             $imagePath = '/uploads/services/' . $filename;
+        } elseif ($request->filled('image_url')) {
+            $url = $request->image_url;
+            try {
+                $imageContent = @file_get_contents($url);
+                if ($imageContent) {
+                    // Delete old file if exists
+                    if ($imagePath && file_exists(public_path($imagePath))) {
+                        @unlink(public_path($imagePath));
+                    }
+                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                    $mimeType = $finfo->buffer($imageContent);
+                    $mimeMap = [
+                        'image/jpeg' => 'jpg',
+                        'image/jpg'  => 'jpg',
+                        'image/png'  => 'png',
+                        'image/gif'  => 'gif',
+                        'image/webp' => 'webp',
+                        'image/svg+xml' => 'svg',
+                        'image/bmp'  => 'bmp',
+                        'image/x-icon' => 'ico',
+                        'image/tiff' => 'tiff',
+                    ];
+                    $extension = $mimeMap[$mimeType] ?? (pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg');
+                    $filename = time() . '_url_edit_' . uniqid() . '.' . $extension;
+                    $destinationPath = public_path('uploads/services');
+                    if (!file_exists($destinationPath)) {
+                        mkdir($destinationPath, 0777, true);
+                    }
+                    @file_put_contents($destinationPath . '/' . $filename, $imageContent);
+                    $imagePath = '/uploads/services/' . $filename;
+                }
+            } catch (\Exception $e) {
+                // ignore
+            }
         }
 
         $service->update([
@@ -191,9 +264,10 @@ class ServiceController extends Controller
             'category_id' => $request->category_id ?? $service->category_id,
             'phone' => $request->has('phone') ? $request->phone : $service->phone,
             'email' => $request->has('email') ? $request->email : $service->email,
+            'status' => 'pending',
         ]);
 
-        return $this->apiResponse(true, 'تم تحديث الخدمة بنجاح', [
+        return $this->apiResponse(true, 'تم تحديث الخدمة بنجاح، وهي قيد المراجعة حالياً من قبل الإدارة', [
             'id' => $service->id,
             'category_id' => $service->category_id,
             'title' => $service->title,

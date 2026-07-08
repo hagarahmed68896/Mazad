@@ -107,21 +107,6 @@ class CategoryController extends Controller
                 }
             }
 
-            // Services
-            if ($request->has('services')) {
-                foreach ($request->services as $serviceTitle) {
-                    if ($serviceTitle) {
-                        Service::create([
-                            'category_id' => $category->id,
-                            'user_id' => auth()->id(), // Associate with admin
-                            'title' => $serviceTitle,
-                            'price' => 0,
-                            'description' => $serviceTitle,
-                        ]);
-                    }
-                }
-            }
-
             DB::commit();
             return redirect()->route('admin.categories.index')->with('success', 'تمت إضافة الفئة بنجاح');
 
@@ -209,21 +194,7 @@ class CategoryController extends Controller
                 }
             }
 
-            // Sync Services
-            $category->services()->delete();
-            if ($request->has('services')) {
-                foreach ($request->services as $serviceTitle) {
-                    if ($serviceTitle) {
-                        Service::create([
-                            'category_id' => $category->id,
-                            'user_id' => auth()->id(),
-                            'title' => $serviceTitle,
-                            'price' => 0,
-                            'description' => $serviceTitle,
-                        ]);
-                    }
-                }
-            }
+
 
             DB::commit();
             return redirect()->route('admin.categories.index')->with('success', 'تم تحديث الفئة بنجاح');

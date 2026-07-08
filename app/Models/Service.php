@@ -10,7 +10,7 @@ class Service extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'category_id', 'title', 'image', 'description', 'price', 'phone', 'email'];
+    protected $fillable = ['user_id', 'category_id', 'title', 'image', 'description', 'price', 'phone', 'email', 'status'];
 
     public function user(): BelongsTo
     {

@@ -449,8 +449,8 @@ class HomeController extends Controller
     {
         $ad = Ad::with(['category', 'user', 'city', 'adProperties.property', 'images'])->findOrFail($id);
 
-        // If the ad is in Services category (category_id = 4), redirect to services.show
-        if ($ad->category_id == 4) {
+        // If the ad is owned by a partner, redirect to services.show
+        if ($ad->user && $ad->user->account_type === 'partner') {
             return redirect()->route('services.show', $ad->id);
         }
         
@@ -475,7 +475,7 @@ class HomeController extends Controller
             ->limit(4)
             ->get();
 
-        $services = \App\Models\Service::where('category_id', $ad->category_id)->get();
+        $services = \App\Models\Service::where('category_id', $ad->category_id)->where('status', 'active')->get();
 
         $categories = Category::whereNull('parent_id')->get();
         $settings = Setting::pluck('value', 'key')->toArray();
@@ -605,18 +605,52 @@ class HomeController extends Controller
             'reason' => 'required|string|max:500'
         ]);
 
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'message' => 'تم إرسال البلاغ بنجاح']);
+        $reportedUser = \App\Models\User::findOrFail($id);
+        $authUser = Auth::user();
+
+        if (!$authUser) {
+            return back()->with('error', 'يجب تسجيل الدخول للإبلاغ عن مستخدم.');
         }
 
-        return back()->with('success', 'تم إرسال البلاغ بنجاح');
+        if ($authUser->id == $reportedUser->id) {
+            return back()->with('error', 'لا يمكنك الإبلاغ عن نفسك.');
+        }
+
+        // 1. Create a Ticket of type 'report'
+        $ticket = \App\Models\Ticket::create([
+            'ticket_number' => 'TCK-' . strtoupper(\Illuminate\Support\Str::random(8)),
+            'type' => 'report',
+            'user_id' => $authUser->id,
+            'phone' => $authUser->phone,
+            'reported_about' => 'بلاغ عن مستخدم: ' . $reportedUser->name . ' (ID: ' . $reportedUser->id . ')',
+            'description' => $request->reason,
+            'status' => 'under_review',
+        ]);
+
+        // Create log for the ticket
+        $ticket->logs()->create([
+            'action' => 'ticket_created',
+            'note' => 'تم إنشاء بلاغ ضد المستخدم ' . $reportedUser->name . ' بنجاح.'
+        ]);
+
+        // 2. Automatically Block the reported user for the auth user
+        \App\Models\BlockedUser::firstOrCreate([
+            'user_id' => $authUser->id,
+            'blocked_user_id' => $reportedUser->id
+        ]);
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'تم إرسال البلاغ وحظر المستخدم بنجاح']);
+        }
+
+        return back()->with('success', 'تم إرسال البلاغ وحظر المستخدم بنجاح');
     }
 
     public function adServices(Request $request, $id)
     {
         $ad = Ad::findOrFail($id);
         
-        $query = \App\Models\Service::where('category_id', $ad->category_id);
+        $query = \App\Models\Service::where('category_id', $ad->category_id)->where('status', 'active');
         
         // Search Filter
         if ($request->filled('q')) {
@@ -646,6 +680,11 @@ class HomeController extends Controller
     public function serviceShow($id)
     {
         $service = \App\Models\Service::find($id);
+        if ($service && $service->status !== 'active') {
+            if (!Auth::check() || (Auth::id() !== $service->user_id && Auth::user()->account_type !== 'admin')) {
+                $service = null;
+            }
+        }
         if (!$service) {
             // Fallback for partner ads stored in the ads table
             $service = \App\Models\Ad::find($id);
@@ -682,12 +721,12 @@ class HomeController extends Controller
         if ($service instanceof \App\Models\Ad) {
             $userServices = \App\Models\Ad::where('user_id', $service->user_id)
                 ->where('id', '!=', $service->id)
-                ->where('category_id', 4)
                 ->limit(4)
                 ->get();
         } else {
             $userServices = \App\Models\Service::where('user_id', $service->user_id)
                 ->where('id', '!=', $service->id)
+                ->where('status', 'active')
                 ->limit(4)
                 ->get();
         }

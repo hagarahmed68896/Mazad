@@ -40,12 +40,12 @@
                 <div class="flex items-center gap-3">
                     @if(Auth::check() && $service->user_id === Auth::id())
                         <!-- Edit Button (Blue) -->
-                        <a href="{{ route('ads.edit', $service->id) }}" class="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl shadow-lg shadow-primary/20 font-bold hover:bg-blue-700 transition-all text-sm">
+                        <a href="{{ route('services.edit', $service->id) }}" class="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl shadow-lg shadow-primary/20 font-bold hover:bg-blue-700 transition-all text-sm">
                             <i class="fa-solid fa-pen-to-square"></i>
                             تعديل الخدمة
                         </a>
                         <!-- Delete Button (Grey) -->
-                        <form id="deleteServiceForm" action="{{ route('ads.destroy', $service->id) }}" method="POST" class="m-0 inline">
+                        <form id="deleteServiceForm" action="{{ route('services.destroy', $service->id) }}" method="POST" class="m-0 inline">
                             @csrf
                             @method('DELETE')
                             <button type="button" onclick="openDeleteModal()" class="flex items-center gap-2 px-6 py-3 bg-slate-100 text-slate-500 rounded-2xl border border-slate-200 font-bold hover:bg-slate-200 hover:text-slate-700 transition-all text-sm shadow-sm">

@@ -12,12 +12,13 @@ class Property extends Model
 
     protected $fillable = [
         'category_id', 'category_page_id', 'label', 'placeholder', 
-        'help_text', 'input_type', 'options', 'is_required'
+        'help_text', 'input_type', 'options', 'is_required', 'is_hideable'
     ];
 
     protected $casts = [
         'options' => 'array',
         'is_required' => 'boolean',
+        'is_hideable' => 'boolean',
     ];
 
     public function category(): BelongsTo

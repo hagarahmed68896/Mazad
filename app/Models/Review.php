@@ -31,4 +31,21 @@ class Review extends Model
     {
         return $this->belongsTo(Ad::class);
     }
+
+    protected static function booted()
+    {
+        static::created(function ($review) {
+            // Find the reviewer name
+            $reviewerName = $review->reviewer ? $review->reviewer->name : 'مستخدم';
+            
+            // Create notification for the rated user
+            \App\Models\Notification::create([
+                'type' => 'notification',
+                'title' => 'تقييم جديد',
+                'content' => "قام المستخدم {$reviewerName} بتقييمك بـ {$review->rating} نجوم.",
+                'user_id' => $review->rated_user_id,
+                'status' => 'sent',
+            ]);
+        });
+    }
 }

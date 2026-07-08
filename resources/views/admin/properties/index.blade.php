@@ -176,6 +176,11 @@
         return 'حدد الحالة';
     }
 
+    function getHideableLabel(val) {
+        if(val === '1' || val === 1 || val === true || val === 'true') return 'مسموح بالإخفاء';
+        return 'تظهر دائماً';
+    }
+
     function propertiesIndex() {
         return {
             performDelete(url) {

@@ -94,10 +94,10 @@
 
                 <!-- اسم الصفحة -->
                 <div>
-                    <label class="block text-sm font-black text-[#6F6F6F] mb-2 text-right">اسم الصفحة</label>
-                    <select name="category_page_id"
+                    <label class="block text-sm font-black text-[#6F6F6F] mb-2 text-right">اسم الصفحة <span class="text-red-500">*</span></label>
+                    <select name="category_page_id" required
                             class="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-[#1C1C1C] focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/10 focus:border-[#1A73E8] transition-all cursor-pointer">
-                        <option value="">حدد اسم الصفحة</option>
+                        <option value="" disabled selected>حدد اسم الصفحة</option>
                         @foreach($pages as $page)
                             <option value="{{ $page->id }}">{{ $page->name }}</option>
                         @endforeach
@@ -262,6 +262,30 @@
                                 </div>
                             </div>
 
+                            <!-- إمكانية الإخفاء -->
+                            <div class="flex items-start">
+                                <label class="w-32 shrink-0 text-sm font-black text-[#6F6F6F] pt-3 text-right">إمكانية الإخفاء</label>
+                                <div class="flex-1 relative" x-data="{ openHideable: false }">
+                                    <div @click="openHideable = !openHideable"
+                                         class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl flex justify-between items-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/10 focus:border-[#1A73E8] transition-all">
+                                        <span class="text-sm font-bold text-[#1C1C1C]" x-text="getHideableLabel(prop.is_hideable)"></span>
+                                        <svg class="w-4 h-4 text-slate-400 transition-transform duration-200" :class="openHideable ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                    </div>
+                                    
+                                    <div x-show="openHideable" @click.away="openHideable = false" x-transition x-cloak
+                                         class="absolute bottom-full mb-2 w-full bg-white border border-slate-200 rounded-xl shadow-lg p-4 space-y-3 z-10">
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="radio" :name="`properties[${index}][is_hideable]`" value="1" x-model="prop.is_hideable" @change="openHideable = false" class="w-4 h-4 text-[#1A73E8] border-slate-300 focus:ring-[#1A73E8]">
+                                            <span class="text-sm font-bold text-[#1C1C1C]">مسموح للمعلن بإخفائها عن المستخدمين</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="radio" :name="`properties[${index}][is_hideable]`" value="0" x-model="prop.is_hideable" @change="openHideable = false" class="w-4 h-4 text-[#1A73E8] border-slate-300 focus:ring-[#1A73E8]">
+                                            <span class="text-sm font-bold text-[#1C1C1C]">غير مسموح بالإخفاء (تظهر دائماً)</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- حفظ / إلغاء -->
                             <div class="flex items-center justify-end gap-3 pt-4">
                                 <button type="button" @click="removeProperty(index)"
@@ -307,6 +331,7 @@
                     help_text: '',
                     input_type: '',
                     is_required: '',
+                    is_hideable: '0',
                     options: [''],
                     isExpanded: true
                 });
@@ -345,6 +370,11 @@
                 if(val === '1') return 'إلزامي';
                 if(val === '0') return 'اختياري';
                 return 'حدد الحالة';
+            },
+
+            getHideableLabel(val) {
+                if(val === '1' || val === 1 || val === true) return 'مسموح للمعلن بإخفائها عن المستخدمين';
+                return 'غير مسموح بالإخفاء (تظهر دائماً)';
             }
         }
     }

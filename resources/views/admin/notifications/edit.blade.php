@@ -15,7 +15,7 @@
 
     <!-- Main Card -->
     <div class="bg-white rounded-[2.5rem] shadow-[0_20px_70px_-20px_rgba(0,0,0,0.05)] border border-slate-50 p-10">
-        <form action="{{ route('admin.notifications.update', $notification->id) }}" method="POST" class="space-y-10">
+        <form action="{{ route('admin.notifications.update', $notification->id) }}" method="POST" class="space-y-10" onsubmit="this.querySelector('button[type=submit]').disabled = true; this.querySelector('button[type=submit]').innerHTML = 'جاري الحفظ...';">
             @csrf
             @method('PUT')
             

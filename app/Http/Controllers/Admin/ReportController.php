@@ -28,10 +28,15 @@ class ReportController extends Controller
         // Base Scopes
         $applyFilters = function($builder) use ($accountType, $categoryId, $startDate, $endDate) {
             if ($accountType !== 'all') {
-                if (get_class($builder->getModel()) === User::class) {
+                $modelClass = get_class($builder->getModel());
+                if ($modelClass === User::class) {
                     $builder->where('account_type', $accountType);
-                } else {
+                } elseif ($modelClass === Ad::class) {
                     $builder->whereHas('user', function($q) use ($accountType) { $q->where('account_type', $accountType); });
+                } elseif ($modelClass === Order::class) {
+                    $builder->whereHas('buyer', function($q) use ($accountType) { $q->where('account_type', $accountType); });
+                } elseif ($modelClass === Review::class) {
+                    $builder->whereHas('reviewer', function($q) use ($accountType) { $q->where('account_type', $accountType); });
                 }
             }
             if ($categoryId !== 'all' && in_array(get_class($builder->getModel()), [Ad::class, Order::class])) {

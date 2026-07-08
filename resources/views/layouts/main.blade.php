@@ -255,6 +255,11 @@
         }
 
         function handleLocationClick() {
+            if (!isLoggedIn) {
+                showAuthModal();
+                return;
+            }
+
             const modal = document.getElementById('locationModal');
             const body = document.getElementById('modalBody');
             if (!modal || !body) return;
@@ -270,9 +275,9 @@
             modal.style.display = 'flex';
             
             setTimeout(() => {
-                const initialLat = {{ Auth::check() ? (Auth::user()->latitude ?? 'null') : (session('user_latitude') ?? 'null') }} || 24.7136;
-                const initialLng = {{ Auth::check() ? (Auth::user()->longitude ?? 'null') : (session('user_longitude') ?? 'null') }} || 46.6753;
-                const hasSaved = {{ (Auth::check() && Auth::user()->latitude) || session('user_latitude') ? 'true' : 'false' }};
+                const initialLat = {{ Auth::check() ? (Auth::user()->latitude ?? 'null') : 'null' }} || 24.7136;
+                const initialLng = {{ Auth::check() ? (Auth::user()->longitude ?? 'null') : 'null' }} || 46.6753;
+                const hasSaved = {{ Auth::check() && Auth::user()->latitude ? 'true' : 'false' }};
                 const zoomLevel = hasSaved ? 14 : 6;
                 
                 if (locationMapInstance) {
@@ -292,8 +297,10 @@
                     navigator.geolocation.getCurrentPosition(position => {
                         const userLat = position.coords.latitude;
                         const userLng = position.coords.longitude;
-                        locationMapInstance.setView([userLat, userLng], 13);
-                        currentLocationMarker.setLatLng([userLat, userLng]);
+                        if (userLat >= 16 && userLat <= 32.5 && userLng >= 34 && userLng <= 56) {
+                            locationMapInstance.setView([userLat, userLng], 13);
+                            currentLocationMarker.setLatLng([userLat, userLng]);
+                        }
                     }, () => {});
                 }
             }, 300);
@@ -316,6 +323,13 @@
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.lat}&lon=${pos.lng}&accept-language=ar`)
                 .then(res => res.json())
                 .then(data => {
+                    const isSaudi = data.address && (data.address.country_code === 'sa' || (data.address.country && data.address.country.includes('السعودية')));
+                    if (!isSaudi) {
+                        alert("الرجاء اختيار موقع داخل المملكة العربية السعودية فقط.");
+                        if(btn) { btn.innerHTML = 'تأكيد هذا الموقع'; btn.disabled = false; }
+                        return;
+                    }
+
                     let cityOnly = "السعودية";
                     if (data.address) {
                         const addr = data.address;

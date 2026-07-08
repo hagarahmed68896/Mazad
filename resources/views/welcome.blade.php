@@ -515,8 +515,10 @@
                         navigator.geolocation.getCurrentPosition(position => {
                             const userLat = position.coords.latitude;
                             const userLng = position.coords.longitude;
-                            map.setView([userLat, userLng], 13);
-                            marker.setLatLng([userLat, userLng]);
+                            if (userLat >= 16 && userLat <= 32.5 && userLng >= 34 && userLng <= 56) {
+                                map.setView([userLat, userLng], 13);
+                                marker.setLatLng([userLat, userLng]);
+                            }
                         }, () => {});
                     }
                 }, 300);
@@ -535,6 +537,13 @@
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.lat}&lon=${pos.lng}&accept-language=ar`)
                 .then(res => res.json())
                 .then(data => {
+                    const isSaudi = data.address && (data.address.country_code === 'sa' || (data.address.country && data.address.country.includes('السعودية')));
+                    if (!isSaudi) {
+                        alert("الرجاء اختيار موقع داخل المملكة العربية السعودية فقط.");
+                        if(btn) { btn.innerHTML = 'تأكيد هذا الموقع'; btn.disabled = false; }
+                        return;
+                    }
+
                     let cityOnly = "السعودية";
                     if (data.address) {
                         const addr = data.address;

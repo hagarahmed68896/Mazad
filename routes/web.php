@@ -39,6 +39,15 @@ Route::middleware('auth')->group(function() {
     Route::post('/ads/{ad}/repost', [\App\Http\Controllers\AdController::class, 'repost'])->name('ads.repost');
 });
 
+Route::middleware('auth')->group(function() {
+    // Partner Service Web Management Routes
+    Route::get('/services/create', [\App\Http\Controllers\AdController::class, 'partnerCreateService'])->name('services.create');
+    Route::post('/services', [\App\Http\Controllers\AdController::class, 'partnerStoreService'])->name('services.store');
+    Route::get('/services/{id}/edit', [\App\Http\Controllers\AdController::class, 'partnerEditService'])->name('services.edit');
+    Route::put('/services/{id}', [\App\Http\Controllers\AdController::class, 'partnerUpdateService'])->name('services.update');
+    Route::delete('/services/{id}', [\App\Http\Controllers\AdController::class, 'partnerDestroyService'])->name('services.destroy');
+});
+
 // Public Ad View — increments views_count
 Route::get('/ads/{id}', [\App\Http\Controllers\HomeController::class, 'showAd'])->name('ads.show');
 Route::get('/ads/{id}/services', [\App\Http\Controllers\HomeController::class, 'adServices'])->name('ads.services');
@@ -242,6 +251,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
             Route::get('tenders/download', [\App\Http\Controllers\Admin\AdController::class, 'tendersDownload'])->name('tenders.download');
             Route::get('services', [\App\Http\Controllers\Admin\AdController::class, 'services'])->name('services');
             Route::get('services/download', [\App\Http\Controllers\Admin\AdController::class, 'servicesDownload'])->name('services.download');
+            Route::post('services/{id}/approve', [\App\Http\Controllers\Admin\AdController::class, 'approveService'])->name('services.approve');
+            Route::post('services/{id}/reject', [\App\Http\Controllers\Admin\AdController::class, 'rejectService'])->name('services.reject');
         });
 
         // Purchases Management
@@ -580,5 +591,14 @@ Route::get('/seed-sales-data', function() {
             <p>تم إنشاء 24 إعلاناً متميزاً بكافة الحالات (4 إعلانات لكل حالة من الحالات الستة: تم الدفع، قيد الدفع، قيد الاستلام بكود 123456، تم الاستلام، منتهي، قائم).</p>
             <p>الآن يمكنك استعراض الصفحات، تجربة الفلترة، التنقل بين التبويبات، والتبديل بين الشبكة والقائمة بأريحية كاملة.</p>
             <p><a href='" . route('sales.my') . "'>اضغط هنا للذهاب لصفحة مبيعاتي لمشاهدة البيانات الغنية</a></p>";
+});
+
+Route::get('/clean-database-ads', function () {
+    \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+    \App\Models\Bid::truncate();
+    \App\Models\Order::truncate();
+    \App\Models\Ad::truncate();
+    \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+    return "<h2 style='text-align: center; font-family: sans-serif; margin-top: 10%; color: #10B981;'>تم إفراغ وحذف جميع الإعلانات، المزايدات، والطلبات بنجاح! 🧼✨</h2>";
 });
 

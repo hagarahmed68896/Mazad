@@ -92,7 +92,7 @@
             @csrf
             @php 
                 $stepCounter = 1; 
-                $totalPages = count($category->pages) + ($category->properties->isNotEmpty() ? 1 : 0) + 4; // Category props + Pages + Inspection + Price + Basic + Images
+                $totalPages = $category->pages->filter(fn($p) => $p->properties->isNotEmpty())->count() + ($category->properties->isNotEmpty() ? 1 : 0) + 4; // Category props + Pages + Inspection + Price + Basic + Images
             @endphp
             <input type="hidden" name="type" value="{{ $type }}">
             <input type="hidden" name="category_id" value="{{ $category->id }}">
@@ -190,6 +190,16 @@
                                         </div>
                                     </div>
                                 @endif
+
+                                @if($prop->is_hideable)
+                                    <div class="mt-3 flex items-center gap-2">
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" name="properties_hidden[{{ $prop->id }}]" value="1" class="sr-only peer">
+                                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                                            <span class="mr-2 text-xs font-bold text-gray-500 select-none">إخفاء القيمة عن المستخدمين</span>
+                                        </label>
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>
@@ -199,86 +209,98 @@
 
             <!-- Step 1+: Dynamic Category Pages -->
             @foreach($category->pages as $index => $page)
-                <div class="step-container {{ $stepCounter == 1 ? 'active' : '' }}" data-step="{{ $stepCounter }}" data-title="{{ $page->name }}">
-                    <div class="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 space-y-6">
-                        <h2 class="text-2xl font-black text-gray-900 mb-6">{{ $page->name }}</h2>
-                        @foreach($page->properties as $prop)
-                            <div class="property-field">
-                                <label class="block text-gray-700 font-black mb-1">
-                                    {{ $prop->label }}
-                                    @if($prop->is_required) <span class="text-red-500">*</span> @endif
-                                </label>
-                                @if($prop->help_text)
-                                    <p class="mb-3 text-sm text-gray-400 font-bold">{{ $prop->help_text }}</p>
-                                @elseif($prop->placeholder && ($prop->input_type == 'checkbox' || $prop->input_type == 'radio'))
-                                    <p class="mb-3 text-sm text-gray-400 font-bold">{{ $prop->placeholder }}</p>
-                                @endif
-                                @if($prop->input_type == 'text')
-                                    <input type="text" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" class="form-input">
-                                @elseif($prop->input_type == 'number')
-                                    <input type="number" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" class="form-input">
-                                @elseif($prop->input_type == 'select')
-                                    <select name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} class="form-input">
-                                        <option value="">اختر...</option>
-                                        @foreach($prop->options ?? [] as $option)
-                                            <option value="{{ $option }}">{{ $option }}</option>
-                                        @endforeach
-                                    </select>
-                                @elseif($prop->input_type == 'radio')
-                                    <div class="grid grid-cols-2 gap-4">
-                                        @foreach($prop->options ?? [] as $optIndex => $option)
-                                            <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
-                                                <input type="radio" name="properties[{{ $prop->id }}]" value="{{ $option }}" {{ $prop->is_required && $optIndex == 0 ? 'checked' : '' }} class="w-5 h-5 accent-primary">
-                                                <span class="font-bold text-gray-700">{{ $option }}</span>
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                @elseif($prop->input_type == 'file' || $prop->input_type == 'image')
-                                    <div class="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-primary transition-all cursor-pointer relative bg-gray-50" onclick="document.getElementById('prop_file_{{ $prop->id }}').click()">
-                                        <div class="mb-3 flex justify-center">
-                                            @if(str_contains($prop->label, 'سيار') || str_contains($prop->label, 'مركب') || str_contains($prop->label, 'واجه'))
-                                                <img src="https://cdn-icons-png.flaticon.com/512/3206/3206015.png" alt="car" class="w-16 h-auto opacity-50 grayscale">
-                                            @else
-                                                <i class="fa-solid fa-cloud-arrow-up text-4xl text-gray-300"></i>
-                                            @endif
-                                        </div>
-                                        <p class="text-sm font-bold text-gray-500" id="prop_file_text_{{ $prop->id }}">0 من 1 ملف</p>
-                                        <input type="file" id="prop_file_{{ $prop->id }}" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} class="hidden" accept="image/*" onchange="handlePropFileChange(this, {{ $prop->id }})">
-                                    </div>
-                                    <!-- Preview container -->
-                                    <div id="prop_file_preview_{{ $prop->id }}" class="hidden mt-3 flex items-center justify-between p-3 border-2 border-gray-100 rounded-xl bg-white shadow-sm transition-all">
-                                        <div class="flex items-center gap-2">
-                                            <button type="button" onclick="clearPropFile({{ $prop->id }})" class="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all"><i class="fa-regular fa-trash-can"></i></button>
-                                            <button type="button" onclick="viewPropFile({{ $prop->id }})" class="text-gray-400 hover:text-primary hover:bg-blue-50 p-2 rounded-lg transition-all"><i class="fa-regular fa-eye"></i></button>
-                                        </div>
-                                        <span class="text-sm font-bold text-gray-400 truncate max-w-[200px]" id="prop_file_name_{{ $prop->id }}">صورة.png</span>
-                                    </div>
-                                @elseif($prop->input_type == 'checkbox')
-                                    <div class="grid grid-cols-2 gap-4">
-                                        @foreach($prop->options ?? [] as $option)
-                                            <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
-                                                <input type="checkbox" name="properties[{{ $prop->id }}][]" value="{{ $option }}" class="w-5 h-5 accent-primary rounded">
-                                                <span class="font-bold text-gray-700">{{ $option }}</span>
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                @elseif($prop->input_type == 'textarea')
-                                    <textarea name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" rows="4" class="form-input"></textarea>
-                                @elseif($prop->input_type == 'date')
-                                    <input type="date" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} class="form-input">
-                                @elseif($prop->input_type == 'price')
-                                    <div class="relative">
+                @if($page->properties->isNotEmpty())
+                    <div class="step-container {{ $stepCounter == 1 ? 'active' : '' }}" data-step="{{ $stepCounter }}" data-title="{{ $page->name }}">
+                        <div class="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 space-y-6">
+                            <h2 class="text-2xl font-black text-gray-900 mb-6">{{ $page->name }}</h2>
+                            @foreach($page->properties as $prop)
+                                <div class="property-field">
+                                    <label class="block text-gray-700 font-black mb-1">
+                                        {{ $prop->label }}
+                                        @if($prop->is_required) <span class="text-red-500">*</span> @endif
+                                    </label>
+                                    @if($prop->help_text)
+                                        <p class="mb-3 text-sm text-gray-400 font-bold">{{ $prop->help_text }}</p>
+                                    @elseif($prop->placeholder && ($prop->input_type == 'checkbox' || $prop->input_type == 'radio'))
+                                        <p class="mb-3 text-sm text-gray-400 font-bold">{{ $prop->placeholder }}</p>
+                                    @endif
+                                    @if($prop->input_type == 'text')
+                                        <input type="text" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" class="form-input">
+                                    @elseif($prop->input_type == 'number')
                                         <input type="number" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" class="form-input">
-                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
-                                            <span class="text-gray-400 font-bold">ر.س</span>
+                                    @elseif($prop->input_type == 'select')
+                                        <select name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} class="form-input">
+                                            <option value="">اختر...</option>
+                                            @foreach($prop->options ?? [] as $option)
+                                                <option value="{{ $option }}">{{ $option }}</option>
+                                            @endforeach
+                                        </select>
+                                    @elseif($prop->input_type == 'radio')
+                                        <div class="grid grid-cols-2 gap-4">
+                                            @foreach($prop->options ?? [] as $optIndex => $option)
+                                                <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
+                                                    <input type="radio" name="properties[{{ $prop->id }}]" value="{{ $option }}" {{ $prop->is_required && $optIndex == 0 ? 'checked' : '' }} class="w-5 h-5 accent-primary">
+                                                    <span class="font-bold text-gray-700">{{ $option }}</span>
+                                                </label>
+                                            @endforeach
                                         </div>
-                                    </div>
-                                @endif
-                            </div>
-                        @endforeach
+                                    @elseif($prop->input_type == 'file' || $prop->input_type == 'image')
+                                        <div class="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-primary transition-all cursor-pointer relative bg-gray-50" onclick="document.getElementById('prop_file_{{ $prop->id }}').click()">
+                                            <div class="mb-3 flex justify-center">
+                                                @if(str_contains($prop->label, 'سيار') || str_contains($prop->label, 'مركب') || str_contains($prop->label, 'واجه'))
+                                                    <img src="https://cdn-icons-png.flaticon.com/512/3206/3206015.png" alt="car" class="w-16 h-auto opacity-50 grayscale">
+                                                @else
+                                                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-gray-300"></i>
+                                                @endif
+                                            </div>
+                                            <p class="text-sm font-bold text-gray-500" id="prop_file_text_{{ $prop->id }}">0 من 1 ملف</p>
+                                            <input type="file" id="prop_file_{{ $prop->id }}" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} class="hidden" accept="image/*" onchange="handlePropFileChange(this, {{ $prop->id }})">
+                                        </div>
+                                        <!-- Preview container -->
+                                        <div id="prop_file_preview_{{ $prop->id }}" class="hidden mt-3 flex items-center justify-between p-3 border-2 border-gray-100 rounded-xl bg-white shadow-sm transition-all">
+                                            <div class="flex items-center gap-2">
+                                                <button type="button" onclick="clearPropFile({{ $prop->id }})" class="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all"><i class="fa-regular fa-trash-can"></i></button>
+                                                <button type="button" onclick="viewPropFile({{ $prop->id }})" class="text-gray-400 hover:text-primary hover:bg-blue-50 p-2 rounded-lg transition-all"><i class="fa-regular fa-eye"></i></button>
+                                            </div>
+                                            <span class="text-sm font-bold text-gray-400 truncate max-w-[200px]" id="prop_file_name_{{ $prop->id }}">صورة.png</span>
+                                        </div>
+                                    @elseif($prop->input_type == 'checkbox')
+                                        <div class="grid grid-cols-2 gap-4">
+                                            @foreach($prop->options ?? [] as $option)
+                                                <label class="flex items-center gap-3 p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-primary transition-all">
+                                                    <input type="checkbox" name="properties[{{ $prop->id }}][]" value="{{ $option }}" class="w-5 h-5 accent-primary rounded">
+                                                    <span class="font-bold text-gray-700">{{ $option }}</span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                    @elseif($prop->input_type == 'textarea')
+                                        <textarea name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" rows="4" class="form-input"></textarea>
+                                    @elseif($prop->input_type == 'date')
+                                        <input type="date" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} class="form-input">
+                                    @elseif($prop->input_type == 'price')
+                                        <div class="relative">
+                                            <input type="number" name="properties[{{ $prop->id }}]" {{ $prop->is_required ? 'required' : '' }} placeholder="{{ $prop->placeholder }}" class="form-input">
+                                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r-2 border-gray-100 pr-3">
+                                                <span class="text-gray-400 font-bold">ر.س</span>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    @if($prop->is_hideable)
+                                        <div class="mt-3 flex items-center gap-2">
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" name="properties_hidden[{{ $prop->id }}]" value="1" class="sr-only peer">
+                                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                                                <span class="mr-2 text-xs font-bold text-gray-500 select-none">إخفاء القيمة عن المستخدمين</span>
+                                            </label>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
-                </div>
-                @php $stepCounter++; @endphp
+                    @php $stepCounter++; @endphp
+                @endif
             @endforeach
 
     <!-- Leaflet Assets -->
@@ -681,10 +703,28 @@
 
                     <div class="space-y-3">
                         <label class="block text-gray-700 font-black">الصور</label>
-                        <button type="button" onclick="document.getElementById('imageInput').click()" class="w-full bg-primary text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
-                            <i class="fa-solid fa-cloud-arrow-up text-xl"></i> أضف من هنا
-                        </button>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <button type="button" onclick="document.getElementById('imageInput').click()" class="w-full bg-primary text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
+                                <i class="fa-solid fa-cloud-arrow-up text-xl"></i> أضف من جهازك
+                            </button>
+                            <button type="button" onclick="showImageUrlInput()" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-primary/5 transition-all">
+                                <i class="fa-solid fa-link text-xl"></i> أضف من رابط (URL)
+                            </button>
+                        </div>
                         <input type="file" id="imageInput" name="images[]" multiple class="hidden" accept="image/*">
+                        
+                        <!-- Image URL input field (initially hidden) -->
+                        <div id="imageUrlWrapper" class="hidden space-y-2 mt-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                            <label class="block text-sm font-bold text-gray-700">أدخل رابط الصورة (URL):</label>
+                            <div class="flex gap-2">
+                                <input type="url" id="imageUrlInput" placeholder="https://example.com/image.jpg" class="form-input flex-1">
+                                <button type="button" onclick="addImageUrlToList()" class="bg-primary text-white font-black px-6 rounded-xl hover:bg-blue-700 transition-all">إضافة</button>
+                            </div>
+                        </div>
+
+                        <!-- Container for dynamic image urls hidden inputs -->
+                        <div id="urlImagesContainer"></div>
+                        
                         <div id="imagePreview" class="grid grid-cols-4 gap-4 mt-4"></div>
                     </div>
 
@@ -850,7 +890,7 @@
 
 <script>
     let currentStep = 1;
-    const totalSteps = {{ count($category->pages) + ($category->properties->isNotEmpty() ? 1 : 0) + 3 }};
+    const totalSteps = {{ $category->pages->filter(fn($p) => $p->properties->isNotEmpty())->count() + ($category->properties->isNotEmpty() ? 1 : 0) + 3 }};
     let actualTotalSteps = totalSteps;
     let isFeaturedChecked = false;
 
@@ -1132,11 +1172,13 @@
 
     // Image Preview
     let selectedFiles = [];
+    let selectedUrls = [];
 
     function renderPreviews() {
         const preview = document.getElementById('imagePreview');
         preview.innerHTML = '';
         
+        // 1. Render files
         selectedFiles.forEach((file, index) => {
             const reader = new FileReader();
             reader.onload = function(event) {
@@ -1152,11 +1194,71 @@
             }
             reader.readAsDataURL(file);
         });
+
+        // 2. Render URLs
+        selectedUrls.forEach((url, index) => {
+            const div = document.createElement('div');
+            div.className = 'relative aspect-square rounded-2xl overflow-hidden border border-gray-100 shadow-sm group';
+            div.innerHTML = `
+                <img src="${url}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/600x600?text=Invalid+Image+URL';">
+                <button type="button" onclick="removeSelectedUrl(${index})" class="absolute top-1 left-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center z-10 opacity-0 group-hover:opacity-100 transition-all shadow hover:bg-red-600" title="حذف الصورة">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+            preview.appendChild(div);
+        });
+
+        // 3. Update hidden inputs for URLs
+        const urlContainer = document.getElementById('urlImagesContainer');
+        urlContainer.innerHTML = '';
+        selectedUrls.forEach(url => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'image_urls[]';
+            input.value = url;
+            urlContainer.appendChild(input);
+        });
     }
 
     window.removeSelectedFile = function(index) {
         selectedFiles.splice(index, 1);
         renderPreviews();
+    };
+
+    window.removeSelectedUrl = function(index) {
+        selectedUrls.splice(index, 1);
+        renderPreviews();
+    };
+
+    window.showImageUrlInput = function() {
+        const wrapper = document.getElementById('imageUrlWrapper');
+        if (wrapper.classList.contains('hidden')) {
+            wrapper.classList.remove('hidden');
+            document.getElementById('imageUrlInput').focus();
+        } else {
+            wrapper.classList.add('hidden');
+        }
+    };
+
+    window.addImageUrlToList = function() {
+        const input = document.getElementById('imageUrlInput');
+        const url = input.value.trim();
+        if (url) {
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                selectedUrls.push(url);
+                renderPreviews();
+                input.value = '';
+                document.getElementById('imageUrlWrapper').classList.add('hidden');
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'يرجى إدخال رابط صورة صحيح يبدأ بـ http:// أو https://',
+                    confirmButtonText: 'حسناً',
+                    confirmButtonColor: '#1A73E8'
+                });
+            }
+        }
     };
 
     document.getElementById('imageInput').onchange = function(e) {

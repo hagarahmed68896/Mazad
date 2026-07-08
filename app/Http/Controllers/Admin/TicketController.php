@@ -73,6 +73,40 @@ class TicketController extends Controller
             }
             $ticket->update($updateData);
 
+            // Handle actions against the reported user if this is a report
+            if ($ticket->type === 'report' && $ticket->reported_about) {
+                $reportedUserId = null;
+                if (preg_match('/\(ID:\s*(\d+)\)/i', $ticket->reported_about, $matches)) {
+                    $reportedUserId = (int) $matches[1];
+                }
+
+                if ($reportedUserId) {
+                    $reportedUser = \App\Models\User::find($reportedUserId);
+                    if ($reportedUser) {
+                        if ($request->action === 'warning') {
+                            \App\Models\Notification::create([
+                                'user_id' => $reportedUser->id,
+                                'title' => 'تنبيه إداري رسمي',
+                                'content' => 'تم توجيه تنبيه رسمي لحسابك بخصوص بلاغ مقدم ضدك. التفاصيل: ' . $request->note,
+                                'type' => 'alert',
+                                'status' => 'sent',
+                            ]);
+                        } elseif ($request->action === 'suspension') {
+                            $reportedUser->status = 'banned';
+                            $reportedUser->save();
+
+                            \App\Models\Notification::create([
+                                'user_id' => $reportedUser->id,
+                                'title' => 'تم إيقاف حسابك مؤقتًا',
+                                'content' => 'تم إيقاف حسابك مؤقتًا من قبل الإدارة. السبب: ' . $request->note,
+                                'type' => 'alert',
+                                'status' => 'sent',
+                            ]);
+                        }
+                    }
+                }
+            }
+
             if ($ticket->user_id) {
                 $title = $ticket->type === 'inquiry' ? 'تم الرد على استفسارك' : 'تمت معالجة بلاغك';
                 $content = $ticket->type === 'inquiry' 

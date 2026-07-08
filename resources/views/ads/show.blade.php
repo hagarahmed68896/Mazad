@@ -12,7 +12,7 @@
                 <ol class="inline-flex items-center space-x-reverse space-x-2">
                     <li><a href="{{ route('home') }}" class="hover:text-primary transition-colors">الرئيسية</a></li>
                     <li><i class="fa-solid fa-chevron-left text-[10px] mx-1 opacity-50"></i></li>
-                    <li><a href="{{ route('search', ['category' => $ad->category_id]) }}" class="hover:text-primary transition-colors">{{ $ad->category->name ?? 'عقارات' }}</a></li>
+                    <li><a href="{{ route('search', ['category' => $ad->category_id]) }}" class="hover:text-primary transition-colors">{{ $ad->category->name ?? '' }}</a></li>
                     <li><i class="fa-solid fa-chevron-left text-[10px] mx-1 opacity-50"></i></li>
                     <li class="text-gray-900 font-bold">{{ $ad->title }}</li>
                 </ol>
@@ -20,6 +20,10 @@
             @php
                 $is_favorited = Auth::check() && Auth::user()->favorites()->where('ad_id', $ad->id)->exists();
                 $is_look_later = Auth::check() && Auth::user()->lookLaters()->where('ad_id', $ad->id)->exists();
+
+                $has_joined = Auth::check() && \App\Models\Bid::where('ad_id', $ad->id)->where('user_id', Auth::id())->where('type', 'deposit')->exists();
+                $my_active_bid = Auth::check() ? \App\Models\Bid::where('ad_id', $ad->id)->where('user_id', Auth::id())->where('type', 'bid')->where('status', 'active')->first() : null;
+                $my_active_tender = Auth::check() ? \App\Models\Bid::where('ad_id', $ad->id)->where('user_id', Auth::id())->where('type', 'tender')->where('status', 'active')->first() : null;
 
                 // Global Price & Fee Calculations (Safe lookup to prevent 500 errors)
                 $comm_rate = (float) (\App\Models\Setting::where('key', 'commission_rate')->value('value') ?? 2.5);
@@ -131,7 +135,9 @@
 
         <!-- Sub Title & Category Row -->
         <div class="mb-12">
-            <span class="bg-blue-50 text-primary px-5 py-1.5 rounded-xl text-sm font-bold mb-4 inline-block border border-blue-100">عقارات</span>
+            @if($ad->category)
+                <span class="bg-blue-50 text-primary px-5 py-1.5 rounded-xl text-sm font-bold mb-4 inline-block border border-blue-100">{{ $ad->category->name }}</span>
+            @endif
             <h2 class="text-2xl md:text-4xl font-black text-gray-900 mb-4">{{ $ad->title }}</h2>
             <div class="flex items-center gap-3">
                 <span class="text-2xl md:text-[48px] font-black text-primary">{{ number_format($ad->price) }}</span>
@@ -178,10 +184,21 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             @foreach($ad->adProperties as $ap)
                                 @if(!str_contains($ap->property->label, 'معاينة'))
-                                <div class="flex justify-between items-center p-6 bg-gray-50 rounded-2xl border border-gray-100/50">
-                                    <span class="text-gray-500 font-bold">{{ $ap->property->label }}</span>
-                                    <span class="text-gray-900 font-black">{{ $ap->value }}</span>
-                                </div>
+                                    @php
+                                        $isOwnerOrAdmin = auth()->check() && (auth()->id() == $ad->user_id || auth('admin')->check());
+                                        $shouldShow = !$ap->is_hidden || $isOwnerOrAdmin;
+                                    @endphp
+                                    @if($shouldShow)
+                                        <div class="flex justify-between items-center p-6 bg-gray-50 rounded-2xl border border-gray-100/50">
+                                            <span class="text-gray-500 font-bold">
+                                                {{ $ap->property->label }}
+                                                @if($ap->is_hidden)
+                                                    <span class="text-xs text-rose-500 font-bold">(مخفي للمستخدمين)</span>
+                                                @endif
+                                            </span>
+                                            <span class="text-gray-900 font-black">{{ $ap->value }}</span>
+                                        </div>
+                                    @endif
                                 @endif
                             @endforeach
                             <div class="flex justify-between items-center p-6 bg-gray-50 rounded-2xl border border-gray-100/50">
@@ -307,9 +324,9 @@
                             $isRepresentative = true;
                         }
                         if (Auth::check() && Auth::id() == $ad->user_id) {
-                            $reviews = $seller->reviewsReceived()->latest()->get();
+                            $reviews = $ad->reviews()->latest()->get();
                         } else {
-                            $reviews = $seller->reviewsReceived()->where('is_visible', true)->latest()->get();
+                            $reviews = $ad->reviews()->where('is_visible', true)->latest()->get();
                         }
                         $totalReviews = $reviews->count();
                         $avgRating = $totalReviews > 0 ? round($reviews->avg('rating'), 1) : 0;
@@ -706,23 +723,23 @@
                             <!-- Stats Table -->
                             <div class="border border-gray-100 rounded-2xl overflow-hidden mb-6">
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">حالة الاعلان</span>
+                                    <span class="text-gray-900 font-black text-sm whitespace-nowrap">حالة الاعلان</span>
                                     <span class="{{ $b_status_class }} px-4 py-1 rounded-full text-xs font-black border">{{ $b_status_label }}</span>
                                 </div>
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المشاهدات</span>
-                                    <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->views_count) }}</span>
+                                    <span class="text-gray-900 font-black text-sm whitespace-nowrap">المشاهدات</span>
+                                    <span class="text-gray-900 font-black text-[15px] text-left">{{ number_format($ad->views_count) }}</span>
                                 </div>
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المزايدات</span>
-                                    <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->bids()->where('type', '!=', 'deposit')->count()) }}</span>
+                                    <span class="text-gray-900 font-black text-sm whitespace-nowrap">المزايدات</span>
+                                    <span class="text-gray-900 font-black text-[15px] text-left">{{ number_format($ad->bids()->where('type', '!=', 'deposit')->count()) }}</span>
                                 </div>
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المفضلة</span>
-                                    <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->favorites()->count()) }}</span>
+                                    <span class="text-gray-900 font-black text-sm whitespace-nowrap">المفضلة</span>
+                                    <span class="text-gray-900 font-black text-[15px] text-left">{{ number_format($ad->favorites()->count()) }}</span>
                                 </div>
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 gap-4">
-                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">السعر النهائي</span>
+                                    <span class="text-gray-900 font-black text-sm whitespace-nowrap">السعر النهائي</span>
                                     <div class="flex items-center gap-1 justify-end text-primary">
                                         <span class="font-black text-lg">{{ number_format($buyerOrder->final_price) }}</span>
                                         <x-riyal-icon class="w-4 h-4 text-primary" />
@@ -807,19 +824,19 @@
                                 @endphp
 
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">حالة الاعلان</span>
+                                    <span class="text-gray-900 font-black text-sm whitespace-nowrap">حالة الاعلان</span>
                                     <span class="{{ $ad_status_class }} px-4 py-1 rounded-full text-xs font-black border">{{ $ad_status_label }}</span>
                                 </div>
 
                                 @if($auction_status_label)
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">حالة المزاد</span>
+                                    <span class="text-gray-900 font-black text-sm whitespace-nowrap">حالة المزاد</span>
                                     <span class="{{ $auction_status_class }} px-4 py-1 rounded-full text-xs font-black border">{{ $auction_status_label }}</span>
                                 </div>
                                 @endif
 
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4 sidebar-countdown" data-end="{{ $ad->end_date ? \Carbon\Carbon::parse($ad->end_date)->toIso8601String() : '' }}">
-                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">ينتهي في</span>
+                                    <span class="text-gray-900 font-black text-sm whitespace-nowrap">ينتهي في</span>
                                     <div class="text-primary font-black text-sm countdown-timer flex items-center gap-1 justify-end" dir="ltr" style="font-family: 'Courier New', Courier, monospace;">
                                         <div class="flex items-center gap-0.5"><span class="days">00</span><span>d</span></div>
                                         <span class="text-gray-300">:</span>
@@ -833,30 +850,32 @@
 
                                 @if($ad->inspection_info)
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">وقت المعاينة</span>
-                                    <span class="text-gray-500 font-black text-sm text-left">{{ $ad->inspection_info }}</span>
+                                    <span class="text-gray-900 font-black text-sm whitespace-nowrap">وقت المعاينة</span>
+                                    <span class="text-gray-900 font-black text-[15px] text-left">{{ $ad->inspection_info }}</span>
                                 </div>
                                 @endif
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المشاهدات</span>
-                                    <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->views_count) }}</span>
+                                    <span class="text-gray-900 font-black text-sm whitespace-nowrap">المشاهدات</span>
+                                    <span class="text-gray-900 font-black text-[15px] text-left">{{ number_format($ad->views_count) }}</span>
                                 </div>
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">
+                                    <span class="text-gray-900 font-black text-sm whitespace-nowrap">
                                         @if($ad->type == 'tender')
                                             المناقصات
+                                        @elseif($ad->type == 'direct_purchase')
+                                            العروض
                                         @else
-                                            {{ $ad->type == 'direct_purchase' ? 'السومات' : 'المزايدات' }}
+                                            المزايدات
                                         @endif
                                     </span>
-                                    <button onclick="showBidsModal()" class="text-primary font-black text-sm underline text-left hover:text-blue-700 transition-colors">{{ number_format($ad->bids()->where('type', '!=', 'deposit')->count()) }}</button>
+                                    <button onclick="showBidsModal()" class="text-primary font-black text-[15px] underline text-left hover:text-blue-700 transition-colors">{{ number_format($ad->bids()->where('type', '!=', 'deposit')->count()) }}</button>
                                 </div>
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 border-b border-gray-50 gap-4">
-                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">المفضلة</span>
-                                    <span class="text-gray-500 font-black text-sm text-left">{{ number_format($ad->favorites()->count()) }}</span>
+                                    <span class="text-gray-900 font-black text-sm whitespace-nowrap">المفضلة</span>
+                                    <span class="text-gray-900 font-black text-[15px] text-left">{{ number_format($ad->favorites()->count()) }}</span>
                                 </div>
                                 <div class="grid grid-cols-[1fr_auto] items-center p-4 {{ $ad->type == 'direct_purchase' ? '' : 'border-b' }} border-gray-50 gap-4">
-                                    <span class="text-gray-900 font-bold text-sm whitespace-nowrap">
+                                    <span class="text-gray-900 font-black text-sm whitespace-nowrap">
                                         @if($ad->type == 'tender')
                                             السعر الحالي
                                         @elseif($ad->type == 'direct_purchase')
@@ -915,28 +934,19 @@
                             @if(!$is_closed && (!Auth::check() || !Auth::user()->isSameTeam($ad->user_id)))
                             <div class="space-y-3">
                                 @if($ad->type == 'electronic_auction' || $ad->type == 'hybrid_auction')
-                                    @php
-                                        $has_joined = \App\Models\Bid::where('ad_id', $ad->id)->where('user_id', auth()->id())->where('type', 'deposit')->exists();
-                                    @endphp
-
                                     @if(!$has_joined && $b_status != 'upcoming')
-                                        <button onclick="requireAuth(showJoinAuctionModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg mb-3">
+                                        <button onclick="requireAuth(showBidModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg mb-3">
                                             اشترك في المزاد الآن
                                         </button>
                                     @elseif($b_status == 'upcoming')
-                                        <button onclick="requireAuth(showJoinAuctionModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg mb-3">
+                                        <button onclick="requireAuth(showBidModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg mb-3">
                                             اشترك في المزاد (قريباً)
                                         </button>
                                     @else
-                                        <!-- Joined or Active: Show Separate Bidding Buttons -->
-                                        <div class="grid grid-cols-2 gap-3 mb-3">
-                                            <button onclick="requireAuth(showBidModal)" class="bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
-                                                زايد الآن
-                                            </button>
-                                            <button onclick="requireAuth(showAutoBidModal)" class="border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-sm">
-                                                المزايدة التلقائية
-                                            </button>
-                                        </div>
+                                        <!-- Joined or Active: Show Unified Bidding Button -->
+                                        <button onclick="requireAuth(showBidModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg mb-3">
+                                            زايد الآن
+                                        </button>
                                     @endif
 
                                     <button onclick="requireAuth(showPurchaseModal)" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-lg mb-3">
@@ -946,14 +956,9 @@
                                          أضف الي السلة <i class="fa-solid fa-cart-shopping text-sm"></i>
                                     </button>
                                 @elseif($ad->type == 'tender')
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <button onclick="requireAuth(showTenderModal)" class="bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
-                                            ناقص الآن
-                                        </button>
-                                        <button onclick="requireAuth(showAutoTenderModal)" class="border-2 border-primary text-primary font-black py-4 rounded-xl hover:bg-primary/5 transition-all text-sm">
-                                            المناقصة التلقائية
-                                        </button>
-                                    </div>
+                                    <button onclick="requireAuth(showTenderModal)" class="w-full bg-primary text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
+                                        ناقص الآن
+                                    </button>
                                 @else
                                     <div class="space-y-3">
                                         <div class="grid grid-cols-2 gap-3">
@@ -1184,10 +1189,23 @@
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                     <h3 class="text-xl font-black text-gray-900">
-                        {{ $ad->type == 'tender' ? 'سجل المناقصات' : 'سجل المزايدات' }}
+                        @if($ad->type == 'tender')
+                            سجل المناقصات
+                        @elseif($ad->type == 'direct_purchase')
+                            سجل العروض
+                        @else
+                            سجل المزايدات
+                        @endif
                     </h3>
                     <div class="px-3 py-1 bg-blue-50 text-primary rounded-full text-sm font-black border border-blue-100">
-                        {{ $ad->bids()->where('type', '!=', 'deposit')->count() }} {{ $ad->type == 'tender' ? 'مناقصة' : 'مزايدة' }}
+                        {{ $ad->bids()->where('type', '!=', 'deposit')->count() }} 
+                        @if($ad->type == 'tender')
+                            مناقصة
+                        @elseif($ad->type == 'direct_purchase')
+                            عرض
+                        @else
+                            مزايدة
+                        @endif
                     </div>
                 </div>
 
@@ -1242,7 +1260,17 @@
                     @else
                     <div class="flex flex-col items-center justify-center py-16 text-gray-400">
                         <i class="fa-solid fa-gavel text-4xl mb-3 opacity-30"></i>
-                        <p class="font-bold">لا توجد {{ $ad->type == 'tender' ? 'مناقصات' : 'مزايدات' }} حتى الآن</p>
+                        <p class="font-bold">
+                            لا توجد 
+                            @if($ad->type == 'tender')
+                                مناقصات
+                            @elseif($ad->type == 'direct_purchase')
+                                عروض
+                            @else
+                                مزايدات
+                            @endif 
+                            حتى الآن
+                        </p>
                     </div>
                     @endif
                 </div>
@@ -1253,7 +1281,7 @@
 
 
 
-        <!-- 1. Manual Bid Modal (زايد الآن) -->
+        <!-- Unified Bid Modal (اشترك في المزاد) -->
         <div id="bidModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
             <div class="bg-white w-full max-w-md rounded-[28px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in fade-in zoom-in duration-300" dir="rtl">
                 <div class="p-6 flex justify-start">
@@ -1265,29 +1293,20 @@
                 <form action="{{ route('bids.store', $ad->id) }}" method="POST" class="px-8 pb-8 text-center" id="bidForm">
                     @csrf
                     <input type="hidden" name="type" value="bid">
-                    <h3 class="text-3xl font-black text-gray-900 mb-6">زايد الآن</h3>
+                    <h3 class="text-2xl font-black text-gray-900 mb-6">اشترك في المزاد</h3>
 
-                    <!-- Current Price Info -->
-                    <div class="grid grid-cols-2 gap-3 mb-6">
-                        <div class="bg-gray-50 rounded-2xl p-4 text-center border border-gray-100">
-                            <span class="text-gray-500 font-bold text-xs block mb-1">السعر الحالي</span>
-                            <div class="flex items-center justify-center gap-1 text-gray-900">
-                                <span class="font-black text-xl">{{ number_format($ad->price) }}</span>
-                                <x-riyal-icon class="w-5 h-5" />
-                            </div>
+                    @if(!$has_joined)
+                        <!-- Deposit Amount Box -->
+                        <div class="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 mb-6 flex items-center justify-center gap-2 text-primary">
+                            <span class="text-gray-900 font-bold text-base">قيمة العربون:</span>
+                            <span class="font-black text-2xl">{{ number_format($ad->deposit_amount > 0 ? $ad->deposit_amount : 1000) }}</span>
+                            <x-riyal-icon class="w-6 h-6 text-primary" />
                         </div>
-                        <div class="bg-primary/5 rounded-2xl p-4 text-center border border-primary/10">
-                            <span class="text-primary font-bold text-xs block mb-1">أقل مزايدة</span>
-                            <div class="flex items-center justify-center gap-1 text-primary">
-                                <span class="font-black text-xl">{{ number_format($ad->price + ($ad->bid_increment ?? 500)) }}</span>
-                                <x-riyal-icon class="w-5 h-5" />
-                            </div>
-                        </div>
-                    </div>
+                    @endif
 
                     <!-- Bid Amount with +/- Buttons -->
-                    <div class="bg-gray-50 rounded-3xl p-6 mb-8">
-                        <div class="flex items-center justify-between gap-4 mb-4">
+                    <div class="bg-gray-50/80 rounded-3xl p-6 mb-6">
+                        <div class="flex items-center justify-between gap-4 mb-3">
                             <button type="button" id="btnDecreaseBid" class="w-14 h-14 flex items-center justify-center rounded-xl bg-white border border-gray-200 text-gray-400 transition-all" disabled>
                                 <i class="fa-solid fa-minus text-xl"></i>
                             </button>
@@ -1295,8 +1314,9 @@
                             <div class="flex-1 text-center">
                                 <div class="flex items-center justify-center gap-2 text-gray-900 mb-1">
                                     <span id="bidAmountDisplay" class="font-black text-4xl">{{ number_format($ad->price + ($ad->bid_increment ?? 500)) }}</span>
-                                    <x-riyal-icon class="w-8 h-8" />
+                                    <x-riyal-icon class="w-8 h-8 text-primary" />
                                 </div>
+                                <span class="text-xs text-gray-400 font-bold block">قيمة التزايد: {{ number_format($ad->bid_increment ?? 500) }} ر.س</span>
                             </div>
 
                             <button type="button" id="btnIncreaseBid" class="w-14 h-14 flex items-center justify-center rounded-xl bg-white border border-primary text-primary hover:bg-primary hover:text-white transition-all">
@@ -1306,90 +1326,39 @@
                         <input type="hidden" name="amount" id="bidAmountInput" value="{{ $ad->price + ($ad->bid_increment ?? 500) }}">
                     </div>
 
-                    <div class="flex gap-4">
-                        <button type="submit" class="flex-1 bg-primary text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">تأكيد المزايدة</button>
-                        <button type="button" onclick="hideBidModal()" class="flex-1 bg-gray-200 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-300 transition-all text-lg">إلغاء</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- 2. Auto Bid Modal (المزايدة التلقائية) -->
-        <div id="autoBidModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
-            <div class="bg-white w-full max-w-md rounded-[28px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in fade-in zoom-in duration-300" dir="rtl">
-                <div class="p-6 flex justify-start">
-                    <button onclick="hideAutoBidModal()" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-all">
-                        <i class="fa-solid fa-xmark text-lg"></i>
-                    </button>
-                </div>
-                
-                <form action="{{ route('bids.store', $ad->id) }}" method="POST" class="px-8 pb-8 text-center" id="autoBidForm">
-                    @csrf
-                    <input type="hidden" name="type" value="bid">
-                    <input type="hidden" name="is_auto" value="1">
-                    <h3 class="text-3xl font-black text-gray-900 mb-2">المزايدة التلقائية</h3>
-                    <p class="text-gray-500 text-sm font-medium leading-relaxed mb-8">
-                        أدخل الحد الأعلى الذي ترغب بالمزايدة حتى الوصول إليه. النظام سيزايد تلقائياً بدلاً عنك.
-                    </p>
-
-                    <!-- Limit Amount Input -->
-                    <div class="text-right mb-8">
-                        <label class="block text-gray-700 font-bold mb-2 pr-2">الحد الأعلى للمزايدة</label>
+                    <!-- Ceiling / Max Limit Box -->
+                    <div class="text-right mb-6">
+                        <label class="block text-gray-700 font-bold mb-2 pr-2 text-sm">الحد الأعلى للمزايدة</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r border-gray-100 px-4 my-2">
                                 <x-riyal-icon class="w-5 h-5 text-gray-900" />
                             </div>
-                            <input type="number" name="amount" required placeholder="أدخل الحد الأعلى" class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 pr-4 pl-16 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold transition-all text-lg">
+                            <input type="number" name="max_limit" id="bidMaxLimitInput" value="{{ $my_active_bid ? $my_active_bid->max_limit : '' }}" placeholder="أدخل الحد الأعلى للمزايدة" class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 pr-4 pl-16 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold transition-all text-base">
                         </div>
-                    </div>
-
-                    <div class="flex gap-4">
-                        <button type="submit" class="flex-1 bg-primary text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">تفعيل</button>
-                        <button type="button" onclick="hideAutoBidModal()" class="flex-1 bg-gray-200 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-300 transition-all text-lg">إلغاء</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- 3. Join Auction Modal (اشترك في المزاد) -->
-        <div id="joinAuctionModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
-            <div class="bg-white w-full max-w-md rounded-[28px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in fade-in zoom-in duration-300" dir="rtl">
-                <div class="p-6 flex justify-start">
-                    <button onclick="hideJoinAuctionModal()" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-all">
-                        <i class="fa-solid fa-xmark text-lg"></i>
-                    </button>
-                </div>
-                
-                <div class="px-8 pb-8 text-center">
-                    <h3 class="text-2xl font-black text-gray-900 mb-2">اشترك في المزاد</h3>
-                    <p class="text-gray-500 text-sm font-medium leading-relaxed mb-8">
-                        للاشتراك في المزاد، يجب دفع قيمة العربون لضمان الجدية في المزايدة.
-                    </p>
-
-                    <!-- Deposit Amount Box -->
-                    <div class="bg-gray-50/80 rounded-2xl p-5 mb-6 flex items-center justify-center gap-2 text-primary">
-                        <span class="text-gray-900 font-bold text-lg">قيمة العربون:</span>
-                        <span class="font-black text-2xl">{{ number_format($ad->deposit_amount > 0 ? $ad->deposit_amount : 1000) }}</span>
-                        <x-riyal-icon class="w-6 h-6" />
-                    </div>
-
-                    <!-- Note -->
-                    <div class="flex items-start gap-3 text-right mb-8 px-2">
-                        <i class="fa-solid fa-circle-info text-gray-400 mt-1 text-sm"></i>
-                        <p class="text-[13px] text-gray-500 font-medium leading-normal">
-                            سيتم حجز مبلغ العربون من رصيدك، وفي حال لم يرسُ عليك المزاد سيتم استرداد المبلغ بالكامل تلقائياً.
+                        @if($my_active_bid && $my_active_bid->max_limit > $my_active_bid->amount)
+                            <span class="text-xs text-green-600 font-bold block mt-2 pr-2">الحد الأعلى النشط حالياً: {{ number_format($my_active_bid->max_limit) }} ر.س</span>
+                        @endif
+                        <p class="text-[12px] text-gray-400 font-medium leading-relaxed mt-2 px-1">
+                            سيقوم النظام بالمزايدة بالنيابة عنك حتى تصل السلعة إلى القيمة المدخلة. لا يمكن لخاصية المزايدة التلقائية ضمان فوزك في المزاد، خاصة إذا قام مستخدم آخر بمزايدة أعلى.
                         </p>
                     </div>
 
-                    <form action="{{ route('bids.store', $ad->id) }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="type" value="deposit">
-                        <div class="flex gap-4">
-                            <button type="submit" class="flex-1 bg-primary text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">دفع العربون</button>
-                            <button type="button" onclick="hideJoinAuctionModal()" class="flex-1 bg-gray-100 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-200 transition-all">إلغاء</button>
-                        </div>
-                    </form>
-                </div>
+                    <!-- Notification Toggle Switch -->
+                    <div class="flex items-center justify-between mb-8 px-2">
+                        <span class="text-sm font-bold text-gray-700">استلم إشعار عند اقتراب المزايدة من الحد الأعلى</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="notify_near_limit" value="1" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button type="submit" class="flex-1 bg-primary text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">
+                            {{ !$has_joined ? 'اشترك الآن' : 'تأكيد المزايدة' }}
+                        </button>
+                        <button type="button" onclick="hideBidModal()" class="flex-1 bg-gray-100 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-200 transition-all text-lg">إلغاء</button>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -1447,7 +1416,7 @@
             </div>
         </div>
 
-        <!-- Tender Modal (ناقص الآن) -->
+        <!-- Unified Tender Modal (ناقص الآن) -->
         <div id="tenderModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
             <div class="bg-white w-full max-w-md rounded-[28px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in fade-in zoom-in duration-300" dir="rtl">
                 <div class="p-6 flex justify-start">
@@ -1456,103 +1425,69 @@
                     </button>
                 </div>
                 
-                <div class="px-8 pb-8 text-center">
-                    <h3 class="text-3xl font-black text-gray-900 mb-6">ناقص الآن</h3>
+                <form action="{{ route('bids.store', $ad->id) }}" method="POST" class="px-8 pb-8 text-center" id="tenderForm">
+                    @csrf
+                    <input type="hidden" name="type" value="tender">
+                    <h3 class="text-2xl font-black text-gray-900 mb-6">اشتراك في المناقصة</h3>
                     
                     <!-- Deposit Amount Box -->
-                    <div class="bg-gray-50/80 rounded-2xl p-5 mb-8 flex items-center justify-center gap-2 text-gray-900">
-                        <span class="font-bold text-lg">قيمة العربون:</span>
+                    <div class="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 mb-6 flex items-center justify-center gap-2 text-primary">
+                        <span class="text-gray-900 font-bold text-base">قيمة العربون:</span>
                         <span class="font-black text-2xl text-primary">{{ number_format($ad->deposit_amount > 0 ? $ad->deposit_amount : 1000) }}</span>
                         <x-riyal-icon class="w-6 h-6 text-primary" />
                     </div>
 
-                    <!-- Bidding UI -->
-                    <div class="bg-gray-50/80 rounded-3xl p-6 mb-8">
-                        <div class="flex items-center justify-between gap-4 mb-4">
-                            <button id="btnDecreaseTender" class="w-14 h-14 flex items-center justify-center rounded-xl bg-white border border-primary text-primary hover:bg-primary hover:text-white transition-all">
+                    <!-- Bidding UI (Decrement/Increment) -->
+                    <div class="bg-gray-50/80 rounded-3xl p-6 mb-6">
+                        <div class="flex items-center justify-between gap-4 mb-3">
+                            <button type="button" id="btnDecreaseTender" class="w-14 h-14 flex items-center justify-center rounded-2xl bg-white border border-primary text-primary hover:bg-primary hover:text-white transition-all">
                                 <i class="fa-solid fa-minus text-xl"></i>
                             </button>
                             
                             <div class="flex-1 text-center">
                                 <div class="flex items-center justify-center gap-2 text-gray-900 mb-1">
                                     <span id="tenderAmountDisplay" class="font-black text-4xl">0</span>
-                                    <x-riyal-icon class="w-8 h-8" />
+                                    <x-riyal-icon class="w-8 h-8 text-primary" />
                                 </div>
+                                <span class="text-xs text-gray-400 font-bold block">قيمة التناقص: {{ number_format($ad->bid_increment ?? 500) }} ر.س</span>
                             </div>
 
-                            <button id="btnIncreaseTender" class="w-14 h-14 flex items-center justify-center rounded-xl bg-white border border-primary text-primary hover:bg-primary hover:text-white transition-all">
+                            <button type="button" id="btnIncreaseTender" class="w-14 h-14 flex items-center justify-center rounded-2xl bg-white border border-gray-200 text-gray-400 transition-all" disabled>
                                 <i class="fa-solid fa-plus text-xl"></i>
                             </button>
                         </div>
-                        <div class="flex items-center justify-center gap-1 text-gray-400 font-bold">
-                            <span>قيمة التناقص</span>
-                            <span>{{ number_format($ad->bid_increment ?? 500) }}</span>
-                            <x-riyal-icon class="w-4 h-4" />
-                        </div>
-                    </div>
-
-                    <form action="{{ route('bids.store', $ad->id) }}" method="POST">
-                        @csrf
                         <input type="hidden" name="amount" id="tenderAmountInput">
-                        <input type="hidden" name="type" value="tender">
-                        
-                        <div class="flex gap-4">
-                            <button type="submit" class="flex-1 bg-primary text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">تفعيل</button>
-                            <button type="button" onclick="hideTenderModal()" class="flex-1 bg-gray-200 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-300 transition-all text-lg">إلغاء</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-
-
-
-
-
-
-        <!-- Auto Tender Modal (المناقصة التلقائية) -->
-        <div id="autoTenderModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/20 backdrop-blur-xl transition-all">
-            <div class="bg-white w-full max-w-md rounded-[28px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in fade-in zoom-in duration-300" dir="rtl">
-                <div class="p-6 flex justify-start">
-                    <button onclick="hideAutoTenderModal()" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-all">
-                        <i class="fa-solid fa-xmark text-lg"></i>
-                    </button>
-                </div>
-                
-                <form action="{{ route('bids.store', $ad->id) }}" method="POST" class="px-8 pb-8 text-center">
-                    @csrf
-                    <input type="hidden" name="type" value="auto_tender">
-                    <h3 class="text-3xl font-black text-gray-900 mb-2">المناقصة التلقائية</h3>
-                    
-                    <!-- Deposit Amount Box -->
-                    <div class="bg-gray-50/80 rounded-2xl p-5 mb-8 flex items-center justify-center gap-2 text-gray-900">
-                        <span class="font-bold text-lg">قيمة العربون:</span>
-                        <span class="font-black text-2xl text-primary">{{ number_format($ad->deposit_amount > 0 ? $ad->deposit_amount : 1000) }}</span>
-                        <x-riyal-icon class="w-6 h-6 text-primary" />
                     </div>
 
-                    <!-- Min Limit Input -->
+                    <!-- Min Limit Input (Auto-Tender Floor) -->
                     <div class="text-right mb-6">
-                        <label class="block text-gray-700 font-bold mb-2 pr-2">الحد الأدنى للمناقصة</label>
+                        <label class="block text-gray-700 font-bold mb-2 pr-2 text-sm">الحد الأدنى للمناقصة</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none border-r border-gray-100 px-4 my-2">
                                 <x-riyal-icon class="w-5 h-5 text-gray-900" />
                             </div>
-                            <input type="number" name="min_limit" required placeholder="أدخل الحد الأدنى للمناقصة" class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 pr-4 pl-16 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold transition-all">
+                            <input type="number" name="min_limit" id="tenderMinLimitInput" value="{{ $my_active_tender ? $my_active_tender->min_limit : '' }}" placeholder="أدخل الحد الأدنى للمناقصة" class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 pr-4 pl-16 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold transition-all text-base">
                         </div>
-                    </div>
-
-                    <!-- Note -->
-                    <div class="bg-gray-50/50 rounded-2xl p-4 mb-8 text-right">
-                        <p class="text-[13px] text-gray-500 font-medium leading-relaxed">
-                            لا يمكن لخاصية المناقصة التلقائية العكسية أن تضمن فوزك بالمناقصة، خاصة إذا قام متناقص آخر بتقديم عرض أقل من الحد الأدنى الذي حددته.
+                        @if($my_active_tender && $my_active_tender->min_limit < $my_active_tender->amount)
+                            <span class="text-xs text-green-600 font-bold block mt-2 pr-2">الحد الأدنى النشط حالياً: {{ number_format($my_active_tender->min_limit) }} ر.س</span>
+                        @endif
+                        <p class="text-[12px] text-gray-400 font-medium leading-relaxed mt-2 px-1">
+                            سيقوم النظام بتقديم عروض أقل بالنيابة عنك حتى تصل السلعة إلى الحد الأدنى المدخل. لا يمكن لخاصية المناقصة التلقائية العكسية ضمان فوزك بالمناقصة.
                         </p>
                     </div>
 
+                    <!-- Notification Toggle Switch -->
+                    <div class="flex items-center justify-between mb-8 px-2">
+                        <span class="text-sm font-bold text-gray-700">استلم إشعار عند اقتراب المناقصة من الحد الأدنى</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="notify_near_limit" value="1" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+
                     <div class="flex gap-4">
-                        <button type="submit" class="flex-1 bg-primary text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">تفعيل</button>
-                        <button type="button" onclick="hideAutoTenderModal()" class="flex-1 bg-gray-200 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-300 transition-all text-lg">إلغاء</button>
+                        <button type="submit" class="flex-1 bg-primary text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg">تأكيد المناقصة</button>
+                        <button type="button" onclick="hideTenderModal()" class="flex-1 bg-gray-100 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-200 transition-all text-lg">إلغاء</button>
                     </div>
                 </form>
             </div>
@@ -1852,41 +1787,28 @@
 
     // Close on click outside
     window.onclick = function(event) {
-        const modals = ['priceModal', 'joinAuctionModal', 'authRequiredModal', 'bidsModal', 'purchaseModal', 'tenderModal', 'autoTenderModal', 'bidModal', 'autoBidModal', 'offerModal'];
+        const modals = ['priceModal', 'authRequiredModal', 'bidsModal', 'purchaseModal', 'tenderModal', 'bidModal', 'offerModal'];
         modals.forEach(id => {
             const modal = document.getElementById(id);
             if (event.target == modal) {
                 // Call the appropriate hide function
                 if (id === 'priceModal') hidePriceModal();
-                if (id === 'joinAuctionModal') hideJoinAuctionModal();
                 if (id === 'authRequiredModal') hideAuthModal();
                 if (id === 'bidsModal') hideBidsModal();
                 if (id === 'purchaseModal') hidePurchaseModal();
                 if (id === 'tenderModal') hideTenderModal();
-                if (id === 'autoTenderModal') hideAutoTenderModal();
                 if (id === 'bidModal') hideBidModal();
-                if (id === 'autoBidModal') hideAutoBidModal();
                 if (id === 'offerModal') hideOfferModal();
             }
         });
     }
 
     function showAutoTenderModal() {
-        const modal = document.getElementById('autoTenderModal');
-        if(modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        }
+        showTenderModal();
     }
 
     function hideAutoTenderModal() {
-        const modal = document.getElementById('autoTenderModal');
-        if(modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            document.body.style.overflow = 'auto';
-        }
+        hideTenderModal();
     }
 
     function toggleWishlistUI(action) {
@@ -1915,10 +1837,7 @@
 
     // Join Auction Modal Logic
     function showJoinAuctionModal() {
-        const modal = document.getElementById('joinAuctionModal');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
+        showBidModal();
     }
 
     @if(session('success'))
@@ -1955,10 +1874,7 @@
     @endif
 
     function hideJoinAuctionModal() {
-        const modal = document.getElementById('joinAuctionModal');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        document.body.style.overflow = 'auto';
+        hideBidModal();
     }
 
     function showOfferModal() {

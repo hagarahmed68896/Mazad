@@ -27,6 +27,34 @@ class BidController extends Controller
         $type = $request->type ?? 'bid';
 
         if ($type === 'bid') {
+            $hasJoined = Bid::where('ad_id', $ad->id)
+                ->where('user_id', Auth::id())
+                ->where('type', 'deposit')
+                ->where('status', 'active')
+                ->exists();
+
+            if (!$hasJoined) {
+                $depositAmount = $ad->deposit_amount > 0 ? $ad->deposit_amount : 1000;
+                DB::transaction(function () use ($ad, $depositAmount) {
+                    Bid::create([
+                        'ad_id' => $ad->id,
+                        'user_id' => Auth::id(),
+                        'amount' => $depositAmount,
+                        'type' => 'deposit',
+                        'status' => 'active',
+                    ]);
+                    \App\Models\Transaction::create([
+                        'transaction_number' => 'TRX-' . strtoupper(\Illuminate\Support\Str::random(10)),
+                        'user_id' => Auth::id(),
+                        'ad_id' => $ad->id,
+                        'type' => 'deposit',
+                        'amount' => $depositAmount,
+                        'payment_method' => 'bank_transfer',
+                        'status' => 'completed',
+                    ]);
+                });
+            }
+
             return $this->handleAuctionBid($request, $ad);
         } elseif ($type === 'offer') {
             return $this->handleOffer($request, $ad);
@@ -58,19 +86,26 @@ class BidController extends Controller
     {
         $request->validate([
             'amount' => 'required|numeric|min:1',
+            'max_limit' => 'nullable|numeric|min:1',
         ]);
 
         $increment = (float) ($ad->bid_increment ?? 500);
         $currentPrice = (float) $ad->price;
         $minBid = $currentPrice + $increment;
-        $userMaxLimit = (float) $request->amount;
+
+        $bidAmount = (float) $request->amount;
+        $userMaxLimit = $request->filled('max_limit') ? (float) $request->max_limit : $bidAmount;
 
         // Validate minimum
-        if ($userMaxLimit < $minBid) {
+        if ($bidAmount < $minBid) {
             return back()->withInput()->with('error', 'أقل مبلغ للمزايدة هو ' . number_format($minBid) . ' ريال');
         }
 
-        $result = $this->processAutoBid($ad, Auth::id(), $userMaxLimit);
+        if ($userMaxLimit < $bidAmount) {
+            return back()->withInput()->with('error', 'يجب أن يكون الحد الأعلى أكبر من أو يساوي قيمة المزايدة');
+        }
+
+        $result = $this->processAutoBid($ad, Auth::id(), $userMaxLimit, $bidAmount);
 
         if ($result['outbid']) {
             return back()->with('warning', $result['message']);
@@ -82,14 +117,39 @@ class BidController extends Controller
     /**
      * Core auto-bidding engine (DB transaction with row locking)
      */
-    public function processAutoBid(Ad $ad, int $userId, float $newMaxLimit): array
+    public function processAutoBid(Ad $ad, int $userId, float $newMaxLimit, float $startBid = null): array
     {
-        return DB::transaction(function () use ($ad, $userId, $newMaxLimit) {
+        return DB::transaction(function () use ($ad, $userId, $newMaxLimit, $startBid) {
             // Lock the ad row to prevent race conditions
             $ad = Ad::lockForUpdate()->find($ad->id);
             $increment = (float) ($ad->bid_increment ?? 500);
             $currentPrice = (float) $ad->price;
-            $minBid = $currentPrice + $increment;
+            $minBid = $startBid ?: ($currentPrice + $increment);
+
+            // Check if they are already the leading active bidder
+            $currentTopBid = Bid::where('ad_id', $ad->id)
+                ->where('type', 'bid')
+                ->where('status', 'active')
+                ->first();
+
+            if ($currentTopBid && $currentTopBid->user_id === $userId) {
+                if ($newMaxLimit >= $currentPrice) {
+                    $currentTopBid->update([
+                        'max_limit' => $newMaxLimit,
+                        'notify_near_limit' => (bool) request('notify_near_limit', false),
+                    ]);
+                    return [
+                        'outbid' => false,
+                        'message' => 'تم تحديث الحد الأعلى لمزايدتك بنجاح إلى ' . number_format($newMaxLimit) . ' ريال.',
+                        'current_price' => $currentPrice,
+                    ];
+                }
+                return [
+                    'outbid' => false,
+                    'message' => 'أنت المزايد الأعلى حالياً على هذا الإعلان بالفعل.',
+                    'current_price' => $currentPrice,
+                ];
+            }
 
             // Deactivate any existing bid from this user on this ad
             Bid::where('ad_id', $ad->id)
@@ -240,21 +300,30 @@ class BidController extends Controller
     }
 
     /**
-     * Notify ad owner about new bid or tender
+     * Notify ad owner about new bid, tender, or offer
      */
     private function notifyAdOwner(int $userId, Ad $ad, float $amount, string $type): void
     {
         try {
-            $title = $type === 'tender' ? 'تم تقديم مناقصة جديدة 📝' : 'مزايدة جديدة على إعلانك 🔨';
-            $content = $type === 'tender' 
-                ? 'تم تقديم مناقصة بقيمة ' . number_format($amount) . ' ريال على إعلانك "' . $ad->title . '".'
-                : 'تم تقديم مزايدة جديدة بقيمة ' . number_format($amount) . ' ريال على إعلانك "' . $ad->title . '".';
+            if ($type === 'tender') {
+                $title = 'تم تقديم مناقصة جديدة 📝';
+                $content = 'تم تقديم مناقصة بقيمة ' . number_format($amount) . ' ريال على إعلانك "' . $ad->title . '".';
+                $notifType = 'notification';
+            } elseif ($type === 'offer') {
+                $title = 'عرض جديد على إعلانك 💰';
+                $content = 'تم تقديم عرض جديد بقيمة ' . number_format($amount) . ' ريال على إعلانك "' . $ad->title . '".';
+                $notifType = 'offer';
+            } else {
+                $title = 'مزايدة جديدة على إعلانك 🔨';
+                $content = 'تم تقديم مزايدة جديدة بقيمة ' . number_format($amount) . ' ريال على إعلانك "' . $ad->title . '".';
+                $notifType = 'notification';
+            }
 
             Notification::create([
                 'user_id' => $userId,
                 'title' => $title,
                 'content' => $content,
-                'type' => 'notification',
+                'type' => $notifType,
                 'status' => 'sent',
             ]);
         } catch (\Exception $e) {
@@ -280,6 +349,8 @@ class BidController extends Controller
             'type' => 'offer',
             'status' => 'active',
         ]);
+
+        $this->notifyAdOwner($ad->user_id, $ad, (float) $request->amount, 'offer');
 
         return back()->with('success', 'تم تقديم عرضك بنجاح.');
     }
@@ -350,6 +421,31 @@ class BidController extends Controller
             $increment = (float) ($ad->bid_increment ?? 500);
             $currentPrice = (float) $ad->price;
             $maxAllowed = $currentPrice - $increment;
+
+            // Check if they are already the leading active tenderer
+            $currentTopTender = Bid::where('ad_id', $ad->id)
+                ->where('type', 'auto_tender')
+                ->where('status', 'active')
+                ->first();
+
+            if ($currentTopTender && $currentTopTender->user_id === $userId) {
+                if ($newMinLimit <= $currentPrice) {
+                    $currentTopTender->update([
+                        'min_limit' => $newMinLimit,
+                        'notify_near_limit' => (bool) request('notify_near_limit', false),
+                    ]);
+                    return [
+                        'outbid' => false,
+                        'message' => 'تم تحديث الحد الأدنى لمناقصتك بنجاح إلى ' . number_format($newMinLimit) . ' ريال.',
+                        'current_price' => $currentPrice,
+                    ];
+                }
+                return [
+                    'outbid' => false,
+                    'message' => 'أنت صاحب أقل عرض حالياً بالفعل.',
+                    'current_price' => $currentPrice,
+                ];
+            }
 
             // Deactivate existing
             Bid::where('ad_id', $ad->id)->where('user_id', $userId)->where('type', 'auto_tender')->update(['status' => 'replaced']);
@@ -858,7 +954,7 @@ class BidController extends Controller
                 'buyer' => [
                     'name' => $bid->user->name,
                     'phone' => $bid->user->phone,
-                    'account_type_lbl' => $bid->user->account_type == 'company' ? 'شركة' : ($bid->user->account_type == 'partner' ? 'مندوب شركة' : 'فرد'),
+                    'account_type_lbl' => $bid->user->account_type == 'company' ? 'شركة' : ($bid->user->account_type == 'partner' ? 'شريك' : ($bid->user->account_type == 'representative' ? 'مندوب' : 'فرد')),
                     'account_type' => $bid->user->account_type,
                     'joined_at' => $bid->user->created_at ? $bid->user->created_at->format('Y/m/d') : 'قديم'
                 ],

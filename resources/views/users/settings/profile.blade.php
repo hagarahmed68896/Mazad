@@ -106,6 +106,8 @@
                             <span class="flex items-center gap-1 justify-center"><i class="fa-solid fa-building text-primary/60 text-xs"></i> شركة</span>
                         @elseif(Auth::user()->account_type == 'representative') 
                             <span class="flex items-center gap-1 justify-center"><i class="fa-solid fa-id-badge text-primary/60 text-xs"></i> مندوب</span>
+                        @elseif(Auth::user()->account_type == 'partner') 
+                            <span class="flex items-center gap-1 justify-center"><i class="fa-solid fa-handshake text-primary/60 text-xs"></i> شريك</span>
                         @else 
                             <span class="flex items-center gap-1 justify-center"><i class="fa-solid fa-user text-primary/60 text-xs"></i> فرد</span>
                         @endif

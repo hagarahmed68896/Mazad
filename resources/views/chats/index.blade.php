@@ -653,16 +653,19 @@
                     toast: true,
                     position: 'top-end',
                     showConfirmButton: false,
-                    timer: 3000,
+                    timer: 1500, // Shortened toast display time
                     timerProgressBar: true
                 });
 
                 Toast.fire({
                     icon: 'success',
                     title: data.is_blocked ? 'تم الحظر بنجاح' : 'تم إلغاء الحظر'
-                }).then(() => {
-                    location.reload();
                 });
+
+                // Reload page after a short delay so the action feels fast and responsive
+                setTimeout(() => {
+                    location.reload();
+                }, 600);
             }
         });
     }
@@ -686,7 +689,9 @@
             }
         }).then((result) => {
             if (result.isConfirmed) {
-                document.getElementById('deleteChatForm-' + id).submit();
+                const form = document.getElementById('globalDeleteChatForm');
+                form.action = '/chats/' + id;
+                form.submit();
             }
         });
     }
@@ -788,4 +793,8 @@
         border-radius: 10px;
     }
 </style>
+<form id="globalDeleteChatForm" action="" method="POST" style="display: none;">
+    @csrf
+    @method('DELETE')
+</form>
 @endsection

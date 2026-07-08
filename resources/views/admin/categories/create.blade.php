@@ -161,28 +161,6 @@
             </div>
         </div>
 
-        <!-- Services Section -->
-        <div class="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm space-y-6">
-            <h2 class="text-lg font-black text-[#1C1C1C] border-b border-slate-50 pb-4">خدمات الفئة</h2>
-            <div class="space-y-4">
-                <label class="text-sm font-black text-[#6F6F6F]">اسم الخدمة</label>
-                <div class="space-y-3">
-                    <template x-for="(service, index) in services" :key="index">
-                        <div class="flex items-center gap-3">
-                            <input type="text" name="services[]" x-model="services[index]" placeholder="أدخل اسم الخدمة"
-                                   class="flex-1 px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-[15px] font-bold text-[#1C1C1C] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/10 focus:border-[#1A73E8] transition-all">
-                            <button type="button" @click="removeService(index)" x-show="services.length > 1"
-                                    class="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100 transition-colors">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
-                            <button type="button" x-show="index === services.length - 1" @click="addService()"
-                                    class="px-8 py-4 bg-[#1A73E8] text-white rounded-2xl font-black shadow-lg hover:shadow-xl transition-all active:scale-95">أضف</button>
-                        </div>
-                    </template>
-                </div>
-            </div>
-        </div>
-
         <!-- Actions -->
         <div class="flex items-center justify-end gap-4 pb-12">
             <a href="{{ route('admin.categories.index') }}" class="inline-flex items-center justify-center px-8 py-4 bg-slate-200 text-slate-600 rounded-2xl font-black hover:bg-slate-300 transition-all">إلغاء</a>
@@ -199,7 +177,6 @@
             dragOver: false,
             imagePreview: null,
             pages: [''],
-            services: [''],
             
             handleFileSelect(event) {
                 const file = event.target.files[0];
@@ -239,14 +216,6 @@
             
             removePage(index) {
                 this.pages.splice(index, 1);
-            },
-            
-            addService() {
-                this.services.push('');
-            },
-            
-            removeService(index) {
-                this.services.splice(index, 1);
             }
         }
     }

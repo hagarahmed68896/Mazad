@@ -10,7 +10,11 @@ class AdProperty extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['ad_id', 'property_id', 'value'];
+    protected $fillable = ['ad_id', 'property_id', 'value', 'is_hidden'];
+
+    protected $casts = [
+        'is_hidden' => 'boolean'
+    ];
 
     public function ad(): BelongsTo
     {

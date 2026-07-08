@@ -52,14 +52,6 @@ class ChatController extends Controller
             });
         }
 
-        $conversations = $query->with(['userOne', 'userTwo', 'messages', 'ad'])
-            ->orderByRaw('CASE 
-                WHEN (user_one_id = ? AND user_one_pinned = 1) OR (user_two_id = ? AND user_two_pinned = 1) THEN 1 
-                ELSE 0 
-            END DESC', [$user->id, $user->id])
-            ->orderBy('last_message_at', 'desc')
-            ->get();
-            
         $activeConversation = null;
         $isBlocked = false;
         if ($request->has('id')) {
@@ -80,6 +72,15 @@ class ChatController extends Controller
                 ->where('sender_id', '!=', $user->id)
                 ->update(['is_read' => true]);
         }
+
+        $conversations = $query->with(['userOne', 'userTwo', 'messages', 'ad'])
+            ->orderByRaw('CASE 
+                WHEN (user_one_id = ? AND user_one_pinned = 1) OR (user_two_id = ? AND user_two_pinned = 1) THEN 1 
+                ELSE 0 
+            END DESC', [$user->id, $user->id])
+            ->orderBy('last_message_at', 'desc')
+            ->get();
+
         return view('chats.index', compact('categories', 'settings', 'conversations', 'activeConversation', 'filter', 'isBlocked'));
     }
 
@@ -104,6 +105,14 @@ class ChatController extends Controller
                 'content' => 'nullable|string|max:5000',
                 'attachment' => 'nullable|file|max:10240',
             ]);
+
+            if ($request->content && \App\Models\Message::hasContactInfo($request->content)) {
+                $errorMsg = 'عذراً، غير مسموح بمشاركة وسائل التواصل داخل المحادثات للحفاظ على أمانك.';
+                if ($request->ajax()) {
+                    return response()->json(['success' => false, 'message' => $errorMsg]);
+                }
+                return back()->with('error', $errorMsg);
+            }
 
             $attachmentPath = null;
             if ($request->hasFile('attachment')) {
@@ -241,14 +250,17 @@ class ChatController extends Controller
             return redirect()->route('chats.index')->with('error', 'لا يمكنك التواصل مع هذا المستخدم.');
         }
 
-        // Find existing conversation (any conversation between the two users)
+        // Find existing conversation (preferring the one without ad_id, but falling back to any existing conversation)
         $conversation = Conversation::where(function($q) use ($authUser, $userId) {
             $q->where(function($sq) use ($authUser, $userId) {
                 $sq->where('user_one_id', $authUser->id)->where('user_two_id', $userId);
             })->orWhere(function($sq) use ($authUser, $userId) {
                 $sq->where('user_one_id', $userId)->where('user_two_id', $authUser->id);
             });
-        })->whereNull('ad_id')->first();
+        })
+        ->orderByRaw('CASE WHEN ad_id IS NULL THEN 0 ELSE 1 END')
+        ->orderBy('last_message_at', 'desc')
+        ->first();
 
         // Create new conversation if not found
         if (!$conversation) {
@@ -316,9 +328,11 @@ class ChatController extends Controller
 
         if ($adId) {
             $conversationQuery->where('ad_id', $adId);
+        } else {
+            $conversationQuery->orderByRaw('CASE WHEN ad_id IS NULL THEN 0 ELSE 1 END');
         }
 
-        $conversation = $conversationQuery->first();
+        $conversation = $conversationQuery->orderBy('last_message_at', 'desc')->first();
 
         if (!$conversation) {
             $conversation = Conversation::create([

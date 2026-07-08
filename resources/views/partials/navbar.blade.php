@@ -1,5 +1,5 @@
 @php
-    $addr = Auth::check() ? Auth::user()->address : session('user_address');
+    $addr = Auth::check() ? Auth::user()->address : null;
     $city = null;
     if ($addr) {
         $normalized = str_replace('،', ',', $addr);
@@ -26,7 +26,7 @@
             }
         }
     }
-    $displayLocation = $city ?: 'كل المدن (السعودية)';
+    $displayLocation = $city ?: 'السعودية';
 @endphp
 <nav class="navbar">
     <div class="container">

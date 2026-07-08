@@ -65,6 +65,7 @@ class AdQuestionController extends Controller
         $question->update([
             'answer' => $request->answer,
             'answered_at' => now(),
+            'is_visible' => true,
         ]);
 
         return response()->json([

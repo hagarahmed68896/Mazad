@@ -27,6 +27,8 @@ Route::get('/home', [HomeController::class, 'index']);
 Route::get('/categories', [HomeController::class, 'categories']);
 Route::get('/categories/{id}/properties', [SearchController::class, 'properties']);
 Route::get('/cities', [LocationController::class, 'allCities']);
+Route::get('/cities/{cityId}/districts', [LocationController::class, 'cityDistricts']);
+Route::get('/districts', [LocationController::class, 'allDistricts']);
 Route::get('/search', [SearchController::class, 'index']);
 Route::get('/search/filters', [SearchController::class, 'filters']);
 Route::get('/regions', [LocationController::class, 'regions']);
@@ -162,6 +164,13 @@ Route::middleware(['auth:sanctum', 'check.banned'])->group(function () {
     Route::post('/services/{id}/update', [\App\Http\Controllers\Api\ServiceController::class, 'update']);
     Route::delete('/services/{id}', [\App\Http\Controllers\Api\ServiceController::class, 'destroy']);
     Route::post('/services/{id}/delete', [\App\Http\Controllers\Api\ServiceController::class, 'destroy']);
+
+    // Partner Service Orders & Checkout System (Escrow)
+    Route::get('/services/{id}/checkout', [\App\Http\Controllers\Api\ServiceOrderController::class, 'checkout']);
+    Route::post('/services/{id}/checkout', [\App\Http\Controllers\Api\ServiceOrderController::class, 'processCheckout']);
+    Route::get('/purchases/services', [\App\Http\Controllers\Api\ServiceOrderController::class, 'myPurchasedServices']);
+    Route::get('/partner/service-orders', [\App\Http\Controllers\Api\ServiceOrderController::class, 'partnerOrders']);
+    Route::post('/partner/service-orders/{id}/complete', [\App\Http\Controllers\Api\ServiceOrderController::class, 'completeOrder']);
 
     // Broadcasting authentication
     \Illuminate\Support\Facades\Broadcast::routes(['middleware' => ['auth:sanctum']]);

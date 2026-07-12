@@ -98,7 +98,7 @@
                 <!-- The blue banner component -->
                 <div class="banners-slider custom-scrollbar">
                     @foreach($banner->items ?? [] as $item)
-                        <div class="relative w-full h-[140px] rounded-md overflow-hidden shadow-sm flex items-center bg-[#1A73E8]">
+                        <div class="relative w-full h-[140px] rounded-md overflow-hidden shadow-sm flex items-center" style="background: linear-gradient(135deg, #1D4ED8 0%, #102A6B 100%) !important;">
                             <!-- Content Right (60%) -->
                             <div class="relative z-10 px-5 py-3 w-[60%] h-full flex flex-col justify-center">
                                 <h4 class="text-white font-black text-[14px] mb-1 leading-tight">{{ $item['title'] ?? 'عنوان البانر' }}</h4>
@@ -107,7 +107,7 @@
                                 </p>
                                 @if(isset($item['show_button']) && $item['show_button'] == '1')
                                 <div>
-                                    <span class="bg-white text-[#1A73E8] text-[9px] font-black px-4 py-1.5 rounded-lg inline-block whitespace-nowrap shadow-sm">
+                                    <span class="bg-white text-[9px] font-black px-4 py-1.5 rounded-lg inline-block whitespace-nowrap shadow-sm" style="color: #1D4ED8 !important;">
                                         {{ $item['button_text'] ?? 'أضف إعلانك' }}
                                     </span>
                                 </div>

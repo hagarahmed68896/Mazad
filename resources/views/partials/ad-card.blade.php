@@ -6,6 +6,8 @@
         <a href="{{ route('ads.show', $ad->id) }}" class="h-full w-full block bg-gray-50">
             @if($image)
                 <img src="{{ $image }}" alt="{{ $ad->title }}">
+            @elseif($ad->isCars())
+                <img src="{{ asset('car_placeholder.svg') }}" alt="{{ $ad->title }}" style="width: 100%; height: 100%; object-fit: contain; padding: 1.5rem;">
             @else
                 <div class="flex items-center justify-center h-full w-full text-gray-300">
                     <i class="fa-solid fa-image text-4xl"></i>

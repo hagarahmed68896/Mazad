@@ -17,7 +17,7 @@ class CategoryController extends Controller
         $search = $request->get('search');
 
         $query = Category::whereNull('parent_id')
-                         ->withCount('ads');
+                         ->withCount(['ads', 'users']);
 
         if ($search) {
             $query->where('name', 'like', "%{$search}%");
@@ -50,7 +50,7 @@ class CategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'image' => 'nullable|image|max:10240',
+            'image' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg|max:10240',
             'ad_types' => 'nullable|array',
             'deposit_value' => 'nullable|numeric|min:0',
             'tax_value' => 'nullable|numeric|min:0',
@@ -126,7 +126,7 @@ class CategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'image' => 'nullable|image|max:10240',
+            'image' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg|max:10240',
             'ad_types' => 'nullable|array',
             'deposit_value' => 'nullable|numeric|min:0',
             'tax_value' => 'nullable|numeric|min:0',

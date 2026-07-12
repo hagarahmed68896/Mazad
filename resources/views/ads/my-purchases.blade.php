@@ -809,7 +809,7 @@
 
             <!-- Left Pane: Purchases Grid -->
             <div class="lg:col-span-3 transition-all duration-300" id="myPurchasesGridContent">
-                @if($orders->isEmpty())
+                @if($orders->isEmpty() && $serviceOrders->isEmpty())
                     <!-- Empty State -->
                     <div class="empty-state-card">
                         <div class="empty-illustration-container mx-auto mb-6" style="width: 150px; height: 150px; background: #F8FAFC; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 4px solid #F1F5F9;">
@@ -826,6 +826,89 @@
                 @else
                     <!-- Purchases Grid List -->
                     <div id="myPurchasesContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 transition-all duration-300">
+                        
+                        <!-- Partner Service Orders -->
+                        @foreach($serviceOrders as $sOrder)
+                            @php
+                                $sAd = $sOrder->service ?? $sOrder->ad;
+                                $sImage = $sAd && $sAd->image ? (Str::startsWith($sAd->image, 'http') ? $sAd->image : '/' . ltrim($sAd->image, '/')) : null;
+                                $sSeller = $sOrder->seller;
+                            @endphp
+                            
+                            <div class="p-ad-card" data-ad-id="{{ $sAd->id ?? '' }}">
+                                <div class="p-card-main-content">
+                                    <div class="p-card-image">
+                                        <div class="h-full w-full block bg-gray-50 relative">
+                                            @if($sImage)
+                                                <img src="{{ $sImage }}" alt="{{ $sAd->title ?? 'خدمة' }}" class="w-full h-full object-cover">
+                                            @else
+                                                <div class="flex items-center justify-center h-full w-full text-gray-300">
+                                                    <i class="fa-solid fa-screwdriver-wrench text-4xl"></i>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        
+                                        <div class="p-badges">
+                                            <span class="p-badge-pill type-direct" style="background-color: #E8F1FE; color: #1A73E8;">
+                                                طلب خدمة شريك
+                                            </span>
+                                            
+                                            <span class="p-badge-pill" style="background-color: {{ $sOrder->status === 'paid' ? '#FEF3C7' : ($sOrder->status === 'under_review' ? '#E0F2FE' : '#DEF7EC') }}; color: {{ $sOrder->status === 'paid' ? '#D97706' : ($sOrder->status === 'under_review' ? '#0369A1' : '#03543F') }}; font-weight: 800;">
+                                                @if($sOrder->status == 'paid') قيد التنفيذ
+                                                @elseif($sOrder->status == 'under_review') بانتظار مراجعة الإدارة للتقرير
+                                                @elseif($sOrder->status == 'completed') تمت الخدمة
+                                                @endif
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="p-card-body">
+                                        <span class="p-category-pill" style="background-color: #DEF7EC; color: #03543F;">{{ $sAd->category->name ?? 'خدمات شركاء' }}</span>
+                                        <h3 class="p-ad-title">{{ $sAd->title ?? 'طلب خدمة شريك' }}</h3>
+                                        
+                                        <div class="p-price-row">
+                                            <span class="p-price-label">إجمالي المبلغ المدفوع</span>
+                                            <div class="p-price-value font-black text-blue-600">
+                                                <span>{{ number_format($sOrder->total_price) }}</span>
+                                                <x-riyal-icon class="w-5 h-5 text-blue-600" />
+                                            </div>
+                                        </div>
+                                        
+                                        @if($sSeller)
+                                            <div class="buyer-info-row">
+                                                <div class="buyer-avatar-placeholder" style="background-color: #059669;">
+                                                    {{ mb_substr($sSeller->name, 0, 1) }}
+                                                </div>
+                                                <div class="flex flex-col">
+                                                    <span class="text-[10px] text-gray-400 font-bold">الشريك مقدم الخدمة</span>
+                                                    <span class="buyer-name">{{ $sSeller->name }}</span>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                                
+                                <div class="p-card-footer" onclick="event.stopPropagation()">
+                                    @if($sOrder->status == 'paid')
+                                        <a href="{{ route('chats.index') }}" class="btn" style="width: 100%; border: 1.5px solid #1A73E8; color: #1A73E8; background: white; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 42px; text-decoration: none; font-weight: bold; font-size: 0.85rem; transition: all 0.2s;">
+                                            <i class="fa-regular fa-comment-dots"></i>
+                                            <span>تواصل مع الشريك</span>
+                                        </a>
+                                    @elseif($sOrder->status == 'under_review')
+                                        <button type="button" disabled class="btn" style="width: 100%; color: #94A3B8; border: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 42px; font-weight: bold; font-size: 0.85rem; cursor: not-allowed; background: #F8FAFC;">
+                                            <i class="fa-solid fa-spinner fa-spin text-blue-500"></i>
+                                            <span>بانتظار مراجعة الإدارة للتقرير</span>
+                                        </button>
+                                    @elseif($sOrder->status == 'completed')
+                                        <button type="button" disabled class="btn" style="width: 100%; background: #DEF7EC; color: #03543F; border: 1px solid #C3F6DF; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 12px; height: 42px; font-weight: bold; font-size: 0.85rem; cursor: default;">
+                                            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                                            <span>تم تنفيذ الخدمة بنجاح</span>
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+
                         @foreach($orders as $order)
                             @php
                                 $ad = $order->ad;

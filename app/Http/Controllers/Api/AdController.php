@@ -133,14 +133,24 @@ class AdController extends Controller
         $maxEndDate = ($parsedStartDate ? $parsedStartDate->copy() : \Carbon\Carbon::now())->addDays($maxDuration)->toDateTimeString();
         $defaultEndDate = ($parsedStartDate ? $parsedStartDate->copy() : \Carbon\Carbon::now())->addDays($maxDuration);
 
+        $isRealEstate = false;
+        if ($request->filled('category_id')) {
+            $cat = \App\Models\Category::find($request->category_id);
+            if ($cat) {
+                $isRealEstate = $cat->isRealEstate();
+            }
+        }
+
         $rules = [
             'title' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'type' => 'required|in:auction,direct_purchase,standard,tender',
             'description' => 'nullable|string',
-            'address' => 'required_without_all:lat,lng|nullable|string',
-            'lat' => 'required_without:address|nullable|numeric|between:-90,90',
-            'lng' => 'required_without:address|nullable|numeric|between:-180,180',
+            'city_id' => ($isRealEstate ? 'nullable' : 'required') . '|exists:regions,id',
+            'district_id' => ($isRealEstate ? 'nullable' : 'required') . '|exists:cities,id',
+            'address' => 'nullable|string',
+            'lat' => ($isRealEstate ? 'required' : 'nullable') . '|numeric|between:-90,90',
+            'lng' => ($isRealEstate ? 'required' : 'nullable') . '|numeric|between:-180,180',
             'images.*' => 'image|mimes:jpeg,png,jpg|max:20480',
             'image_urls' => 'nullable|array',
             'image_urls.*' => 'nullable|url',
@@ -154,6 +164,12 @@ class AdController extends Controller
         }
 
         $request->validate($rules, [
+            'city_id.required' => 'المدينة مطلوبة إجباريًا.',
+            'city_id.exists' => 'المدينة المحددة غير صالحة.',
+            'district_id.required' => 'الحي مطلوب إجباريًا.',
+            'district_id.exists' => 'الحي المحدد غير صالح.',
+            'lat.required' => 'موقع الخريطة (خط العرض) مطلوب إجباريًا للعقارات.',
+            'lng.required' => 'موقع الخريطة (خط الطول) مطلوب إجباريًا للعقارات.',
             'end_date.after' => 'يجب أن يكون تاريخ الانتهاء بعد تاريخ البدء.',
             'end_date.required' => 'تاريخ الانتهاء مطلوب إجباريًا.',
             'end_date.before_or_equal' => "تاريخ الانتهاء لا يمكن أن يتجاوز الحد الأقصى لمدة عرض الإعلان ($maxDuration يومًا).",
@@ -165,45 +181,67 @@ class AdController extends Controller
 
         $user = auth('sanctum')->user();
         
-        // Dynamically extract city_id from address text or coordinates
-        $cityId = $request->city_id;
-        if ($request->filled('address')) {
-            $cities = \App\Models\City::all();
-            foreach ($cities as $city) {
-                if (mb_stripos($request->address, $city->name) !== false) {
-                    $cityId = $city->id;
-                    break;
+        $cityId = $request->district_id;
+        if ($isRealEstate) {
+            if ($request->filled('district_id')) {
+                $cityId = $request->district_id;
+            } else {
+                $cityId = null;
+                if ($request->filled('address')) {
+                    $cities = \App\Models\City::all();
+                    foreach ($cities as $city) {
+                        if (mb_stripos($request->address, $city->name) !== false) {
+                            $cityId = $city->id;
+                            break;
+                        }
+                    }
                 }
-            }
-        }
 
-        // Coordinate distance mapping fallback if address didn't match or is missing but lat/lng are present
-        if (!$cityId && $request->filled('lat') && $request->filled('lng')) {
-            $majorCities = [
-                'الرياض' => ['lat' => 24.7136, 'lng' => 46.6753],
-                'جدة' => ['lat' => 21.4858, 'lng' => 39.1925],
-                'الدمام' => ['lat' => 26.4207, 'lng' => 50.0888],
-                'مكة' => ['lat' => 21.3891, 'lng' => 39.8579],
-                'المدينة' => ['lat' => 24.4672, 'lng' => 39.6111],
-            ];
-
-            $minDistance = null;
-            $nearestCityName = null;
-            $userLat = (float) $request->lat;
-            $userLng = (float) $request->lng;
-
-            foreach ($majorCities as $cityName => $coords) {
-                $dist = sqrt(pow($userLat - $coords['lat'], 2) + pow($userLng - $coords['lng'], 2));
-                if ($minDistance === null || $dist < $minDistance) {
-                    $minDistance = $dist;
-                    $nearestCityName = $cityName;
+                if (!$cityId && $request->filled('address')) {
+                    $regions = \App\Models\Region::all();
+                    foreach ($regions as $region) {
+                        if (mb_stripos($request->address, $region->name) !== false) {
+                            $defaultCity = \App\Models\City::where('region_id', $region->id)->first();
+                            if ($defaultCity) {
+                                $cityId = $defaultCity->id;
+                                break;
+                            }
+                        }
+                    }
                 }
-            }
 
-            if ($nearestCityName) {
-                $matchedCity = \App\Models\City::where('name', 'like', '%' . $nearestCityName . '%')->first();
-                if ($matchedCity) {
-                    $cityId = $matchedCity->id;
+                if (!$cityId && $request->filled('lat') && $request->filled('lng')) {
+                    $majorCities = [
+                        'الرياض' => ['lat' => 24.7136, 'lng' => 46.6753],
+                        'جدة' => ['lat' => 21.4858, 'lng' => 39.1925],
+                        'الدمام' => ['lat' => 26.4207, 'lng' => 50.0888],
+                        'مكة' => ['lat' => 21.3891, 'lng' => 39.8579],
+                        'المدينة' => ['lat' => 24.4672, 'lng' => 39.6111],
+                    ];
+
+                    $minDistance = null;
+                    $nearestCityName = null;
+                    $userLat = (float) $request->lat;
+                    $userLng = (float) $request->lng;
+
+                    foreach ($majorCities as $cityName => $coords) {
+                        $dist = sqrt(pow($userLat - $coords['lat'], 2) + pow($userLng - $coords['lng'], 2));
+                        if ($minDistance === null || $dist < $minDistance) {
+                            $minDistance = $dist;
+                            $nearestCityName = $cityName;
+                        }
+                    }
+
+                    if ($nearestCityName) {
+                        $matchedCity = \App\Models\City::where('name', 'like', '%' . $nearestCityName . '%')->first();
+                        if ($matchedCity) {
+                            $cityId = $matchedCity->id;
+                        }
+                    }
+                }
+
+                if (!$cityId) {
+                    $cityId = 1;
                 }
             }
         }
@@ -372,10 +410,21 @@ class AdController extends Controller
         $maxStartDate = \Carbon\Carbon::now()->addDays($maxDuration)->toDateTimeString();
         $maxEndDate = ($parsedStartDate ? $parsedStartDate->copy() : \Carbon\Carbon::now())->addDays($maxDuration)->toDateTimeString();
 
+        $isRealEstate = false;
+        $catId = $request->category_id ?? $ad->category_id;
+        if ($catId) {
+            $cat = \App\Models\Category::find($catId);
+            if ($cat) {
+                $isRealEstate = $cat->isRealEstate();
+            }
+        }
+
         $request->validate([
-            'address' => 'sometimes|required_without_all:lat,lng|nullable|string',
-            'lat' => 'sometimes|required_without:address|nullable|numeric|between:-90,90',
-            'lng' => 'sometimes|required_without:address|nullable|numeric|between:-180,180',
+            'address' => 'sometimes|nullable|string',
+            'city_id' => ($isRealEstate ? 'sometimes|nullable' : 'sometimes|required') . '|exists:regions,id',
+            'district_id' => ($isRealEstate ? 'sometimes|nullable' : 'sometimes|required') . '|exists:cities,id',
+            'lat' => ($isRealEstate ? 'sometimes|required' : 'sometimes|nullable') . '|numeric|between:-90,90',
+            'lng' => ($isRealEstate ? 'sometimes|required' : 'sometimes|nullable') . '|numeric|between:-180,180',
             'title' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|nullable|string',
             'image_urls' => 'sometimes|nullable|array',
@@ -383,54 +432,79 @@ class AdController extends Controller
             'start_date' => 'sometimes|nullable|date|before_or_equal:' . $maxStartDate,
             'end_date' => 'sometimes|required|date|after:now|before_or_equal:' . $maxEndDate,
         ], [
+            'city_id.required' => 'المدينة مطلوبة إجباريًا.',
+            'city_id.exists' => 'المدينة المحددة غير صالحة.',
+            'district_id.required' => 'الحي مطلوب إجباريًا.',
+            'district_id.exists' => 'الحي المحدد غير صالح.',
+            'lat.required' => 'موقع الخريطة (خط العرض) مطلوب إجباريًا للعقارات.',
+            'lng.required' => 'موقع الخريطة (خط الطول) مطلوب إجباريًا للعقارات.',
             'end_date.after' => 'يجب أن يكون تاريخ الانتهاء بعد تاريخ البدء.',
             'end_date.required' => 'تاريخ الانتهاء مطلوب إجباريًا.',
             'end_date.before_or_equal' => "تاريخ الانتهاء لا يمكن أن يتجاوز الحد الأقصى لمدة عرض الإعلان ($maxDuration يومًا).",
             'start_date.before_or_equal' => "تاريخ البدء لا يمكن أن يتجاوز الحد الأقصى المسموح به ($maxDuration يومًا من الآن).",
         ]);
 
-        // Dynamically extract city_id from address text or coordinates if updated
-        $cityId = $request->city_id ?? $ad->city_id;
-        if ($request->filled('address')) {
-            $cities = \App\Models\City::all();
-            foreach ($cities as $city) {
-                if (mb_stripos($request->address, $city->name) !== false) {
-                    $cityId = $city->id;
-                    break;
-                }
-            }
-        }
-
-        // Coordinate distance mapping fallback if address didn't match or is missing but lat/lng are present
-        if (($request->filled('lat') || $request->filled('lng')) && ($request->filled('lat') && $request->filled('lng'))) {
-            // Only search if city wasn't successfully resolved by address text
-            if ($cityId == $ad->city_id || !$cityId) {
-                $majorCities = [
-                    'الرياض' => ['lat' => 24.7136, 'lng' => 46.6753],
-                    'جدة' => ['lat' => 21.4858, 'lng' => 39.1925],
-                    'الدمام' => ['lat' => 26.4207, 'lng' => 50.0888],
-                    'مكة' => ['lat' => 21.3891, 'lng' => 39.8579],
-                    'المدينة' => ['lat' => 24.4672, 'lng' => 39.6111],
-                ];
-
-                $minDistance = null;
-                $nearestCityName = null;
-                $userLat = (float) $request->lat;
-                $userLng = (float) $request->lng;
-
-                foreach ($majorCities as $cityName => $coords) {
-                    $dist = sqrt(pow($userLat - $coords['lat'], 2) + pow($userLng - $coords['lng'], 2));
-                    if ($minDistance === null || $dist < $minDistance) {
-                        $minDistance = $dist;
-                        $nearestCityName = $cityName;
+        $cityId = $request->district_id ?? $ad->city_id;
+        if ($isRealEstate) {
+            if ($request->filled('district_id')) {
+                $cityId = $request->district_id;
+            } elseif ($request->filled('address') || $request->filled('lat') || $request->filled('lng')) {
+                $resolvedId = null;
+                if ($request->filled('address')) {
+                    $cities = \App\Models\City::all();
+                    foreach ($cities as $city) {
+                        if (mb_stripos($request->address, $city->name) !== false) {
+                            $resolvedId = $city->id;
+                            break;
+                        }
                     }
                 }
 
-                if ($nearestCityName) {
-                    $matchedCity = \App\Models\City::where('name', 'like', '%' . $nearestCityName . '%')->first();
-                    if ($matchedCity) {
-                        $cityId = $matchedCity->id;
+                if (!$resolvedId && $request->filled('address')) {
+                    $regions = \App\Models\Region::all();
+                    foreach ($regions as $region) {
+                        if (mb_stripos($request->address, $region->name) !== false) {
+                            $defaultCity = \App\Models\City::where('region_id', $region->id)->first();
+                            if ($defaultCity) {
+                                $resolvedId = $defaultCity->id;
+                                break;
+                            }
+                        }
                     }
+                }
+
+                if (!$resolvedId && $request->filled('lat') && $request->filled('lng')) {
+                    $majorCities = [
+                        'الرياض' => ['lat' => 24.7136, 'lng' => 46.6753],
+                        'جدة' => ['lat' => 21.4858, 'lng' => 39.1925],
+                        'الدمام' => ['lat' => 26.4207, 'lng' => 50.0888],
+                        'مكة' => ['lat' => 21.3891, 'lng' => 39.8579],
+                        'المدينة' => ['lat' => 24.4672, 'lng' => 39.6111],
+                    ];
+
+                    $minDistance = null;
+                    $nearestCityName = null;
+                    $userLat = (float) $request->lat;
+                    $userLng = (float) $request->lng;
+
+                    foreach ($majorCities as $cityName => $coords) {
+                        $dist = sqrt(pow($userLat - $coords['lat'], 2) + pow($userLng - $coords['lng'], 2));
+                        if ($minDistance === null || $dist < $minDistance) {
+                            $minDistance = $dist;
+                            $nearestCityName = $cityName;
+                        }
+                    }
+
+                    if ($nearestCityName) {
+                        $matchedCity = \App\Models\City::where('name', 'like', '%' . $nearestCityName . '%')->first();
+                        if ($matchedCity) {
+                            $resolvedId = $matchedCity->id;
+                        }
+                    }
+                }
+
+                if ($resolvedId) {
+                    $cityId = $resolvedId;
                 }
             }
         }

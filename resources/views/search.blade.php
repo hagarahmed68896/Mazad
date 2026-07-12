@@ -38,6 +38,18 @@
     <!-- Styles -->
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}">
     <style>
+        .glowing-circle-marker {
+            background: rgba(26, 115, 232, 0.15) !important;
+            border: 2px dashed #1A73E8 !important;
+            border-radius: 50% !important;
+            box-shadow: 0 0 10px rgba(26, 115, 232, 0.5) !important;
+            transition: all 0.2s ease-in-out;
+        }
+        .glowing-circle-marker.selected {
+            background: rgba(26, 115, 232, 0.3) !important;
+            border: 2px solid #1A73E8 !important;
+            box-shadow: 0 0 15px rgba(26, 115, 232, 0.8) !important;
+        }
         body { font-family: 'Cairo', 'Outfit', sans-serif; background-color: #F8FAFC; }
         .container {
             max-width: 100% !important;
@@ -911,8 +923,40 @@
                 return;
             }
 
+            const ads = @json($ads->items());
+            let selectedAdIsRealEstate = true;
+
+            function isAdRealEstateJS(ad) {
+                if (!ad.category) return false;
+                const name = (ad.category.name || '').toLowerCase();
+                return name.includes('عقار') || 
+                       name.includes('عقارات') || 
+                       name.includes('العقارات') || 
+                       name.includes('real estate') || 
+                       name.includes('realestate') || 
+                       name.includes('property') || 
+                       name.includes('properties');
+            }
+
+            function isAdCarsJS(ad) {
+                if (!ad.category) return false;
+                const name = (ad.category.name || '').toLowerCase();
+                return name.includes('سيارات') || 
+                       name.includes('سيارة') || 
+                       name.includes('car') || 
+                       name.includes('cars') || 
+                       name.includes('vehicle') || 
+                       name.includes('vehicles');
+            }
+
+            const hasNonRealEstate = ads.some(ad => !((ad.is_real_estate !== undefined) ? ad.is_real_estate : isAdRealEstateJS(ad)));
+            const mapOptions = { zoomControl: false };
+            if (hasNonRealEstate) {
+                mapOptions.maxZoom = 13;
+            }
+
             // Default center (Saudi Arabia)
-            searchMapInstance = L.map('searchMap', { zoomControl: false }).setView([24.7136, 46.6753], 6);
+            searchMapInstance = L.map('searchMap', mapOptions).setView([24.7136, 46.6753], 6);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap'
@@ -936,17 +980,20 @@
                 }
             });
 
-            const ads = @json($ads->items());
-            
             ads.forEach(ad => {
                 const lat = parseFloat(ad.lat);
                 const lng = parseFloat(ad.lng);
                 
                 if (!isNaN(lat) && !isNaN(lng)) {
+                    const isRealEstate = (ad.is_real_estate !== undefined) ? ad.is_real_estate : isAdRealEstateJS(ad);
+                    const markerClass = isRealEstate ? 'custom-marker-single' : 'custom-marker-single glowing-circle-marker';
+                    const markerSize = isRealEstate ? [22, 22] : [44, 44];
+                    const markerAnchor = isRealEstate ? [11, 11] : [22, 22];
+
                     const customIcon = L.divIcon({
-                        className: 'custom-marker-single',
-                        iconSize: [22, 22],
-                        iconAnchor: [11, 11]
+                        className: markerClass,
+                        iconSize: markerSize,
+                        iconAnchor: markerAnchor
                     });
 
                     const marker = L.marker([lat, lng], { icon: customIcon });
@@ -956,10 +1003,15 @@
                         document.querySelectorAll('.custom-marker-single').forEach(el => el.classList.remove('selected'));
                         e.target.getElement().classList.add('selected');
                         
+                        selectedAdIsRealEstate = isRealEstate;
                         showFloatingDetail(ad);
                         
-                        // Center map on marker slightly offset to show floating card
-                        searchMapInstance.panTo([lat - 0.02, lng]);
+                        // Center map on marker with conditional zoom level
+                        if (isRealEstate) {
+                            searchMapInstance.setView([lat - 0.01, lng], 15);
+                        } else {
+                            searchMapInstance.setView([lat - 0.02, lng], 13);
+                        }
                     });
 
                     markersClusterGroup.addLayer(marker);
@@ -972,10 +1024,18 @@
                 searchMapInstance.fitBounds(markersClusterGroup.getBounds().pad(0.1));
             }
 
+            // Force zoom limits on non-real-estate items to keep map vague
+            searchMapInstance.on('zoomend', () => {
+                if (!selectedAdIsRealEstate && searchMapInstance.getZoom() > 13) {
+                    searchMapInstance.setZoom(13);
+                }
+            });
+
             // Close floating card on map click
             searchMapInstance.on('click', (e) => {
                 if (e.originalEvent.target.id === 'searchMap') {
                     hideFloatingDetail();
+                    selectedAdIsRealEstate = true; // Reset zoom limit when closing card
                 }
             });
 
@@ -997,6 +1057,8 @@
             const formatPrice = (p) => new Intl.NumberFormat().format(p);
             
             const image = ad.image ? (ad.image.startsWith('http') ? ad.image : '/' + ad.image.replace(/^\//, '')) : null;
+            const isCars = (ad.is_cars !== undefined) ? ad.is_cars : isAdCarsJS(ad);
+            const imageSrc = image ? image : (isCars ? '/car_placeholder.svg' : null);
             
             let statusLabel = 'جاري';
             if (ad.type === 'hybrid_auction') {
@@ -1034,7 +1096,7 @@
                 <div class="p-ad-card" style="box-shadow: 0 12px 36px rgba(0,0,0,0.15); width: 330px; margin: 0; background: white; border-radius: 24px; overflow: hidden; border: 1px solid #E2E8F0;">
                     <div class="p-card-image" style="height: 180px; position: relative;">
                         <a href="/ads/${ad.id}" class="h-full w-full block bg-gray-50">
-                            ${image ? `<img src="${image}" alt="${ad.title}" style="width: 100%; height: 100%; object-fit: cover;">` : `<div class="flex items-center justify-center h-full w-full text-gray-300"><i class="fa-solid fa-image text-4xl"></i></div>`}
+                            ${imageSrc ? `<img src="${imageSrc}" alt="${ad.title}" style="width: 100%; height: 100%; object-fit: ${image ? 'cover' : 'contain'}; ${image ? '' : 'padding: 1.5rem;'}">` : `<div class="flex items-center justify-center h-full w-full text-gray-300"><i class="fa-solid fa-image text-4xl"></i></div>`}
                         </a>
                         
                         <div class="p-badges">

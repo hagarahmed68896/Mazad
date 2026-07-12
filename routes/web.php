@@ -46,6 +46,12 @@ Route::middleware('auth')->group(function() {
     Route::get('/services/{id}/edit', [\App\Http\Controllers\AdController::class, 'partnerEditService'])->name('services.edit');
     Route::put('/services/{id}', [\App\Http\Controllers\AdController::class, 'partnerUpdateService'])->name('services.update');
     Route::delete('/services/{id}', [\App\Http\Controllers\AdController::class, 'partnerDestroyService'])->name('services.destroy');
+
+    // Service Request / Escrow & Checkout Routes
+    Route::get('/services/{id}/checkout', [\App\Http\Controllers\ServiceOrderController::class, 'checkout'])->name('services.checkout');
+    Route::post('/services/{id}/checkout/process', [\App\Http\Controllers\ServiceOrderController::class, 'processCheckout'])->name('services.checkout.process');
+    Route::get('/partner/service-orders', [\App\Http\Controllers\ServiceOrderController::class, 'partnerOrders'])->name('partner.service-orders');
+    Route::post('/partner/service-orders/{order}/complete', [\App\Http\Controllers\ServiceOrderController::class, 'completeOrder'])->name('partner.service-orders.complete');
 });
 
 // Public Ad View — increments views_count

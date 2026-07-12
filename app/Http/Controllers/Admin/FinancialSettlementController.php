@@ -15,7 +15,7 @@ class FinancialSettlementController extends Controller
         $advertiser_type = $request->get('advertiser_type', 'all');
         $payment_method = $request->get('payment_method', 'all');
 
-        $query = FinancialSettlement::with(['user', 'ad']);
+        $query = FinancialSettlement::with(['user', 'ad', 'serviceOrder.service', 'serviceOrder.ad']);
 
         if ($search) {
             $query->where(function($q) use ($search) {
@@ -89,7 +89,7 @@ class FinancialSettlementController extends Controller
         $advertiser_type = $request->get('advertiser_type', 'all');
         $payment_method = $request->get('payment_method', 'all');
 
-        $query = FinancialSettlement::with(['user', 'ad']);
+        $query = FinancialSettlement::with(['user', 'ad', 'serviceOrder.service', 'serviceOrder.ad']);
 
         if ($search) {
             $query->where(function($q) use ($search) {
@@ -167,7 +167,16 @@ class FinancialSettlementController extends Controller
     {
         if ($settlement->status !== 'transferred' && $settlement->status !== 'completed') {
             $settlement->update(['status' => 'transferred']);
-            return back()->with('success', 'تم تغيير حالة التسوية إلى محولة بنجاح');
+            
+            // Release the related service order report to the buyer
+            if ($settlement->service_order_id) {
+                $settlement->serviceOrder()->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                ]);
+            }
+            
+            return back()->with('success', 'تم تغيير حالة التسوية إلى محولة بنجاح وتم تسليم التقرير للمشتري');
         }
         
         return back()->with('info', 'التسوية محولة مسبقاً');

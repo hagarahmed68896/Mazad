@@ -174,7 +174,19 @@
                         </td>
                         <td class="px-4 py-4 text-center border-y border-slate-100 group-hover:border-slate-200" dir="ltr">{{ $loop->iteration }}</td>
                         <td class="px-4 py-4 font-black border-y border-slate-100 group-hover:border-slate-200" dir="ltr">#{{ $settlement->settlement_number ?? '2041' }}</td>
-                        <td class="px-4 py-4 font-black text-[#1C1C1C] border-y border-slate-100 group-hover:border-slate-200">{{ $settlement->ad->title ?? 'اسم الإعلان' }}</td>
+                        <td class="px-4 py-4 font-black text-[#1C1C1C] border-y border-slate-100 group-hover:border-slate-200">
+                            @if($settlement->serviceOrder)
+                                @php
+                                    $sAd = $settlement->serviceOrder->service ?? $settlement->serviceOrder->ad;
+                                @endphp
+                                <div class="flex flex-col text-right">
+                                    <span class="text-xs text-blue-600 font-black mb-1">طلب خدمة (#{{ $settlement->serviceOrder->order_number }})</span>
+                                    <span>{{ $sAd->title ?? 'خدمة شريك' }}</span>
+                                </div>
+                            @else
+                                {{ $settlement->ad->title ?? 'اسم الإعلان' }}
+                            @endif
+                        </td>
                         <td class="px-4 py-4 font-black text-[#1C1C1C] border-y border-slate-100 group-hover:border-slate-200">{{ $settlement->user->name ?? 'أحمد محمد' }}</td>
                         <td class="px-4 py-4 font-bold border-y border-slate-100 group-hover:border-slate-200">
                             @php
@@ -205,12 +217,21 @@
                         </td>
                         <td class="px-4 py-4 rounded-l-2xl border-y border-l border-slate-100 group-hover:border-slate-200 text-center">
                             <div class="flex items-center justify-center gap-2">
+                                <!-- View Report Button -->
+                                @if($settlement->serviceOrder && $settlement->serviceOrder->report_text)
+                                <button type="button" onclick="adminOpenReportModal({{ json_encode($settlement->serviceOrder->report_text) }}, '{{ $settlement->serviceOrder->report_file ? asset($settlement->serviceOrder->report_file) : '' }}')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all border border-slate-200 hover:border-blue-200 shadow-sm bg-white" title="عرض تقرير إنجاز الخدمة">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </button>
+                                @endif
+
                                 <!-- Transfer Button -->
                                 @if($settlement->status !== 'transferred' && $settlement->status !== 'completed')
                                 <form action="{{ route('admin.payments.settlements.transfer', $settlement->id) }}" method="POST" class="inline" id="transfer-form-{{ $settlement->id }}">
                                     @csrf
                                     @method('PUT')
-                                    <button type="button" onclick="confirmTransfer({{ $settlement->id }})" class="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all border border-slate-200 hover:border-emerald-200 shadow-sm bg-white" title="تغيير الحالة إلى محولة">
+                                    <button type="button" onclick="confirmTransfer({{ $settlement->id }})" class="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all border border-slate-200 hover:border-emerald-200 shadow-sm bg-white" title="تغيير الحالة إلى محولة (تأكيد تسليم المستحقات للشريك)">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
@@ -300,6 +321,39 @@
         }).then((result) => {
             if (result.isConfirmed) {
                 document.getElementById('transfer-form-' + id).submit();
+            }
+        });
+    }
+
+    function adminOpenReportModal(reportText, fileUrl) {
+        let fileHtml = '';
+        if (fileUrl) {
+            fileHtml = `
+                <div style="margin-top: 1.5rem; border-top: 1px solid #E2E8F0; padding-top: 1rem; text-align: center;">
+                    <a href="${fileUrl}" target="_blank" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background-color: #E8F1FE; color: #1A73E8; border-radius: 12px; font-weight: 800; text-decoration: none; font-size: 0.85rem; font-family: Cairo;">
+                        <i class="fa-solid fa-file-arrow-down"></i>
+                        <span>تحميل وقراءة الملف المرفق</span>
+                    </a>
+                </div>
+            `;
+        }
+        
+        Swal.fire({
+            title: '<span style="font-family: Cairo; font-weight: 900; font-size: 1.3rem; color: #1E293B;">تقرير إنجاز الخدمة</span>',
+            html: `
+                <div style="text-align: right; direction: rtl; font-family: Cairo;">
+                    <h4 style="font-weight: 800; font-size: 0.95rem; color: #475569; margin-bottom: 0.75rem;">تفاصيل التقرير والعمل المنجز من الشريك:</h4>
+                    <p style="font-weight: 700; font-size: 0.9rem; color: #334155; line-height: 1.8; background: #F8FAFC; padding: 1.25rem; border-radius: 16px; border: 1px solid #F1F5F9; max-height: 250px; overflow-y: auto; white-space: pre-line; margin: 0;">
+                        ${reportText}
+                    </p>
+                    ${fileHtml}
+                </div>
+            `,
+            showConfirmButton: true,
+            confirmButtonText: 'إغلاق',
+            confirmButtonColor: '#94a3b8',
+            customClass: {
+                popup: 'rounded-[32px] p-8'
             }
         });
     }

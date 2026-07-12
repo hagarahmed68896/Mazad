@@ -35,6 +35,19 @@ class LocationController extends Controller
             }
         }
 
+        if (!$cityId && $request->filled('address')) {
+            $regions = \App\Models\Region::all();
+            foreach ($regions as $region) {
+                if (mb_stripos($request->address, $region->name) !== false) {
+                    $defaultCity = \App\Models\City::where('region_id', $region->id)->first();
+                    if ($defaultCity) {
+                        $cityId = $defaultCity->id;
+                        break;
+                    }
+                }
+            }
+        }
+
         if (Auth::check()) {
             $user = Auth::user();
             $user->update([

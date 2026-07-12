@@ -268,10 +268,18 @@ class OrderController extends Controller
         
         $orders = $query->paginate(12)->appends($request->query());
         
+        $serviceOrders = collect();
+        if ($status === 'services' || $status === 'all') {
+            $serviceOrders = \App\Models\ServiceOrder::where('buyer_id', $user->id)
+                ->with(['service', 'ad', 'seller'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+        }
+        
         $cities = \App\Models\City::orderBy('name')->get();
         $categories = \App\Models\Category::whereNull('parent_id')->with('subCategories')->get();
         
-        return view('ads.my-purchases', compact('orders', 'status', 'cities', 'categories', 'activeCategory'));
+        return view('ads.my-purchases', compact('orders', 'serviceOrders', 'status', 'cities', 'categories', 'activeCategory'));
     }
 
     public function confirmDelivery(Request $request, Order $order)

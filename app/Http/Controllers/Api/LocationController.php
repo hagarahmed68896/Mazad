@@ -33,8 +33,20 @@ class LocationController extends Controller
 
     public function allCities()
     {
-        $cities = City::all();
+        $cities = Region::all();
         return $this->apiResponse(true, 'كل المدن', $cities);
+    }
+
+    public function allDistricts()
+    {
+        $districts = City::all();
+        return $this->apiResponse(true, 'كل الأحياء', $districts);
+    }
+
+    public function cityDistricts($cityId)
+    {
+        $districts = City::where('region_id', $cityId)->get();
+        return $this->apiResponse(true, 'قائمة الأحياء', $districts);
     }
 
     public function updateLocation(Request $request)
@@ -159,6 +171,14 @@ class LocationController extends Controller
             if ($matchedRegion) {
                 $region_id = $matchedRegion->id;
                 $region_name = $matchedRegion->name;
+            }
+        }
+
+        // Region-to-district fallback: if district (city_id) is null but city (region_id) is matched, assign a default district
+        if (!$city_id && $region_id) {
+            $defaultCity = City::where('region_id', $region_id)->first();
+            if ($defaultCity) {
+                $city_id = $defaultCity->id;
             }
         }
 

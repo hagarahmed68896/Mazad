@@ -17,9 +17,9 @@
             
             <!-- Commission Rate -->
             <div class="space-y-3 text-right">
-                <label class="text-sm font-black text-slate-900 pr-2">نسبة السعي</label>
+                <label class="text-sm font-black text-slate-900 pr-2">نسبة العمولة</label>
                 <div class="relative mt-2">
-                    <input type="number" step="0.01" name="commission_rate" value="{{ $settings['commission_rate'] ?? '' }}" placeholder="أدخل نسبة السعي"
+                    <input type="number" step="0.01" name="commission_rate" value="{{ $settings['commission_rate'] ?? '' }}" placeholder="أدخل نسبة العمولة"
                            class="w-full h-14 bg-white border border-slate-200 rounded-2xl pr-4 pl-16 text-sm font-bold text-[#1C1C1C] outline-none focus:border-[#1A73E8] focus:ring-4 focus:ring-blue-50 transition-all text-right">
                     <div class="absolute inset-y-0 left-0 px-6 flex items-center border-l border-slate-200 bg-slate-50 rounded-l-2xl text-slate-400 font-black text-sm">
                         %

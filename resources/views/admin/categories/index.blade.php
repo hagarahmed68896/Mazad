@@ -52,11 +52,11 @@
                     <div>
                         <h3 class="text-[17px] font-black text-[#1C1C1C] mb-2 text-right group-hover:text-[#1A73E8] transition-colors">{{ $category->name }}</h3>
                         <div class="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-500">
-                            <!-- Users Count -->
-                            <div class="flex items-center gap-1.5 flex-row-reverse" title="عدد المستخدمين">
-                                <span class="text-[13px] text-[#6F6F6F]" dir="ltr">مستخدم <span class="font-black text-[#1C1C1C]">{{ number_format(1000) }}</span></span>
-                                <svg class="w-4 h-4 text-[#1C1C1C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                            </div>
+                             <!-- Users Count -->
+                             <div class="flex items-center gap-1.5 flex-row-reverse" title="عدد المستخدمين">
+                                 <span class="text-[13px] text-[#6F6F6F]" dir="ltr">مستخدم <span class="font-black text-[#1C1C1C]">{{ number_format($category->users_count ?? 0) }}</span></span>
+                                 <svg class="w-4 h-4 text-[#1C1C1C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                             </div>
                             <!-- Ads Count -->
                             <div class="flex items-center gap-1.5 flex-row-reverse" title="عدد الإعلانات">
                                 <span class="text-[13px] text-[#6F6F6F]" dir="ltr">إعلان <span class="font-black text-[#1C1C1C]">{{ number_format($category->ads_count ?? 500) }}</span></span>

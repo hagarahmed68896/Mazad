@@ -330,6 +330,18 @@
                 loadUrlViaAjax(window.location.href, false);
             });
 
+            function executeScripts(container) {
+                const scripts = container.querySelectorAll('script');
+                scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    Array.from(oldScript.attributes).forEach(attr => {
+                        newScript.setAttribute(attr.name, attr.value);
+                    });
+                    newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                });
+            }
+
             async function performLiveSearch(form, activeInput, forcePushState = false) {
                 const formData = new FormData(form);
                 const params = new URLSearchParams(formData);
@@ -366,6 +378,7 @@
 
                         // Swap HTML content
                         mainContent.innerHTML = newContent.innerHTML;
+                        executeScripts(mainContent);
 
                         // Update Browser URL (use replaceState for typing, pushState for explicit submit)
                         if (forcePushState) {
@@ -414,6 +427,7 @@
 
                     if (newContent) {
                         mainContent.innerHTML = newContent.innerHTML;
+                        executeScripts(mainContent);
                         
                         if (shouldPushState) {
                             window.history.pushState({ path: url }, '', url);

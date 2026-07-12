@@ -65,9 +65,16 @@ class SearchController extends Controller
             }
         }
 
-        // 3. City Filter
+        // 3. City Filter (District-level)
         if ($request->has('city_id') && !empty($request->city_id)) {
             $query->where('city_id', $request->city_id);
+        }
+
+        // 3a. Region Filter (City-level)
+        if ($request->has('region_id') && !empty($request->region_id)) {
+            $query->whereHas('city', function($cq) use ($request) {
+                $cq->where('region_id', $request->region_id);
+            });
         }
 
         // 3b. Dynamic Category Properties Filter (e.g., props[1]=2024)

@@ -43,14 +43,10 @@
         </div>
 
         <div class="service-footer mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
-            <form action="{{ route('chats.start') }}" method="POST" class="w-full">
-                @csrf
-                <input type="hidden" name="service_id" value="{{ $service->id }}">
-                <button type="submit" class="w-full bg-primary text-white py-3.5 rounded-2xl font-black text-sm shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
-                    اطلب الخدمة
-                    <i class="fa-solid fa-arrow-left text-[10px]"></i>
-                </button>
-            </form>
+            <a href="{{ route('services.show', $service->id) }}" class="w-full bg-primary text-white py-3.5 rounded-2xl font-black text-sm shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-2 text-center decoration-none">
+                اطلب الخدمة
+                <i class="fa-solid fa-arrow-left text-[10px]"></i>
+            </a>
         </div>
     </div>
 </div>

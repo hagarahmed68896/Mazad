@@ -300,23 +300,28 @@
         previewItems.forEach((item, i) => {
             const card = document.createElement('div');
             // Design matches user screenshot: solid vibrant blue, compact height, takes 1/3 grid
-            card.className = "relative w-full h-[140px] rounded-md overflow-hidden shadow-sm flex items-center bg-[#1A73E8] cursor-pointer hover:ring-4 hover:ring-[#1A73E8]/30 transition-all";
+            card.className = "relative w-full h-[140px] rounded-md overflow-hidden shadow-sm flex items-center cursor-pointer hover:ring-4 hover:ring-blue-600/30 transition-all";
+            card.style.background = "linear-gradient(135deg, #1D4ED8 0%, #102A6B 100%)";
             card.onclick = () => editItem(i);
             card.innerHTML = `
+                <!-- Action Buttons (Always Visible) -->
+                <div class="absolute top-2 left-2 z-30 flex gap-2">
+                    <button type="button" onclick="event.stopPropagation(); editItem(${i})" class="w-7 h-7 bg-white rounded-full flex items-center justify-center shadow hover:bg-slate-50 hover:scale-105 transition-all" style="color: #1D4ED8 !important;" title="تعديل">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    </button>
+                    <button type="button" onclick="event.stopPropagation(); removeItem(${i})" class="w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center shadow hover:bg-red-600 hover:scale-105 transition-all" title="حذف">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                </div>
                 <!-- Content Right (60%) -->
                 <div class="relative z-10 px-5 py-3 w-[60%] h-full flex flex-col justify-center">
                     <h4 class="text-white font-black text-[14px] mb-1 leading-tight">${item.title || 'العنوان'}</h4>
                     <p class="text-blue-100 text-[10px] font-medium leading-snug mb-2 line-clamp-2">${item.desc || 'الوصف'}</p>
-                    ${item.showBtn === '1' ? `<div><span class="bg-white text-[#1A73E8] text-[9px] font-black px-4 py-1.5 rounded-lg inline-block whitespace-nowrap shadow-sm">${item.btn || 'أضف إعلانك'}</span></div>` : ''}
+                    ${item.showBtn === '1' ? `<div><span class="bg-white text-[9px] font-black px-4 py-1.5 rounded-lg inline-block whitespace-nowrap shadow-sm" style="color: #1D4ED8 !important;">${item.btn || 'أضف إعلانك'}</span></div>` : ''}
                 </div>
                 <!-- Image Left (40%) -->
                 <div class="absolute left-0 bottom-0 top-0 w-[40%] h-full flex items-center justify-center p-2 overflow-hidden">
                     ${item.imgSrc ? `<img src="${item.imgSrc}" class="h-full w-full object-contain">` : '<div class="w-full h-full bg-white/10 rounded-xl"></div>'}
-                </div>
-                <!-- Edit layer (Overlay on hover) -->
-                <div class="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-3 z-20">
-                    <button type="button" onclick="editItem(${i})" class="w-10 h-10 bg-white text-[#1A73E8] rounded-xl flex items-center justify-center shadow-lg"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
-                    <button type="button" onclick="removeItem(${i})" class="w-10 h-10 bg-red-500 text-white rounded-xl flex items-center justify-center shadow-lg"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
                 </div>
             `;
             container.appendChild(card);
@@ -377,7 +382,7 @@
     }
 
     // Initialize existing
-    window.addEventListener('load', () => {
+    function initBannersEdit() {
         existingItems.forEach(item => {
             const data = {
                 id: itemCount++,
@@ -393,6 +398,12 @@
         });
         renderPreviewCards();
         syncSubmissionInputs();
-    });
+    }
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        initBannersEdit();
+    } else {
+        window.addEventListener('load', initBannersEdit);
+    }
 </script>
 @endsection

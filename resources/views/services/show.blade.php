@@ -54,7 +54,20 @@
                             </button>
                         </form>
                     @else
-                        <!-- Request Service Button -->
+                        <!-- Request and Pay Button -->
+                        @auth
+                            <a href="{{ route('services.checkout', $service->id) }}" class="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-600/20 font-bold hover:bg-emerald-700 transition-all text-sm whitespace-nowrap">
+                                <i class="fa-solid fa-wallet"></i>
+                                طلب الخدمة ودفع التكاليف
+                            </a>
+                        @else
+                            <button onclick="showAuthModal()" class="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-600/20 font-bold hover:bg-emerald-700 transition-all text-sm whitespace-nowrap">
+                                <i class="fa-solid fa-wallet"></i>
+                                طلب الخدمة ودفع التكاليف
+                            </button>
+                        @endauth
+
+                        <!-- Chat / Inquire Button -->
                         <form action="{{ route('chats.start') }}" method="POST" class="m-0 inline">
                             @csrf
                             @if($service instanceof \App\Models\Ad)
@@ -62,9 +75,9 @@
                             @else
                                 <input type="hidden" name="service_id" value="{{ $service->id }}">
                             @endif
-                            <button type="submit" class="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl shadow-lg shadow-primary/20 font-bold hover:bg-blue-700 transition-all text-sm">
-                                <i class="fa-solid fa-comment-dots"></i>
-                                اطلب الخدمة
+                            <button type="submit" class="flex items-center gap-2 px-6 py-3 bg-white text-slate-700 border border-slate-200 rounded-2xl font-bold hover:bg-slate-50 transition-all text-sm shadow-sm whitespace-nowrap">
+                                <i class="fa-regular fa-comment-dots text-primary"></i>
+                                تواصل مع الشريك
                             </button>
                         </form>
 
@@ -72,7 +85,7 @@
                             <i class="fa-solid fa-share-nodes text-primary"></i>
                             مشاركة
                         </button>
-                        <button onclick="openReportModal()" class="flex items-center gap-2 px-5 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 text-red-500 font-bold hover:bg-red-50 transition-all">
+                        <button onclick="openReportModal()" class="flex items-center gap-2 px-5 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 text-red-500 font-bold hover:bg-red-50 transition-all whitespace-nowrap">
                             <i class="fa-solid fa-flag"></i>
                             الإبلاغ عن هذا المعلن
                         </button>

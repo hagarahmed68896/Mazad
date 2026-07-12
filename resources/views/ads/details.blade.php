@@ -3,6 +3,28 @@
 @section('title', 'تفاصيل الإعلان | مزاد')
 
 @section('content')
+@php
+    $isRealEstate = false;
+    if (isset($category)) {
+        $cat = $category;
+        while ($cat) {
+            $name = mb_strtolower($cat->name);
+            if (
+                str_contains($name, 'عقار') || 
+                str_contains($name, 'العقارات') || 
+                str_contains($name, 'عقارات') || 
+                str_contains($name, 'real estate') || 
+                str_contains($name, 'realestate') ||
+                str_contains($name, 'property') ||
+                str_contains($name, 'properties')
+            ) {
+                $isRealEstate = true;
+                break;
+            }
+            $cat = $cat->parent;
+        }
+    }
+@endphp
 <style>
     .navbar, .categories-nav, .footer { display: none !important; }
     body { background-color: #F8FAFC; }
@@ -341,15 +363,31 @@
                 </div>
             </div>
 
-            <!-- Map Picker Area -->
-            <div class="space-y-4">
-                <div id="inspectionMap"></div>
+            <!-- Dropdowns for City and District -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" style="{{ $isRealEstate ? 'display: none;' : '' }}">
+                <div>
+                    <label class="block text-gray-700 font-black mb-2">المدينة <span class="text-red-500">*</span></label>
+                    <select id="citySelect" name="city_id" class="form-input w-full" {{ $isRealEstate ? '' : 'required' }}>
+                        <option value="">اختر المدينة</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-black mb-2">الحي <span class="text-red-500">*</span></label>
+                    <select id="districtSelect" name="district_id" class="form-input w-full" {{ $isRealEstate ? '' : 'required' }}>
+                        <option value="">اختر الحي</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Map Picker Area (Required and shown only for Real Estate) -->
+            <div class="space-y-4" id="mapPickerWrapper" style="{{ $isRealEstate ? '' : 'display: none;' }}">
+                <div id="inspectionMap" style="height: 300px; border-radius: 24px;"></div>
                 <div class="grid grid-cols-2 gap-4">
-                    <input type="hidden" name="lat" id="latInput" value="24.7136">
-                    <input type="hidden" name="lng" id="lngInput" value="46.6753">
+                    <input type="hidden" name="lat" id="latInput" value="{{ $isRealEstate ? '' : '24.7136' }}" {{ $isRealEstate ? 'required' : '' }}>
+                    <input type="hidden" name="lng" id="lngInput" value="{{ $isRealEstate ? '' : '46.6753' }}" {{ $isRealEstate ? 'required' : '' }}>
                     <div class="col-span-2">
-                        <label class="block text-gray-700 font-black mb-3">العنوان بالتفصيل </label>
-                        <input type="text" name="address" id="addressDisplay" placeholder="مثال: الرياض، حي النخيل، طريق الأمير تركي" class="form-input">
+                        <label class="block text-gray-700 font-black mb-3">{{ $isRealEstate ? 'العنوان بالتفصيل (تلقائي من الخريطة)' : 'العنوان (تلقائي من الخريطة)' }}</label>
+                        <input type="text" name="address" id="addressDisplay" placeholder="اختر الموقع من الخريطة لتحديد العنوان تلقائياً" class="form-input bg-gray-50 text-gray-500 cursor-not-allowed" readonly>
                     </div>
                 </div>
             </div>
@@ -1040,11 +1078,66 @@
         }
     });
 
+    // Location Dropdowns Initialization
+    async function initLocationDropdowns() {
+        const isRealEstate = {{ $isRealEstate ? 'true' : 'false' }};
+        if (isRealEstate) return;
+        const citySelect = document.getElementById('citySelect');
+        const districtSelect = document.getElementById('districtSelect');
+        if (!citySelect || !districtSelect) return;
+
+        // Fetch cities
+        try {
+            const response = await fetch('/api/cities');
+            const result = await response.json();
+            if (result.success && result.data) {
+                result.data.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city.id;
+                    option.textContent = city.name;
+                    citySelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading cities:', error);
+        }
+
+        // On city change, load districts
+        citySelect.addEventListener('change', async function() {
+            districtSelect.innerHTML = '<option value="">اختر الحي</option>';
+            const cityId = this.value;
+            if (!cityId) return;
+
+            try {
+                const response = await fetch(`/api/cities/${cityId}/districts`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    result.data.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district.id;
+                        option.textContent = district.name;
+                        districtSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading districts:', error);
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initLocationDropdowns();
+    });
+
     // Map Initialization
     let map, marker;
     function initMap() {
+        const isRealEstate = {{ $isRealEstate ? 'true' : 'false' }};
+        if (!isRealEstate) return; // Only init map for real estate
         if (map) return;
-        map = L.map('inspectionMap').setView([24.7136, 46.6753], 13);
+        const mapOptions = {};
+        
+        map = L.map('inspectionMap', mapOptions).setView([24.7136, 46.6753], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
@@ -1059,7 +1152,21 @@
                 const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ar`);
                 const data = await response.json();
                 if (data && data.display_name) {
-                    display.value = data.display_name;
+                    const isRealEstate = {{ $isRealEstate ? 'true' : 'false' }};
+                    if (isRealEstate) {
+                        display.value = data.display_name;
+                    } else {
+                        const addr = data.address || {};
+                        const city = addr.city || addr.town || addr.village || addr.municipality || addr.state || '';
+                        const neighborhood = addr.neighbourhood || addr.suburb || addr.quarter || addr.district || '';
+                        let result = '';
+                        if (city) result += city;
+                        if (neighborhood) {
+                            const cleanNeighborhood = neighborhood.replace(/^حي\s+/u, '');
+                            result += (result ? '، ' : '') + 'حي ' + cleanNeighborhood;
+                        }
+                        display.value = result || data.display_name || '';
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching address:', error);

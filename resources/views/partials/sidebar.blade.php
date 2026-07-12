@@ -60,28 +60,38 @@
 
         <!-- Ads Section -->
         <div class="sidebar-section">
-            <h4 class="section-title">الاعلانات</h4>
-            @if(Auth::user()->account_type !== 'partner')
-            <a href="{{ route('ads.my') }}" class="sidebar-link">
-                <i class="fa-regular fa-rectangle-list"></i>
-                <span>إعلاناتي</span>
-            </a>
-            <a href="{{ route('wishlist.index') }}" class="sidebar-link">
-                <i class="fa-regular fa-heart"></i>
-                <span>مفضلتي</span>
-            </a>
-            <a href="{{ route('look-later.index') }}" class="sidebar-link">
-                <i class="fa-regular fa-bookmark"></i>
-                <span>منتجات للاطلاع لاحقاً</span>
-            </a>
-            <a href="{{ route('reviews.my') }}" class="sidebar-link">
-                <i class="fa-regular fa-star"></i>
-                <span>تقييماتي</span>
-            </a>
-            <a href="{{ route('sales.my') }}" class="sidebar-link">
-                <i class="fa-regular fa-calendar-check"></i>
-                <span>مبيعاتي</span>
-            </a>
+            @if(Auth::user()->account_type === 'partner')
+                <h4 class="section-title">لوحة الخدمات</h4>
+                <a href="{{ route('ads.my') }}" class="sidebar-link">
+                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                    <span>لوحة خدماتي</span>
+                </a>
+                <a href="{{ route('partner.service-orders') }}" class="sidebar-link">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>طلبات الخدمات الواردة</span>
+                </a>
+            @else
+                <h4 class="section-title">الاعلانات</h4>
+                <a href="{{ route('ads.my') }}" class="sidebar-link">
+                    <i class="fa-regular fa-rectangle-list"></i>
+                    <span>إعلاناتي</span>
+                </a>
+                <a href="{{ route('wishlist.index') }}" class="sidebar-link">
+                    <i class="fa-regular fa-heart"></i>
+                    <span>مفضلتي</span>
+                </a>
+                <a href="{{ route('look-later.index') }}" class="sidebar-link">
+                    <i class="fa-regular fa-bookmark"></i>
+                    <span>منتجات للاطلاع لاحقاً</span>
+                </a>
+                <a href="{{ route('reviews.my') }}" class="sidebar-link">
+                    <i class="fa-regular fa-star"></i>
+                    <span>تقييماتي</span>
+                </a>
+                <a href="{{ route('sales.my') }}" class="sidebar-link">
+                    <i class="fa-regular fa-calendar-check"></i>
+                    <span>مبيعاتي</span>
+                </a>
             @endif
             <a href="{{ route('reports.index') }}" class="sidebar-link">
                 <i class="fa-solid fa-chart-column"></i>

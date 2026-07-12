@@ -81,7 +81,15 @@ class ChatController extends Controller
             ->orderBy('last_message_at', 'desc')
             ->get();
 
-        return view('chats.index', compact('categories', 'settings', 'conversations', 'activeConversation', 'filter', 'isBlocked'));
+        $partnerServices = collect();
+        if ($activeConversation) {
+            $otherUser = $activeConversation->otherUser();
+            if ($otherUser && $otherUser->account_type === 'partner') {
+                $partnerServices = \App\Models\Service::where('user_id', $otherUser->id)->where('status', 'active')->get();
+            }
+        }
+
+        return view('chats.index', compact('categories', 'settings', 'conversations', 'activeConversation', 'filter', 'isBlocked', 'partnerServices'));
     }
 
     public function sendMessage(Request $request, $id)

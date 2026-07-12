@@ -18,7 +18,17 @@ class Ad extends Model
         'allow_bidding', 'allow_negotiation', 'buy_now_price', 'inspection_date', 'inspection_end_date'
     ];
 
-    protected $appends = ['is_favorited', 'is_look_later'];
+    protected $appends = ['is_favorited', 'is_look_later', 'is_real_estate', 'is_cars'];
+
+    public function getIsRealEstateAttribute()
+    {
+        return $this->isRealEstate();
+    }
+
+    public function getIsCarsAttribute()
+    {
+        return $this->isCars();
+    }
 
     public function getIsFavoritedAttribute()
     {
@@ -134,6 +144,34 @@ class Ad extends Model
         return false;
     }
 
+    public function isCars(): bool
+    {
+        if (!$this->category_id) {
+            return false;
+        }
+
+        if (!$this->relationLoaded('category')) {
+            $this->load('category');
+        }
+        
+        $cat = $this->category;
+        while ($cat) {
+            $name = mb_strtolower($cat->name);
+            if (
+                str_contains($name, 'سيارات') || 
+                str_contains($name, 'سيارة') || 
+                str_contains($name, 'car') || 
+                str_contains($name, 'cars') || 
+                str_contains($name, 'vehicle') || 
+                str_contains($name, 'vehicles')
+            ) {
+                return true;
+            }
+            $cat = $cat->parent_id ? ($cat->parent ?: $cat->load('parent')->parent) : null;
+        }
+        return false;
+    }
+
     public function hasUserOrderedAd($userId): bool
     {
         if (self::$userOrderedAdIds === null) {
@@ -151,17 +189,78 @@ class Ad extends Model
             return '';
         }
         
+        $cityName = $this->city ? $this->city->name : '';
+        
+        // Split address by commas or dashes
         $segments = preg_split('/[,-\x{060C}]/u', $address);
-        if (count($segments) >= 2) {
-            return trim($segments[0]) . '، ' . trim($segments[1]);
+        $segments = array_map(function($s) {
+            return trim(preg_replace('/^[\s،\-]+|[\s،\-]+$/u', '', $s));
+        }, $segments);
+        $segments = array_filter($segments);
+        
+        $neighborhood = '';
+        
+        if ($cityName) {
+            // Find the city index in segments
+            $cityIndex = -1;
+            foreach ($segments as $idx => $seg) {
+                if (mb_strpos($seg, $cityName) !== false) {
+                    $cityIndex = $idx;
+                    break;
+                }
+            }
+            
+            if ($cityIndex > 0) {
+                // The neighborhood is typically the segment right before the city
+                $neighborhood = $segments[$cityIndex - 1];
+            } elseif ($cityIndex === 0 && count($segments) > 1) {
+                // If city is the first segment, neighborhood might be the second
+                $neighborhood = $segments[1];
+            }
         }
         
-        if (preg_match('/^(.*?\bحي\s+\S+)/ui', $address, $matches)) {
-            return trim($matches[1]);
+        // Fallback: If we couldn't find the city in the segments, look for a segment with "حي"
+        if (empty($neighborhood)) {
+            foreach ($segments as $seg) {
+                if (mb_strpos($seg, 'حي') !== false) {
+                    $neighborhood = $seg;
+                    break;
+                }
+            }
         }
         
-        $words = explode(' ', $address);
-        return implode(' ', array_slice($words, 0, 3));
+        // Fallback 2: If still empty, take the first segment that is not a road/building keyword
+        if (empty($neighborhood)) {
+            $detailedKeywords = [
+                'شارع', 'طريق', 'مول', 'عمارة', 'فيلا', 'برج', 'شقة', 'مكتب', 
+                'رقم', 'الدور', 'دور', 'السعودية', 'saudi', 'فلل', 'شقق', 'مكاتب', 'معرض', 'بناية'
+            ];
+            foreach ($segments as $seg) {
+                $hasKeyword = false;
+                foreach ($detailedKeywords as $kw) {
+                    if (mb_strpos(mb_strtolower($seg), $kw) !== false) {
+                        $hasKeyword = true;
+                        break;
+                    }
+                }
+                if (!$hasKeyword && $seg !== $cityName) {
+                    $neighborhood = $seg;
+                    break;
+                }
+            }
+        }
+        
+        // Clean up neighborhood (ensure it starts with "حي" if not empty)
+        if (!empty($neighborhood)) {
+            $neighborhoodClean = trim(preg_replace('/^حي\s+/u', '', $neighborhood));
+            $neighborhood = 'حي ' . $neighborhoodClean;
+        }
+        
+        if ($cityName && $neighborhood) {
+            return $cityName . '، ' . $neighborhood;
+        }
+        
+        return $cityName ?: ($neighborhood ?: 'السعودية');
     }
 
     private function getFuzzedLat($lat): float

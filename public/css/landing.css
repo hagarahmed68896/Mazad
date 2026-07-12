@@ -1088,8 +1088,8 @@ ul {
 
 .hero-banner {
     width: 100%;
-    background-color: #1A73E8;
-    background-image: linear-gradient(135deg, #1A73E8 0%, #0056b3 100%);
+    background-color: #1D4ED8;
+    background-image: linear-gradient(135deg, #1D4ED8 0%, #102A6B 100%);
     border-radius: 24px;
     height: 480px;
     display: flex;
@@ -1098,7 +1098,7 @@ ul {
     color: white;
     overflow: hidden;
     position: relative;
-    box-shadow: 0 20px 40px rgba(26, 115, 232, 0.2);
+    box-shadow: 0 20px 40px rgba(29, 78, 216, 0.25);
 }
 
 .banner-wrapper {
@@ -1168,7 +1168,7 @@ ul {
 .hero-image {
     position: relative;
     /* Remove absolute */
-    width: 45%;
+    width: 48%;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1177,9 +1177,14 @@ ul {
 
 .hero-image img {
     max-width: 100%;
-    max-height: 80%;
+    max-height: 86%;
     object-fit: contain;
     filter: drop-shadow(0 30px 40px rgba(0, 0, 0, 0.4));
+    transition: transform 0.3s ease;
+}
+
+.hero-image img:hover {
+    transform: scale(1.05);
 }
 
 /* Banner Controls */

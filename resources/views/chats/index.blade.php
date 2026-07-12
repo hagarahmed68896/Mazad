@@ -201,6 +201,30 @@
                         </div>
                     </div>
 
+                    @if(auth()->user()->account_type !== 'partner' && isset($partnerServices) && $partnerServices->count() > 0)
+                        <!-- Partner Services Sticky Banner inside Chat -->
+                        <div class="bg-gradient-to-l from-emerald-500/10 to-blue-500/10 border-b border-slate-100 p-4 shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                                    <i class="fa-solid fa-shield-halved text-lg"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs font-black text-slate-800 leading-tight">طلب الخدمات بشكل آمن</h4>
+                                    <p class="text-[10px] text-slate-500 font-bold mt-0.5" style="margin:0;">يمكنك طلب خدمات هذا الشريك ودفع الرسوم عبر المنصة لضمان حقوقك كاملة.</p>
+                                </div>
+                            </div>
+                            <!-- Services list dropdown/buttons -->
+                            <div class="flex items-center gap-2 overflow-x-auto py-1">
+                                @foreach($partnerServices as $pSvc)
+                                    <a href="{{ route('services.checkout', $pSvc->id) }}" class="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[11px] shadow-sm whitespace-nowrap transition-colors decoration-none">
+                                        <i class="fa-solid fa-wallet"></i>
+                                        <span>طلب {{ $pSvc->title }} ({{ number_format($pSvc->price) }} ريال)</span>
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- Messages List -->
                     <div class="flex-1 overflow-y-auto p-6 flex flex-col gap-6" id="messagesContainer">
                         @if($isBlocked)

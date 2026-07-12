@@ -5,7 +5,7 @@
 @push('styles')
 <style>
     .partner-banner {
-        background: linear-gradient(135deg, #1A73E8 0%, #1557B0 100%) !important;
+        background: linear-gradient(135deg, #1D4ED8 0%, #102A6B 100%) !important;
     }
     .partner-slide-item {
         transition: opacity 0.5s ease-in-out;
@@ -212,7 +212,7 @@
                         </p>
                         @if(!empty($item['show_button']) && !empty($item['button_text']))
                             <div style="margin-top: 1.5rem;">
-                                <a href="{{ $item['url'] }}" style="display: inline-block; padding: 0.75rem 2rem; background: white; color: #1A73E8; border-radius: 12px; font-weight: 800; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">{{ $item['button_text'] }}</a>
+                                <a href="{{ $item['url'] }}" style="display: inline-block; padding: 0.75rem 2rem; background: white; color: #1D4ED8; border-radius: 12px; font-weight: 800; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">{{ $item['button_text'] }}</a>
                             </div>
                         @endif
                     </div>
@@ -227,7 +227,7 @@
                                 $imgPath = asset($imgPath);
                             }
                         @endphp
-                        <img src="{{ $imgPath }}" alt="Partner Banner Image" style="max-height: 240px; {{ $imgPath == asset('images/hero_car.png') ? 'transform: rotate(90deg);' : '' }} object-fit: contain; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.3));" onerror="this.src='{{ asset('images/login-illustration.png') }}'; this.style.transform='none';">
+                        <img src="{{ $imgPath }}" alt="Partner Banner Image" style="max-height: 245px; {{ $imgPath == asset('images/hero_car.png') ? 'transform: rotate(90deg);' : '' }} object-fit: contain; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.3));" onerror="this.src='{{ asset('images/login-illustration.png') }}'; this.style.transform='none';">
                     </div>
                 </div>
             @endforeach

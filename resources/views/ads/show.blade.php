@@ -97,6 +97,8 @@
             <a href="{{ route('ads.gallery', ['id' => $ad->id, 'index' => 0]) }}" class="{{ $allImages->count() > 1 ? 'lg:col-span-2' : '' }} aspect-[16/10] lg:aspect-auto lg:h-[450px] rounded-[32px] overflow-hidden border border-gray-100 shadow-sm cursor-pointer group relative bg-slate-50">
                 @if($ad->image)
                     <img id="mainAdImage" src="{{ Str::startsWith($ad->image, 'http') ? $ad->image : '/' . ltrim($ad->image, '/') }}" class="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105">
+                @elseif($ad->isCars())
+                    <img id="mainAdImage" src="{{ asset('car_placeholder.svg') }}" class="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105" style="padding: 3rem;">
                 @else
                     <div class="w-full h-full bg-gray-50 flex items-center justify-center text-gray-300">
                         <i class="fa-solid fa-image text-6xl"></i>
@@ -1606,21 +1608,53 @@
     }
 </style>
 
+@php
+    $canSeeExact = false;
+    if ($ad->isRealEstate()) {
+        $canSeeExact = true;
+    } else {
+        $user = auth('sanctum')->user() ?: (auth()->user() ?: \Illuminate\Support\Facades\Auth::user());
+        if ($user) {
+            if ($user->account_type === 'admin' || $user->id === $ad->user_id || $ad->hasUserOrderedAd($user->id)) {
+                $canSeeExact = true;
+            }
+        }
+    }
+@endphp
+
 <script>
     let map;
     function initMap() {
         if (map) return;
         const lat = {{ $ad->lat ?? 24.7136 }};
         const lng = {{ $ad->lng ?? 46.6753 }};
+        const canSeeExact = {{ $canSeeExact ? 'true' : 'false' }};
         
-        map = L.map('adMap').setView([lat, lng], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
+        if (canSeeExact) {
+            map = L.map('adMap').setView([lat, lng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
 
-        L.marker([lat, lng]).addTo(map)
-            .bindPopup('<b>{{ $ad->title }}</b><br>{{ $ad->address }}')
+            L.marker([lat, lng]).addTo(map)
+                .bindPopup('<b>{{ $ad->title }}</b><br>{{ $ad->address }}')
+                .openPopup();
+        } else {
+            // Vague map: Zoomed out, shaded neighborhood circle, no marker
+            map = L.map('adMap').setView([lat, lng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            L.circle([lat, lng], {
+                color: '#1A73E8',
+                fillColor: '#3b82f6',
+                fillOpacity: 0.15,
+                radius: 600 // 600m radius representing the general area
+            }).addTo(map)
+            .bindPopup('<b>الموقع التقريبي للمعلن</b><br>{{ $ad->address }}')
             .openPopup();
+        }
     }
 
     function switchTab(tabId) {

@@ -434,49 +434,58 @@
                     <tbody>
                         @foreach($items as $index => $item)
                             @php
-                                $ad = $tab === 'sales' ? $item : $item->ad;
-                                $image = $ad && $ad->image ? (Str::startsWith($ad->image, 'http') ? $ad->image : '/' . ltrim($ad->image, '/')) : null;
-                                $price = $tab === 'sales' ? ($item->orders->first()->final_price ?? $item->price) : $item->final_price;
-                                $date = $tab === 'sales' ? ($item->orders->first()->created_at ?? $item->created_at) : $item->created_at;
+                                $isServiceOrder = ($item instanceof \App\Models\ServiceOrder);
+                                if ($isServiceOrder) {
+                                    $sAd = $item->service ?? $item->ad;
+                                    $title = $sAd->title ?? 'طلب خدمة شريك';
+                                    $image = $sAd && $sAd->image ? (Str::startsWith($sAd->image, 'http') ? $sAd->image : '/' . ltrim($sAd->image, '/')) : null;
+                                    $price = $item->price;
+                                    $date = $item->created_at;
+                                    $categoryName = $sAd->category->name ?? 'خدمات الشركاء';
+                                    $typeText = 'خدمة شريك';
+                                    $typeClass = 'direct';
+                                    $url = $sAd ? route('services.show', $sAd->id) : '#';
+                                } else {
+                                    $ad = $tab === 'sales' ? $item : $item->ad;
+                                    $title = $ad->title ?? '-';
+                                    $image = $ad && $ad->image ? (Str::startsWith($ad->image, 'http') ? $ad->image : '/' . ltrim($ad->image, '/')) : null;
+                                    $price = $tab === 'sales' ? ($item->orders->first()?->final_price ?? $item->price) : $item->final_price;
+                                    $date = $tab === 'sales' ? ($item->orders->first()?->created_at ?? $item->created_at) : $item->created_at;
+                                    $categoryName = $ad->category->name ?? 'غير مصنف';
+                                    $typeText = $ad ? ($ad->type == 'electronic_auction' ? 'مزاد إلكتروني' : ($ad->type == 'hybrid_auction' ? 'مزاد هجين' : ($ad->type == 'direct_purchase' ? 'شراء فوري' : 'مناقصة'))) : 'غير محدد';
+                                    $typeClass = $ad ? ($ad->type == 'electronic_auction' ? 'auction-elec' : ($ad->type == 'hybrid_auction' ? 'auction-hybrid' : 'direct')) : 'direct';
+                                    $url = $ad ? (in_array($ad->type, ['electronic_auction', 'hybrid_auction']) ? route('bids.history-page', $ad->id) : route('ads.show', $ad->id)) : '#';
+                                }
                             @endphp
                             
-                            @if($ad)
-                                <tr style="cursor: pointer;" onclick="window.location='{{ in_array($ad->type, ['electronic_auction', 'hybrid_auction']) ? route('bids.history-page', $ad->id) : route('ads.show', $ad->id) }}'">
-                                    <td class="row-index">{{ $items->firstItem() + $index }}</td>
-                                    <td>
-                                        @if($image)
-                                            <img src="{{ $image }}" alt="{{ $ad->title }}" class="ad-thumbnail">
-                                        @else
-                                            <div class="ad-thumbnail flex items-center justify-center bg-slate-100 text-slate-300">
-                                                <i class="fa-solid fa-image text-xl"></i>
-                                            </div>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if(in_array($ad->type, ['electronic_auction', 'hybrid_auction']))
-                                            <a href="{{ route('bids.history-page', $ad->id) }}" class="hover:text-blue-600 font-extrabold text-slate-800 transition-colors" style="text-decoration: none;">{{ $ad->title }}</a>
-                                        @else
-                                            <a href="{{ route('ads.show', $ad->id) }}" class="hover:text-blue-600 font-extrabold text-slate-800 transition-colors" style="text-decoration: none;">{{ $ad->title }}</a>
-                                        @endif
-                                    </td>
-                                    <td>{{ $ad->category->name ?? 'غير مصنف' }}</td>
-                                    <td>
-                                        <span class="type-badge {{ $ad->type == 'electronic_auction' ? 'auction-elec' : ($ad->type == 'hybrid_auction' ? 'auction-hybrid' : 'direct') }}">
-                                            @if($ad->type == 'electronic_auction') مزاد إلكتروني
-                                            @elseif($ad->type == 'hybrid_auction') مزاد هجين
-                                            @elseif($ad->type == 'direct_purchase') شراء فوري
-                                            @else مناقصة @endif
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="price-amount">
-                                            <span>{{ number_format($price) }}</span>
-                                            <x-riyal-icon class="w-4 h-4 text-blue-600" />
+                            <tr style="cursor: pointer;" onclick="window.location='{{ $url }}'">
+                                <td class="row-index">{{ $items->firstItem() + $index }}</td>
+                                <td>
+                                    @if($image)
+                                        <img src="{{ $image }}" alt="{{ $title }}" class="ad-thumbnail">
+                                    @else
+                                        <div class="ad-thumbnail flex items-center justify-center bg-slate-100 text-slate-300">
+                                            <i class="fa-solid fa-image text-xl"></i>
                                         </div>
-                                    </td>
-                                    <td style="color: #64748B; font-size: 0.85rem;">{{ $date->format('Y/m/d') }} - {{ $date->translatedFormat('h:i a') }}</td>
-                                </tr>
-                            @endif
+                                    @endif
+                                </td>
+                                <td>
+                                    <a href="{{ $url }}" class="hover:text-blue-600 font-extrabold text-slate-800 transition-colors" style="text-decoration: none;">{{ $title }}</a>
+                                </td>
+                                <td>{{ $categoryName }}</td>
+                                <td>
+                                    <span class="type-badge {{ $typeClass }}">
+                                        {{ $typeText }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="price-amount">
+                                        <span>{{ number_format($price) }}</span>
+                                        <x-riyal-icon class="w-4 h-4 text-blue-600" />
+                                    </div>
+                                </td>
+                                <td style="color: #64748B; font-size: 0.85rem;">{{ $date ? $date->format('Y/m/d') : '-' }} - {{ $date ? $date->translatedFormat('h:i a') : '-' }}</td>
+                            </tr>
                         @endforeach
                     </tbody>
                 </table>

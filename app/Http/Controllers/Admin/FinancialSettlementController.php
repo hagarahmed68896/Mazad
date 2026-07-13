@@ -174,7 +174,40 @@ class FinancialSettlementController extends Controller
                     'status' => 'completed',
                     'completed_at' => now(),
                 ]);
+
+                // Notify the Buyer of report delivery
+                $order = $settlement->serviceOrder;
+                if ($order) {
+                    $buyerNotification = new \App\Models\Notification([
+                        'user_id' => $order->buyer_id,
+                        'type' => 'alert',
+                        'title' => 'تم تسليم تقرير الخدمة بنجاح 📁',
+                        'content' => "تم تسليم واعتماد تقرير إنجاز الخدمة للطلب #{$order->order_number} بنجاح. يمكنك استعراضه وتنزيله الآن.",
+                        'status' => 'sent'
+                    ]);
+                    $buyerNotification->custom_payload = [
+                        'click_action' => 'purchases_services',
+                        'service_id' => (string) ($order->service_id ?? $order->ad_id),
+                        'order_id' => (string) $order->id,
+                    ];
+                    $buyerNotification->save();
+                }
             }
+
+            // Notify the Partner (Seller) that money has been transferred
+            $partnerNotification = new \App\Models\Notification([
+                'user_id' => $settlement->user_id,
+                'type' => 'alert',
+                'title' => 'تم تحويل مستحقاتك المالية 💸',
+                'content' => "قام الإدمن بتحويل مستحقات التسوية رقم #{$settlement->settlement_number} بنجاح إلى حسابك البنكي.",
+                'status' => 'sent'
+            ]);
+            $partnerNotification->custom_payload = [
+                'click_action' => 'partner_service_orders',
+                'settlement_id' => (string) $settlement->id,
+                'order_id' => (string) $settlement->service_order_id,
+            ];
+            $partnerNotification->save();
             
             return back()->with('success', 'تم تغيير حالة التسوية إلى محولة بنجاح وتم تسليم التقرير للمشتري');
         }

@@ -16,4 +16,20 @@ class AdImage extends Model
     {
         return $this->belongsTo(Ad::class);
     }
+
+    public function getImageAttribute($value)
+    {
+        if (!$value) {
+            return null;
+        }
+
+        if (\Illuminate\Support\Str::startsWith($value, 'http')) {
+            return $value;
+        }
+
+        $host = app()->runningInConsole() ? asset('') : request()->getSchemeAndHttpHost() . request()->getBaseUrl();
+        $host = rtrim($host, '/');
+
+        return $host . '/' . ltrim($value, '/');
+    }
 }

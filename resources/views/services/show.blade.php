@@ -55,17 +55,24 @@
                         </form>
                     @else
                         <!-- Request and Pay Button -->
-                        @auth
-                            <a href="{{ route('services.checkout', $service->id) }}" class="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-600/20 font-bold hover:bg-emerald-700 transition-all text-sm whitespace-nowrap">
-                                <i class="fa-solid fa-wallet"></i>
-                                طلب الخدمة ودفع التكاليف
+                        @if($hasOrdered)
+                            <a href="{{ route('purchases.my', ['status' => 'services']) }}" class="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-600/20 font-bold hover:bg-blue-700 transition-all text-sm whitespace-nowrap">
+                                <i class="fa-solid fa-circle-check"></i>
+                                تم طلب الخدمة (متابعة الطلب)
                             </a>
                         @else
-                            <button onclick="showAuthModal()" class="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-600/20 font-bold hover:bg-emerald-700 transition-all text-sm whitespace-nowrap">
-                                <i class="fa-solid fa-wallet"></i>
-                                طلب الخدمة ودفع التكاليف
-                            </button>
-                        @endauth
+                            @auth
+                                <a href="{{ route('services.checkout', $service->id) }}" class="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-600/20 font-bold hover:bg-emerald-700 transition-all text-sm whitespace-nowrap">
+                                    <i class="fa-solid fa-wallet"></i>
+                                    طلب الخدمة ودفع التكاليف
+                                </a>
+                            @else
+                                <button onclick="showAuthModal()" class="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-600/20 font-bold hover:bg-emerald-700 transition-all text-sm whitespace-nowrap">
+                                    <i class="fa-solid fa-wallet"></i>
+                                    طلب الخدمة ودفع التكاليف
+                                </button>
+                            @endauth
+                        @endif
 
                         <!-- Chat / Inquire Button -->
                         <form action="{{ route('chats.start') }}" method="POST" class="m-0 inline">

@@ -697,6 +697,21 @@ class HomeController extends Controller
         $categories = Category::whereNull('parent_id')->get();
         $settings = \App\Models\Setting::pluck('value', 'key')->toArray();
 
+        // Check if the current authenticated user has already requested this service
+        $hasOrdered = false;
+        if (Auth::check()) {
+            $hasOrdered = \App\Models\ServiceOrder::where('buyer_id', Auth::id())
+                ->where('status', 'paid')
+                ->where(function($q) use ($service) {
+                    if ($service instanceof \App\Models\Service) {
+                        $q->where('service_id', $service->id);
+                    } else {
+                        $q->where('ad_id', $service->id);
+                    }
+                })
+                ->exists();
+        }
+
         // 1. Fetch reviews received by this advertiser
         $reviews = \App\Models\Review::where('rated_user_id', $service->user_id)
             ->with('reviewer')
@@ -739,7 +754,8 @@ class HomeController extends Controller
             'totalReviews',
             'avgRating',
             'ratingDistribution',
-            'userServices'
+            'userServices',
+            'hasOrdered'
         ));
     }
 

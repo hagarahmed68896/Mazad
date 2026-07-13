@@ -22,24 +22,26 @@ class Notification extends Model
         return $query->whereNull('read_at');
     }
 
+    public $custom_payload = [];
+
     protected static function booted()
     {
         static::created(function ($notification) {
             \Log::info("Notification static::created triggered for ID: {$notification->id}, status: {$notification->status}, user_id: " . ($notification->user_id ?? 'null'));
             if ($notification->status === 'sent') {
-                $notification->sendFcm();
+                $notification->sendFcm($notification->custom_payload ?? []);
             }
         });
 
         static::updated(function ($notification) {
             \Log::info("Notification static::updated triggered for ID: {$notification->id}, status: {$notification->status}, wasChanged status: " . ($notification->wasChanged('status') ? 'true' : 'false'));
             if ($notification->wasChanged('status') && $notification->status === 'sent') {
-                $notification->sendFcm();
+                $notification->sendFcm($notification->custom_payload ?? []);
             }
         });
     }
 
-    public function sendFcm()
+    public function sendFcm($extraData = [])
     {
         $user = $this->user;
         if (!$user) {
@@ -55,10 +57,10 @@ class Notification extends Model
         
         if ($user->all_notifications || $this->type === 'alert') {
             try {
-                $customData = [
+                $customData = array_merge([
                     'notification_id' => (string) $this->id,
                     'type' => (string) $this->type,
-                ];
+                ], $extraData);
                 
                 if ($this->type === 'bid_outbid') {
                     $customData['actions'] = json_encode([
@@ -73,6 +75,11 @@ class Notification extends Model
                     $customData['actions'] = json_encode([
                         ['action' => 'pay', 'label' => 'إتمام الدفع', 'color' => 'blue']
                     ], JSON_UNESCAPED_UNICODE);
+                }
+
+                // Ensure all values are converted to strings for FCM v1
+                foreach ($customData as $key => $val) {
+                    $customData[$key] = (string) $val;
                 }
 
                 \Log::info("Calling FcmService::sendPush for token: " . substr($user->fcm_token, 0, 15) . "...");

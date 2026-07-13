@@ -25,4 +25,14 @@ class AdProperty extends Model
     {
         return $this->belongsTo(Property::class);
     }
+
+    public function getValueAttribute($value)
+    {
+        if ($value && \Illuminate\Support\Str::startsWith($value, 'uploads/')) {
+            $host = app()->runningInConsole() ? asset('') : request()->getSchemeAndHttpHost() . request()->getBaseUrl();
+            $host = rtrim($host, '/');
+            return $host . '/' . ltrim($value, '/');
+        }
+        return $value;
+    }
 }

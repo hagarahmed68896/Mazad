@@ -246,9 +246,9 @@ class ServiceOrderController extends Controller
         if ($status === 'paid') {
             $query->where('status', 'paid');
         } elseif ($status === 'completed') {
-            $query->where('status', 'completed');
+            $query->whereIn('status', ['completed', 'under_review']);
         } else {
-            $query->whereIn('status', ['paid', 'completed']);
+            $query->whereIn('status', ['paid', 'under_review', 'completed']);
         }
 
         $orders = $query->get();
@@ -333,14 +333,33 @@ class ServiceOrderController extends Controller
                 'status' => 'pending'
             ]);
 
-            // Notify the buyer
-            Notification::create([
+            // Notify the buyer (rating request)
+            $buyerNotification = new Notification([
                 'user_id' => $order->buyer_id,
-                'type' => 'alert',
-                'title' => 'تم إنجاز الخدمة ورفع التقرير',
-                'content' => "قام الشريك {$user->name} بإتمام خدمتك بنجاح ورفع تقرير الإنجاز. رقم الطلب #{$order->order_number}.",
+                'type' => 'service_rate',
+                'title' => 'تم إنجاز الخدمة بنجاح 🌟',
+                'content' => "قام الشريك {$user->name} بإتمام خدمتك بنجاح ورفع تقرير الإنجاز للطلب #{$order->order_number}. يرجى الضغط هنا لتقييم الخدمة.",
                 'status' => 'sent'
             ]);
+            $buyerNotification->custom_payload = [
+                'click_action' => 'service_rate',
+                'service_id' => (string) ($order->service_id ?? $order->ad_id),
+                'order_id' => (string) $order->id,
+                'seller_id' => (string) $order->seller_id,
+            ];
+            $buyerNotification->save();
+
+            // Notify the admin(s)
+            $admins = \App\Models\User::where('account_type', 'admin')->get();
+            foreach ($admins as $admin) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'type' => 'alert',
+                    'title' => 'طلب تسوية مالية جديد',
+                    'content' => "قام الشريك {$user->name} بتقديم تقرير إنجاز للطلب #{$order->order_number} وتم إنشاء طلب تسوية مالية بقيمة {$order->price} ريال.",
+                    'status' => 'sent'
+                ]);
+            }
 
             DB::commit();
 

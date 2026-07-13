@@ -331,6 +331,44 @@ class AdController extends Controller
                 }
             }
 
+            // Save local attachments
+            if ($request->hasFile('attachments')) {
+                foreach ($request->file('attachments') as $index => $file) {
+                    $originalName = $file->getClientOriginalName();
+                    $size = number_format($file->getSize() / 1048576, 2) . 'MB';
+                    $type = $file->getClientOriginalExtension();
+                    $filename = time() . '_attach_' . $index . '_' . uniqid() . '.' . $type;
+                    $file->move(public_path('uploads/attachments'), $filename);
+                    $path = 'uploads/attachments/' . $filename;
+                    
+                    \App\Models\AdAttachment::create([
+                        'ad_id' => $ad->id,
+                        'file_path' => $path,
+                        'file_name' => pathinfo($originalName, PATHINFO_FILENAME),
+                        'file_size' => $size,
+                        'file_type' => $type
+                    ]);
+                }
+            }
+
+            // Save attachment links (Figma, Drive, etc.)
+            if ($request->has('attachment_links') && is_array($request->attachment_links)) {
+                foreach ($request->attachment_links as $index => $url) {
+                    if (filter_var($url, FILTER_VALIDATE_URL)) {
+                        $host = parse_url($url, PHP_URL_HOST);
+                        $name = $host ? str_replace('www.', '', $host) : ('رابط خارجي ' . ($index + 1));
+                        
+                        \App\Models\AdAttachment::create([
+                            'ad_id' => $ad->id,
+                            'file_path' => $url,
+                            'file_name' => $name,
+                            'file_size' => '0B',
+                            'file_type' => 'link'
+                        ]);
+                    }
+                }
+            }
+
             DB::commit();
 
             // If featured → process payment directly if card details were provided in the wizard
@@ -700,6 +738,52 @@ class AdController extends Controller
                                     'is_hidden' => $isHidden
                                 ]
                             );
+                        }
+                    }
+                }
+            }
+
+            // Save attachments if new ones are uploaded/sent
+            $hasNewAttachments = $request->hasFile('attachments') || ($request->has('attachment_links') && is_array($request->attachment_links));
+            
+            if ($hasNewAttachments) {
+                // Delete old attachments first
+                $ad->attachments()->delete();
+
+                // Save local attachments
+                if ($request->hasFile('attachments')) {
+                    foreach ($request->file('attachments') as $index => $file) {
+                        $originalName = $file->getClientOriginalName();
+                        $size = number_format($file->getSize() / 1048576, 2) . 'MB';
+                        $type = $file->getClientOriginalExtension();
+                        $filename = time() . '_attach_edit_' . $index . '_' . uniqid() . '.' . $type;
+                        $file->move(public_path('uploads/attachments'), $filename);
+                        $path = 'uploads/attachments/' . $filename;
+                        
+                        \App\Models\AdAttachment::create([
+                            'ad_id' => $ad->id,
+                            'file_path' => $path,
+                            'file_name' => pathinfo($originalName, PATHINFO_FILENAME),
+                            'file_size' => $size,
+                            'file_type' => $type
+                        ]);
+                    }
+                }
+
+                // Save attachment links (Figma, Drive, etc.)
+                if ($request->has('attachment_links') && is_array($request->attachment_links)) {
+                    foreach ($request->attachment_links as $index => $url) {
+                        if (filter_var($url, FILTER_VALIDATE_URL)) {
+                            $host = parse_url($url, PHP_URL_HOST);
+                            $name = $host ? str_replace('www.', '', $host) : ('رابط خارجي ' . ($index + 1));
+                            
+                            \App\Models\AdAttachment::create([
+                                'ad_id' => $ad->id,
+                                'file_path' => $url,
+                                'file_name' => $name,
+                                'file_size' => '0B',
+                                'file_type' => 'link'
+                            ]);
                         }
                     }
                 }

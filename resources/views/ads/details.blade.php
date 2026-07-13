@@ -766,6 +766,35 @@
                         <div id="imagePreview" class="grid grid-cols-4 gap-4 mt-4"></div>
                     </div>
 
+                    <!-- Attachments Section -->
+                    <div class="space-y-3">
+                        <label class="block text-gray-700 font-black">المرفقات (اختياري)</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <button type="button" onclick="document.getElementById('attachmentInput').click()" class="w-full bg-primary text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
+                                <i class="fa-solid fa-file-arrow-up text-xl"></i> أضف ملف من جهازك
+                            </button>
+                            <button type="button" onclick="showAttachmentUrlInput()" class="w-full border-2 border-primary text-primary font-black py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-primary/5 transition-all">
+                                <i class="fa-solid fa-link text-xl"></i> أضف رابط خارجي 
+                            </button>
+                        </div>
+                        <input type="file" id="attachmentInput" name="attachments[]" multiple class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg">
+                        
+                        <!-- Attachment URL input field (initially hidden) -->
+                        <div id="attachmentUrlWrapper" class="hidden space-y-2 mt-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                            <label class="block text-sm font-bold text-gray-700">أدخل رابط المرفق (URL):</label>
+                            <div class="flex gap-2">
+                                <input type="url" id="attachmentUrlInput" placeholder="https://drive.google.com/..." class="form-input flex-1">
+                                <button type="button" onclick="addAttachmentUrlToList()" class="bg-primary text-white font-black px-6 rounded-xl hover:bg-blue-700 transition-all">إضافة</button>
+                            </div>
+                        </div>
+
+                        <!-- Container for dynamic attachment urls hidden inputs -->
+                        <div id="urlAttachmentsContainer"></div>
+                        
+                        <!-- Container for attachment previews/list -->
+                        <div id="attachmentPreview" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4"></div>
+                    </div>
+
                     <div class="space-y-3">
                         <label class="block text-gray-700 font-black">رابط الفيديو يوتيوب</label>
                         <input type="url" name="youtube_link" placeholder="أدخل رابط الفيديو يوتيوب" class="form-input text-left" dir="ltr">
@@ -1390,7 +1419,130 @@
             });
             document.getElementById('imageInput').files = dataTransfer.files;
         }
+
+        // Append selected attachments to form input before submitting
+        if (selectedAttachments.length > 0) {
+            const dataTransferAttach = new DataTransfer();
+            selectedAttachments.forEach(file => {
+                dataTransferAttach.items.add(file);
+            });
+            document.getElementById('attachmentInput').files = dataTransferAttach.files;
+        }
     });
+
+    // Attachment Preview & Upload Logic
+    let selectedAttachments = [];
+    let selectedAttachmentUrls = [];
+
+    function renderAttachmentPreviews() {
+        const preview = document.getElementById('attachmentPreview');
+        preview.innerHTML = '';
+        
+        // 1. Render file attachments
+        selectedAttachments.forEach((file, index) => {
+            const isPdf = file.name.toLowerCase().endsWith('.pdf');
+            const iconClass = isPdf ? 'fa-file-pdf text-red-500' : 'fa-file text-primary';
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100 group';
+            div.innerHTML = `
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <i class="fa-solid ${iconClass} text-xl flex-shrink-0"></i>
+                    <span class="text-sm font-bold text-gray-700 truncate max-w-[150px] md:max-w-[200px]" title="${file.name}">${file.name}</span>
+                    <span class="text-xs text-gray-400 flex-shrink-0">(${(file.size / 1048576).toFixed(2)} MB)</span>
+                </div>
+                <button type="button" onclick="removeSelectedAttachment(${index})" class="text-red-500 hover:text-red-700 transition-all font-bold p-1" title="حذف المرفق">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            `;
+            preview.appendChild(div);
+        });
+
+        // 2. Render URL attachment links
+        selectedAttachmentUrls.forEach((url, index) => {
+            let displayHost = 'رابط خارجي';
+            try {
+                displayHost = new URL(url).hostname.replace('www.', '');
+            } catch(e) {}
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100 group';
+            div.innerHTML = `
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <i class="fa-solid fa-link text-primary text-xl flex-shrink-0"></i>
+                    <span class="text-sm font-bold text-gray-700 truncate max-w-[150px] md:max-w-[200px]" title="${url}">${displayHost}</span>
+                    <a href="${url}" target="_blank" class="text-xs text-blue-500 hover:underline flex-shrink-0">عرض الرابط</a>
+                </div>
+                <button type="button" onclick="removeSelectedAttachmentUrl(${index})" class="text-red-500 hover:text-red-700 transition-all font-bold p-1" title="حذف الرابط">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            `;
+            preview.appendChild(div);
+        });
+
+        // 3. Update hidden inputs for URLs
+        const urlContainer = document.getElementById('urlAttachmentsContainer');
+        urlContainer.innerHTML = '';
+        selectedAttachmentUrls.forEach(url => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'attachment_links[]';
+            input.value = url;
+            urlContainer.appendChild(input);
+        });
+    }
+
+    window.removeSelectedAttachment = function(index) {
+        selectedAttachments.splice(index, 1);
+        renderAttachmentPreviews();
+    };
+
+    window.removeSelectedAttachmentUrl = function(index) {
+        selectedAttachmentUrls.splice(index, 1);
+        renderAttachmentPreviews();
+    };
+
+    window.showAttachmentUrlInput = function() {
+        const wrapper = document.getElementById('attachmentUrlWrapper');
+        if (wrapper.classList.contains('hidden')) {
+            wrapper.classList.remove('hidden');
+            document.getElementById('attachmentUrlInput').focus();
+        } else {
+            wrapper.classList.add('hidden');
+        }
+    };
+
+    window.addAttachmentUrlToList = function() {
+        const input = document.getElementById('attachmentUrlInput');
+        const url = input.value.trim();
+        if (url) {
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                selectedAttachmentUrls.push(url);
+                renderAttachmentPreviews();
+                input.value = '';
+                document.getElementById('attachmentUrlWrapper').classList.add('hidden');
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'يرجى إدخال رابط صحيح يبدأ بـ http:// أو https://',
+                    confirmButtonText: 'حسناً',
+                    confirmButtonColor: '#1A73E8'
+                });
+            }
+        }
+    };
+
+    document.getElementById('attachmentInput').onchange = function(e) {
+        if (e.target.files) {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                if (!selectedAttachments.some(f => f.name === file.name && f.size === file.size)) {
+                    selectedAttachments.push(file);
+                }
+            });
+            renderAttachmentPreviews();
+            e.target.value = '';
+        }
+    };
 
     // Property File Upload Handlers
     window.handlePropFileChange = function(input, id) {

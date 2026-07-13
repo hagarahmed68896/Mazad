@@ -89,6 +89,11 @@
                                                 <i class="fa-solid fa-clock"></i>
                                                 <span>بانتظار تقرير الإنجاز</span>
                                             </span>
+                                        @elseif($order->status === 'under_review')
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-100 text-blue-700 text-xs font-black">
+                                                <i class="fa-solid fa-spinner fa-spin"></i>
+                                                <span>قيد المراجعة</span>
+                                            </span>
                                         @elseif($order->status === 'completed')
                                             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-black">
                                                 <i class="fa-solid fa-circle-check"></i>
@@ -104,7 +109,7 @@
                                                 <i class="fa-solid fa-file-arrow-up"></i>
                                                 <span>إرسال تقرير الإنجاز</span>
                                             </button>
-                                        @elseif($order->status === 'completed')
+                                        @elseif($order->status === 'completed' || $order->status === 'under_review')
                                             <button onclick="viewReportDetails({{ json_encode($order->report_text) }}, '{{ $order->report_file ? asset($order->report_file) : '' }}')" 
                                                     class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-black text-xs transition-all flex items-center gap-1.5">
                                                 <i class="fa-regular fa-file-lines"></i>

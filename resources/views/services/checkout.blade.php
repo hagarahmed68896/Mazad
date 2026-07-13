@@ -31,7 +31,7 @@
                             <i class="fa-solid fa-circle-dot"></i>
                             <span>مدى (Mada)</span>
                         </span>
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/0/05/Mada_Logo.svg" class="h-5 object-contain" alt="Mada">
+                        <img src="{{ asset('images/mada.svg') }}" class="h-5 object-contain" alt="Mada">
                     </button>
                     
                     <!-- Credit Card -->
@@ -41,8 +41,8 @@
                             <span>بطاقة ائتمانية</span>
                         </span>
                         <div class="flex gap-1.5">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" class="h-4 object-contain" alt="Mastercard">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" class="h-4 object-contain" alt="Visa">
+                            <img src="{{ asset('images/mastercard.svg') }}" class="h-4 object-contain" alt="Mastercard">
+                            <img src="{{ asset('images/visa.svg') }}" class="h-4 object-contain" alt="Visa">
                         </div>
                     </button>
                 </div>

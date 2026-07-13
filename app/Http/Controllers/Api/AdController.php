@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Ad;
 use App\Models\AdImage;
 use App\Models\AdProperty;
+use App\Models\AdAttachment;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -154,6 +155,10 @@ class AdController extends Controller
             'images.*' => 'image|mimes:jpeg,png,jpg|max:20480',
             'image_urls' => 'nullable|array',
             'image_urls.*' => 'nullable|url',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'nullable|file|max:20480',
+            'attachment_links' => 'nullable|array',
+            'attachment_links.*' => 'nullable|url',
             'start_date' => 'nullable|date|before_or_equal:' . $maxStartDate,
         ];
 
@@ -177,6 +182,9 @@ class AdController extends Controller
             'images.*.max' => 'يجب ألا يتجاوز حجم أي صورة 20 ميجابايت.',
             'images.*.image' => 'يجب أن يكون الملف المرفوع صورة صالحة.',
             'images.*.mimes' => 'يجب أن تكون الصور بصيغة jpeg أو png أو jpg فقط.',
+            'attachments.*.file' => 'يجب أن يكون المرفق ملفاً صالحاً.',
+            'attachments.*.max' => 'يجب ألا يتجاوز حجم المرفق 20 ميجابايت.',
+            'attachment_links.*.url' => 'يجب أن يكون رابط المرفق رابطاً صالحاً.',
         ]);
 
         $user = auth('sanctum')->user();
@@ -381,8 +389,46 @@ class AdController extends Controller
                 }
             }
 
+            // Save local attachments
+            if ($request->hasFile('attachments')) {
+                foreach ($request->file('attachments') as $index => $file) {
+                    $originalName = $file->getClientOriginalName();
+                    $size = number_format($file->getSize() / 1048576, 2) . 'MB';
+                    $type = $file->getClientOriginalExtension();
+                    $filename = time() . '_attach_' . $index . '_' . uniqid() . '.' . $type;
+                    $file->move(public_path('uploads/attachments'), $filename);
+                    $path = 'uploads/attachments/' . $filename;
+                    
+                    AdAttachment::create([
+                        'ad_id' => $ad->id,
+                        'file_path' => $path,
+                        'file_name' => pathinfo($originalName, PATHINFO_FILENAME),
+                        'file_size' => $size,
+                        'file_type' => $type
+                    ]);
+                }
+            }
+
+            // Save attachment links (Figma, Drive, etc.)
+            if ($request->has('attachment_links') && is_array($request->attachment_links)) {
+                foreach ($request->attachment_links as $index => $url) {
+                    if (filter_var($url, FILTER_VALIDATE_URL)) {
+                        $host = parse_url($url, PHP_URL_HOST);
+                        $name = $host ? str_replace('www.', '', $host) : ('رابط خارجي ' . ($index + 1));
+                        
+                        AdAttachment::create([
+                            'ad_id' => $ad->id,
+                            'file_path' => $url,
+                            'file_name' => $name,
+                            'file_size' => '0B',
+                            'file_type' => 'link'
+                        ]);
+                    }
+                }
+            }
+
             DB::commit();
-            return response()->json(['success' => true, 'message' => 'تم إنشاء الإعلان بنجاح', 'data' => ['ad' => $ad->load('images', 'adProperties')]], 201);
+            return response()->json(['success' => true, 'message' => 'تم إنشاء الإعلان بنجاح', 'data' => ['ad' => $ad->load('images', 'adProperties', 'attachments')]], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
@@ -429,6 +475,10 @@ class AdController extends Controller
             'description' => 'sometimes|nullable|string',
             'image_urls' => 'sometimes|nullable|array',
             'image_urls.*' => 'sometimes|nullable|url',
+            'attachments' => 'sometimes|nullable|array',
+            'attachments.*' => 'sometimes|nullable|file|max:20480',
+            'attachment_links' => 'sometimes|nullable|array',
+            'attachment_links.*' => 'sometimes|nullable|url',
             'start_date' => 'sometimes|nullable|date|before_or_equal:' . $maxStartDate,
             'end_date' => 'sometimes|required|date|after:now|before_or_equal:' . $maxEndDate,
         ], [
@@ -442,6 +492,9 @@ class AdController extends Controller
             'end_date.required' => 'تاريخ الانتهاء مطلوب إجباريًا.',
             'end_date.before_or_equal' => "تاريخ الانتهاء لا يمكن أن يتجاوز الحد الأقصى لمدة عرض الإعلان ($maxDuration يومًا).",
             'start_date.before_or_equal' => "تاريخ البدء لا يمكن أن يتجاوز الحد الأقصى المسموح به ($maxDuration يومًا من الآن).",
+            'attachments.*.file' => 'يجب أن يكون المرفق ملفاً صالحاً.',
+            'attachments.*.max' => 'يجب ألا يتجاوز حجم المرفق 20 ميجابايت.',
+            'attachment_links.*.url' => 'يجب أن يكون رابط المرفق رابطاً صالحاً.',
         ]);
 
         $cityId = $request->district_id ?? $ad->city_id;
@@ -641,8 +694,54 @@ class AdController extends Controller
                 }
             }
 
+            // Save attachments if new ones are uploaded/sent
+            $hasNewAttachments = $request->hasFile('attachments') || ($request->has('attachment_links') && is_array($request->attachment_links));
+            
+            if ($hasNewAttachments) {
+                // Delete old attachments first
+                $ad->attachments()->delete();
+
+                // Save local attachments
+                if ($request->hasFile('attachments')) {
+                    foreach ($request->file('attachments') as $index => $file) {
+                        $originalName = $file->getClientOriginalName();
+                        $size = number_format($file->getSize() / 1048576, 2) . 'MB';
+                        $type = $file->getClientOriginalExtension();
+                        $filename = time() . '_attach_edit_' . $index . '_' . uniqid() . '.' . $type;
+                        $file->move(public_path('uploads/attachments'), $filename);
+                        $path = 'uploads/attachments/' . $filename;
+                        
+                        AdAttachment::create([
+                            'ad_id' => $ad->id,
+                            'file_path' => $path,
+                            'file_name' => pathinfo($originalName, PATHINFO_FILENAME),
+                            'file_size' => $size,
+                            'file_type' => $type
+                        ]);
+                    }
+                }
+
+                // Save attachment links (Figma, Drive, etc.)
+                if ($request->has('attachment_links') && is_array($request->attachment_links)) {
+                    foreach ($request->attachment_links as $index => $url) {
+                        if (filter_var($url, FILTER_VALIDATE_URL)) {
+                            $host = parse_url($url, PHP_URL_HOST);
+                            $name = $host ? str_replace('www.', '', $host) : ('رابط خارجي ' . ($index + 1));
+                            
+                            AdAttachment::create([
+                                'ad_id' => $ad->id,
+                                'file_path' => $url,
+                                'file_name' => $name,
+                                'file_size' => '0B',
+                                'file_type' => 'link'
+                            ]);
+                        }
+                    }
+                }
+            }
+
             DB::commit();
-            return response()->json(['success' => true, 'message' => 'تم تحديث الإعلان بنجاح', 'data' => ['ad' => $ad->load('images', 'adProperties')]]);
+            return response()->json(['success' => true, 'message' => 'تم تحديث الإعلان بنجاح', 'data' => ['ad' => $ad->load('images', 'adProperties', 'attachments')]]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);

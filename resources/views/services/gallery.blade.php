@@ -91,7 +91,7 @@
         <div class="mb-10">
             <div class="flex items-center justify-between mb-8">
                  <div class="flex items-center gap-4">
-                    <a href="{{ route('services.show', $service->id) }}" class="w-12 h-12 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-primary transition-all shadow-sm">
+                    <a href="{{ ($service instanceof \App\Models\Service || (isset($service->user) && $service->user->account_type === 'partner')) ? route('services.show', $service->id) : route('ads.show', $service->id) }}" class="w-12 h-12 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-primary transition-all shadow-sm">
                         <i class="fa-solid fa-arrow-right"></i>
                     </a>
                     <div>

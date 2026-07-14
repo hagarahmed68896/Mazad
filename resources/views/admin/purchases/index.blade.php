@@ -206,15 +206,15 @@
                         </td>
                         <td class="px-4 py-4 text-center">{{ $loop->iteration + ($orders->currentPage() - 1) * $orders->perPage() }}</td>
                         <td class="px-4 py-4 font-black">#{{ $order->order_number }}</td>
-                        <td class="px-4 py-4 text-[#1C1C1C] font-black underline">{{ $order->ad->title ?? '-' }}</td>
-                        <td class="px-4 py-4">{{ $order->ad->category->name ?? '-' }}</td>
-                        <td class="px-4 py-4 font-bold">{{ $order->buyer->name ?? '-' }}</td>
-                        <td class="px-4 py-4 font-bold">{{ $order->seller->name ?? '-' }}</td>
+                        <td class="px-4 py-4 text-[#1C1C1C] font-black underline">{{ $order->ad?->title ?? '-' }}</td>
+                        <td class="px-4 py-4">{{ $order->ad?->category?->name ?? '-' }}</td>
+                        <td class="px-4 py-4 font-bold">{{ $order->buyer?->name ?? '-' }}</td>
+                        <td class="px-4 py-4 font-bold">{{ $order->seller?->name ?? '-' }}</td>
                         <td class="px-4 py-4">
                             @php
                                 $userTypeLabels = ['individual' => 'فرد', 'company' => 'شركة', 'representative' => 'مندوب'];
                             @endphp
-                            {{ $userTypeLabels[$order->seller->account_type] ?? 'غير محدد' }}
+                            {{ $userTypeLabels[$order->seller?->account_type ?? ''] ?? 'غير محدد' }}
                         </td>
                         <td class="px-4 py-4 font-black text-[#1C1C1C]">
                             <div class="flex items-center gap-1.5">

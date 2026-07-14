@@ -52,6 +52,22 @@ class ServiceOrderController extends Controller
             return $this->apiResponse(false, 'لا يمكنك طلب خدمة خاصة بك.', null, 403);
         }
 
+        // Check for duplicate pending requests
+        $existingOrder = ServiceOrder::where('buyer_id', $user->id)
+            ->where(function($q) use ($service) {
+                if ($service instanceof Service) {
+                    $q->where('service_id', $service->id);
+                } else {
+                    $q->where('ad_id', $service->id);
+                }
+            })
+            ->whereIn('status', ['paid', 'under_review'])
+            ->first();
+
+        if ($existingOrder) {
+            return $this->apiResponse(false, 'لديك طلب نشط بالفعل لهذه الخدمة بانتظار الإنجاز من الشريك.', null, 400);
+        }
+
         $settings = Setting::all()->pluck('value', 'key');
         $commRate = (float) ($settings['commission_rate'] ?? 0.0);
 
@@ -94,6 +110,22 @@ class ServiceOrderController extends Controller
 
         if (Auth::id() === $service->user_id) {
             return $this->apiResponse(false, 'لا يمكنك طلب خدمة خاصة بك.', null, 403);
+        }
+
+        // Check for duplicate pending requests
+        $existingOrder = ServiceOrder::where('buyer_id', Auth::id())
+            ->where(function($q) use ($service) {
+                if ($service instanceof Service) {
+                    $q->where('service_id', $service->id);
+                } else {
+                    $q->where('ad_id', $service->id);
+                }
+            })
+            ->whereIn('status', ['paid', 'under_review'])
+            ->first();
+
+        if ($existingOrder) {
+            return $this->apiResponse(false, 'لديك طلب نشط بالفعل لهذه الخدمة بانتظار الإنجاز من الشريك.', null, 400);
         }
 
         $validator = Validator::make($request->all(), [

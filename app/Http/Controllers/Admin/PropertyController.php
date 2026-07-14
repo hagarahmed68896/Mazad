@@ -42,10 +42,10 @@ class PropertyController extends Controller
             'properties.*.is_hideable' => 'nullable|in:0,1',
             'properties.*.options'     => 'nullable|array',
             'properties.*.options.*'   => 'nullable|string|max:255',
-            'category_page_id'         => 'required|exists:category_pages,id',
+            'category_page_id'         => 'nullable|exists:category_pages,id',
         ]);
 
-        $pageId = $request->category_page_id;
+        $pageId = $request->filled('category_page_id') ? $request->category_page_id : null;
 
         foreach ($request->properties as $data) {
             $options = null;

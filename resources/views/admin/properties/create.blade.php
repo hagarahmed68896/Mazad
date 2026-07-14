@@ -78,7 +78,7 @@
             <button type="button" @click="addProperty()"
                     class="flex items-center gap-2 px-4 py-2.5 bg-[#1A73E8] text-white rounded-xl text-sm font-black shadow-sm hover:bg-blue-700 transition-all">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                أضف حقل ادخال
+                أضف خاصية
             </button>
 </div>
           
@@ -94,10 +94,10 @@
 
                 <!-- اسم الصفحة -->
                 <div>
-                    <label class="block text-sm font-black text-[#6F6F6F] mb-2 text-right">اسم الصفحة <span class="text-red-500">*</span></label>
-                    <select name="category_page_id" required
+                    <label class="block text-sm font-black text-[#6F6F6F] mb-2 text-right">اسم الصفحة</label>
+                    <select name="category_page_id"
                             class="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-[#1C1C1C] focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/10 focus:border-[#1A73E8] transition-all cursor-pointer">
-                        <option value="" disabled selected>حدد اسم الصفحة</option>
+                        <option value="" selected>خصائص عامة </option>
                         @foreach($pages as $page)
                             <option value="{{ $page->id }}">{{ $page->name }}</option>
                         @endforeach
@@ -307,8 +307,7 @@
             <div class="mt-8 text-center pt-4">
                 <button type="submit"
                         class="w-full flex items-center justify-center gap-2 py-4 bg-[#1A73E8] text-white rounded-xl text-sm font-black shadow-lg hover:bg-blue-700 transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    إضافة خصائص
+                    حفظ
                 </button>
             </div>
         </div>

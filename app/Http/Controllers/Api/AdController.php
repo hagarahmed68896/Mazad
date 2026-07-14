@@ -15,7 +15,7 @@ class AdController extends Controller
 {
     public function show(Request $request, $id)
     {
-        $ad = Ad::with(['category', 'user', 'reviews.reviewer', 'city', 'adProperties.property', 'images', 'attachments', 'questions.user'])
+        $ad = Ad::with(['category', 'user', 'reviews.reviewer', 'city.region', 'adProperties.property', 'images', 'attachments', 'questions.user'])
                 ->withCount('bids')
                 ->find($id);
 
@@ -107,6 +107,9 @@ class AdController extends Controller
 
         $cities = \App\Models\City::orderBy('name')->get();
 
+        $promotionPrice = (float) (\App\Models\Setting::where('key', 'promotion_price')->value('value') ?? 80);
+        $vatRate        = (float) (\App\Models\Setting::where('key', 'vat_rate')->value('value') ?? 0);
+
         return response()->json([
             'success' => true,
             'message' => 'بيانات إنشاء الإعلان',
@@ -114,6 +117,8 @@ class AdController extends Controller
                 'categories' => $categories,
                 'cities' => $cities,
                 'max_ad_duration' => (int) (\App\Models\Setting::where('key', 'max_ad_duration')->value('value') ?? 7),
+                'promotion_price' => $promotionPrice,
+                'vat_rate' => $vatRate,
             ]
         ]);
     }

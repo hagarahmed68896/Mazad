@@ -126,86 +126,147 @@ class OrderController extends Controller
 
     public function mySales(Request $request)
     {
-        $status = $request->query('status', 'all'); // 'all', 'sold', 'not_sold'
-        $user = Auth::user();
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'غير مصرح'
-            ], 401);
-        }
-        
-        $query = Ad::where('user_id', $user->id)->with(['orders.buyer', 'category', 'city']);
-        
-        // 1. Tab Status Filter
-        if ($status === 'sold') {
-            $query->whereHas('orders');
-        } elseif ($status === 'not_sold') {
-            $query->whereDoesntHave('orders');
-        }
-        
-        // 2. Search Keyword Filter
-        if ($request->has('q') && !empty($request->q)) {
-            $query->where(function($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->q . '%')
-                  ->orWhere('description', 'like', '%' . $request->q . '%');
-            });
-        }
-        
-        // 3. City Filter
-        if ($request->has('city') && !empty($request->city)) {
-            $query->where('city_id', $request->city);
-        }
-        
-        // 4. Category Filter
-        if ($request->has('category') && !empty($request->category)) {
-            $query->where('category_id', $request->category);
-        }
+        try {
+            $status = $request->query('status', 'all'); // 'all', 'sold', 'not_sold'
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'غير مصرح'
+                ], 401);
+            }
+            
+            // Calculate Seller Dashboard Stats
+            $totalSalesAmount = Order::where('seller_id', $user->id)->sum('final_price');
+            $netEarnings = $totalSalesAmount * 0.975; // 97.5% of total sales (excluding 2.5% platform commission)
+            $newOrdersCount = Order::where('seller_id', $user->id)
+                ->whereIn('status', ['pending_payment', 'paid', 'receiving'])
+                ->count();
+            
+            $totalOrdersCount = Order::where('seller_id', $user->id)->count();
+            $averageOrderValue = $totalOrdersCount > 0 ? round($totalSalesAmount / $totalOrdersCount) : 0;
+            
+            $totalViews = Ad::where('user_id', $user->id)->sum('views_count') ?? 0;
+            $conversionRate = $totalViews > 0 ? round(($totalOrdersCount / $totalViews) * 100, 1) : 0;
+            
+            $sellerRating = \App\Models\Review::where('rated_user_id', $user->id)->avg('rating') ?? 0;
+            $sellerRating = round($sellerRating, 1);
+            
+            $totalAdsCount = Ad::where('user_id', $user->id)->count();
+            $soldAdsCount = Ad::where('user_id', $user->id)->whereHas('orders')->count();
+            $soldRate = $totalAdsCount > 0 ? round(($soldAdsCount / $totalAdsCount) * 100) : 0;
 
-        // 4.1. Dynamic Category Properties Filter
-        if ($request->has('props') && is_array($request->props)) {
-            foreach ($request->props as $propId => $val) {
-                if ($val !== null && $val !== '') {
-                    $query->whereHas('adProperties', function($q) use ($propId, $val) {
-                        $q->where('property_id', $propId);
-                        if (is_array($val)) {
-                            $q->whereIn('value', $val);
-                        } else {
-                            $q->where('value', $val);
-                        }
-                    });
+            // Get last 6 months sales data for chart
+            $sixMonthsAgo = now()->subMonths(5)->startOfMonth();
+            $ordersForChart = Order::where('seller_id', $user->id)
+                ->whereIn('status', ['paid', 'receiving', 'received'])
+                ->where('created_at', '>=', $sixMonthsAgo)
+                ->select('created_at', 'final_price')
+                ->get();
+
+            $chartData = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $monthName = now()->subMonths($i)->translatedFormat('F');
+                $monthKey = now()->subMonths($i)->format('Y-m');
+                
+                $total = $ordersForChart->filter(function($order) use ($monthKey) {
+                    return $order->created_at->format('Y-m') === $monthKey;
+                })->sum('final_price');
+
+                $chartData[] = [
+                    'label' => $monthName,
+                    'total' => $total
+                ];
+            }
+
+            $query = Ad::where('user_id', $user->id)->with(['orders.buyer', 'category', 'city.region']);
+            
+            // 1. Tab Status Filter
+            if ($status === 'sold') {
+                $query->whereHas('orders');
+            } elseif ($status === 'not_sold') {
+                $query->whereDoesntHave('orders');
+            }
+            
+            // 2. Search Keyword Filter
+            if ($request->has('q') && !empty($request->q)) {
+                $query->where(function($q) use ($request) {
+                    $q->where('title', 'like', '%' . $request->q . '%')
+                      ->orWhere('description', 'like', '%' . $request->q . '%');
+                });
+            }
+            
+            // 3. City Filter
+            if ($request->has('city') && !empty($request->city)) {
+                $query->where('city_id', $request->city);
+            }
+            
+            // 4. Category Filter
+            if ($request->has('category') && !empty($request->category)) {
+                $query->where('category_id', $request->category);
+            }
+
+            // 4.1. Dynamic Category Properties Filter
+            if ($request->has('props') && is_array($request->props)) {
+                foreach ($request->props as $propId => $val) {
+                    if ($val !== null && $val !== '') {
+                        $query->whereHas('adProperties', function($q) use ($propId, $val) {
+                            $q->where('property_id', $propId);
+                            if (is_array($val)) {
+                                $q->whereIn('value', $val);
+                            } else {
+                                $q->where('value', $val);
+                            }
+                        });
+                    }
                 }
             }
-        }
-        
-        // 5. Ad Type Filter
-        if ($request->has('type') && !empty($request->type)) {
-            if ($request->type === 'auction') {
-                $query->whereIn('type', ['electronic_auction', 'hybrid_auction']);
-            } elseif ($request->type === 'direct_purchase') {
-                $query->where('type', 'direct_purchase');
-            } else {
-                $query->where('type', $request->type);
+            
+            // 5. Ad Type Filter
+            if ($request->has('type') && !empty($request->type)) {
+                if ($request->type === 'auction') {
+                    $query->whereIn('type', ['electronic_auction', 'hybrid_auction']);
+                } elseif ($request->type === 'direct_purchase') {
+                    $query->where('type', 'direct_purchase');
+                } else {
+                    $query->where('type', $request->type);
+                }
             }
+            
+            // 6. Sorting
+            $sort = $request->get('sort', 'newest');
+            if ($sort === 'price_high') {
+                $query->orderBy('price', 'desc');
+            } elseif ($sort === 'price_low') {
+                $query->orderBy('price', 'asc');
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+            
+            $ads = $query->paginate($request->get('per_page', 12));
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'قائمة مبيعاتي',
+                'total_sales_amount' => $totalSalesAmount,
+                'net_earnings' => $netEarnings,
+                'new_orders_count' => $newOrdersCount,
+                'sold_rate' => $soldRate,
+                'average_order_value' => $averageOrderValue,
+                'conversion_rate' => $conversionRate,
+                'seller_rating' => $sellerRating,
+                'chart_data' => $chartData,
+                'data' => $ads
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ], 500, ['Content-Type' => 'application/json; charset=utf-8'], JSON_UNESCAPED_UNICODE);
         }
-        
-        // 6. Sorting
-        $sort = $request->get('sort', 'newest');
-        if ($sort === 'price_high') {
-            $query->orderBy('price', 'desc');
-        } elseif ($sort === 'price_low') {
-            $query->orderBy('price', 'asc');
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
-        
-        $ads = $query->paginate($request->get('per_page', 12));
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'قائمة مبيعاتي',
-            'data' => $ads
-        ]);
     }
 
     public function confirmDelivery(Request $request, $orderId)

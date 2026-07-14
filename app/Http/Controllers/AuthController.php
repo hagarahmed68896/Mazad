@@ -138,11 +138,35 @@ class AuthController extends Controller
                 ])->onlyInput('phone');
             }
 
-            session()->put('pending_user_id', $user->id);
-            session()->put('remember_login', $request->boolean('remember'));
-            session(['is_registering' => false]);
-            
-            return redirect()->route('verify-otp');
+            Auth::login($user, $request->boolean('remember'));
+            $request->session()->regenerate();
+
+            // 🔒 New Device Login Detection (Web)
+            $userAgent = $request->header('X-Device-Id') ?: ($request->input('device_id') ?: $request->userAgent() ?: 'unknown_device');
+            $deviceSignature = md5($userAgent);
+
+            $knownDevices = is_array($user->known_devices) ? $user->known_devices : [];
+
+            if (!in_array($deviceSignature, $knownDevices)) {
+                if (count($knownDevices) > 0) {
+                    \App\Models\Notification::create([
+                        'user_id' => $user->id,
+                        'type' => 'alert',
+                        'title' => 'تنبيه أمان: تسجيل دخول جديد',
+                        'content' => "تم رصد تسجيل دخول جديد لحسابك من جهاز جديد في تاريخ " . now()->format('Y-m-d H:i') . ". إذا لم تكن أنت، يرجى تغيير كلمة المرور فوراً لتأمين حسابك.",
+                        'status' => 'sent',
+                        'read_at' => null
+                    ]);
+                }
+
+                $knownDevices[] = $deviceSignature;
+                $user->update([
+                    'known_devices' => $knownDevices
+                ]);
+            }
+
+            $redirectUrl = session()->pull('intended_url', route('home'));
+            return redirect()->to($redirectUrl);
         }
 
         return back()->withErrors([

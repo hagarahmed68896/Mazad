@@ -38,6 +38,22 @@ class ServiceOrderController extends Controller
             return redirect()->back()->with('error', 'لا يمكنك طلب خدمة خاصة بك.');
         }
 
+        // Check for duplicate pending requests
+        $existingOrder = ServiceOrder::where('buyer_id', Auth::id())
+            ->where(function($q) use ($service) {
+                if ($service instanceof Service) {
+                    $q->where('service_id', $service->id);
+                } else {
+                    $q->where('ad_id', $service->id);
+                }
+            })
+            ->whereIn('status', ['paid', 'under_review'])
+            ->first();
+
+        if ($existingOrder) {
+            return redirect()->back()->with('error', 'لديك طلب نشط بالفعل لهذه الخدمة بانتظار الإنجاز من الشريك.');
+        }
+
         $settings = Setting::all()->pluck('value', 'key');
         
         // Calculate platform commission/fee
@@ -66,6 +82,22 @@ class ServiceOrderController extends Controller
 
         if (Auth::id() === $service->user_id) {
             return response()->json(['success' => false, 'message' => 'لا يمكنك طلب خدمة خاصة بك.'], 403);
+        }
+
+        // Check for duplicate pending requests
+        $existingOrder = ServiceOrder::where('buyer_id', Auth::id())
+            ->where(function($q) use ($service) {
+                if ($service instanceof Service) {
+                    $q->where('service_id', $service->id);
+                } else {
+                    $q->where('ad_id', $service->id);
+                }
+            })
+            ->whereIn('status', ['paid', 'under_review'])
+            ->first();
+
+        if ($existingOrder) {
+            return response()->json(['success' => false, 'message' => 'لديك طلب نشط بالفعل لهذه الخدمة بانتظار الإنجاز من الشريك.'], 400);
         }
 
         $request->validate([
@@ -181,6 +213,21 @@ class ServiceOrderController extends Controller
 
         $status = $request->query('status', 'all'); // 'all', 'paid', 'completed'
 
+        // Calculate Partner Dashboard Stats
+        $totalSalesAmount = ServiceOrder::where('seller_id', $user->id)
+            ->whereIn('status', ['paid', 'under_review', 'completed'])
+            ->sum('price');
+        $netEarnings = $totalSalesAmount * 0.975; // 97.5% of total sales (excluding 2.5% platform commission)
+        $newOrdersCount = ServiceOrder::where('seller_id', $user->id)
+            ->where('status', 'paid')
+            ->count();
+        
+        $totalOrdersCount = ServiceOrder::where('seller_id', $user->id)->count();
+        $completedOrdersCount = ServiceOrder::where('seller_id', $user->id)
+            ->whereIn('status', ['completed', 'under_review'])
+            ->count();
+        $soldRate = $totalOrdersCount > 0 ? round(($completedOrdersCount / $totalOrdersCount) * 100) : 0;
+
         $query = ServiceOrder::where('seller_id', $user->id)
             ->with(['buyer', 'service', 'ad'])
             ->orderBy('created_at', 'desc');
@@ -195,7 +242,9 @@ class ServiceOrderController extends Controller
 
         $orders = $query->paginate(10)->appends($request->query());
 
-        return view('ads.partner-orders', compact('orders', 'status'));
+        return view('ads.partner-orders', compact(
+            'orders', 'status', 'totalSalesAmount', 'netEarnings', 'newOrdersCount', 'soldRate'
+        ));
     }
 
     /**

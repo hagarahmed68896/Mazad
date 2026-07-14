@@ -28,6 +28,65 @@
             </div>
         </div>
 
+        <!-- Dashboard Stats Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <!-- Total Sales -->
+            <div class="bg-white border border-slate-100 rounded-3xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+                <div class="w-14 h-14 bg-blue-50 text-primary rounded-2xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <span class="text-xs text-slate-400 font-bold">إجمالي المبيعات</span>
+                    <span class="text-xl font-black text-[#1C1C1C] flex items-center gap-1">
+                        <span>{{ number_format($totalSalesAmount) }}</span>
+                        <x-riyal-icon class="w-4 h-4 text-slate-800" />
+                    </span>
+                </div>
+            </div>
+
+            <!-- Net Earnings -->
+            <div class="bg-white border border-slate-100 rounded-3xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+                <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <span class="text-xs text-slate-400 font-bold">الأرباح الصافية</span>
+                    <span class="text-xl font-black text-[#1C1C1C] flex items-center gap-1">
+                        <span>{{ number_format($netEarnings) }}</span>
+                        <x-riyal-icon class="w-4 h-4 text-emerald-600" />
+                    </span>
+                </div>
+            </div>
+
+            <!-- Pending Orders -->
+            <div class="bg-white border border-slate-100 rounded-3xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+                <div class="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-spinner"></i>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <span class="text-xs text-slate-400 font-bold">بانتظار الإنجاز</span>
+                    <span class="text-xl font-black text-[#1C1C1C] flex items-center gap-1">
+                        <span>{{ $newOrdersCount }}</span>
+                        <span class="text-xs font-bold text-slate-400 mr-0.5">طلب</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Completion Rate -->
+            <div class="bg-white border border-slate-100 rounded-3xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+                <div class="w-14 h-14 bg-violet-50 text-violet-650 rounded-2xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-square-poll-vertical"></i>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <span class="text-xs text-slate-400 font-bold">معدل الإنجاز</span>
+                    <span class="text-xl font-black text-[#1C1C1C] flex items-center gap-1">
+                        <span>{{ $soldRate }}%</span>
+                        <span class="text-[10px] font-bold text-violet-500 mr-0.5">معدل الإكمال</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
         @if(session('success'))
             <div class="bg-emerald-50 border border-emerald-100 text-emerald-800 px-6 py-4 rounded-2xl mb-8 font-bold text-sm flex items-center gap-3">
                 <i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>
@@ -73,8 +132,8 @@
                                     <td class="p-6 text-primary">#{{ $order->order_number }}</td>
                                     <td class="p-6">
                                         <div class="flex flex-col">
-                                            <span>{{ $order->buyer->name }}</span>
-                                            <span class="text-[10px] text-slate-400 font-bold mt-0.5">{{ $order->buyer->phone }}</span>
+                                            <span>{{ $order->buyer?->name ?? 'مستخدم محذوف' }}</span>
+                                            <span class="text-[10px] text-slate-400 font-bold mt-0.5">{{ $order->buyer?->phone ?? '-' }}</span>
                                         </div>
                                     </td>
                                     <td class="p-6">

@@ -7,7 +7,12 @@ Route::get('/run-db-updates', function () {
     try {
         \Illuminate\Support\Facades\Artisan::call('migrate');
         \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\PartnerBannerSeeder']);
-        return "Migration and Seeder executed successfully! 🎉";
+        
+        // Clean up any mistakenly added Cairo / القاهرة records
+        \App\Models\Region::where('name', 'القاهرة')->delete();
+        \App\Models\City::where('name', 'القاهرة')->delete();
+        
+        return "Migration, Seeder and القاهرة cleanup executed successfully! 🎉";
     } catch (\Exception $e) {
         return "Error: " . $e->getMessage();
     }

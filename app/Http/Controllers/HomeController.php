@@ -31,8 +31,14 @@ class HomeController extends Controller
                 } else {
                     $seedOutput = "Seeder file not found at: " . $seederPath;
                 }
+
+                // Clean up any mistakenly added Cairo / القاهرة records
+                \App\Models\Region::where('name', 'like', '%قاهر%')->orWhere('name', 'like', '%cair%')->delete();
+                \App\Models\City::where('name', 'like', '%قاهر%')->orWhere('name', 'like', '%cair%')->delete();
                 
-                return "Migration output: <pre>$migOutput</pre><br>Seeder status: <b>$seedOutput</b><br>Done! 🎉";
+                $regionsList = \App\Models\Region::pluck('name')->toArray();
+                
+                return "Migration output: <pre>$migOutput</pre><br>Seeder status: <b>$seedOutput</b><br>Remaining regions: " . implode(', ', $regionsList) . "<br>Done! 🎉";
             } catch (\Exception $e) {
                 return "Error: " . $e->getMessage() . "<br>Line: " . $e->getLine() . "<br>File: " . $e->getFile();
             }
@@ -171,86 +177,8 @@ class HomeController extends Controller
 
         $totalRevenue = 0;
         $chartData = [];
-        $currentFilter = request('filter', 'weekly');
         $revenueTrend = 0;
         $trendDirection = 'flat';
-        
-        if (auth()->check()) {
-            $user = auth()->user();
-            $totalRevenue = $user->sales()->where('status', 'delivered')->sum('final_price');
-            
-            if ($currentFilter === 'yearly') {
-                for ($i = 11; $i >= 0; $i--) {
-                    $month = now()->subMonths($i);
-                    $chartData[] = [
-                        'day' => $month->locale('ar')->monthName,
-                        'total' => $user->sales()->where('status', 'delivered')->whereYear('created_at', $month->year)->whereMonth('created_at', $month->month)->sum('final_price')
-                    ];
-                }
-                
-                $currentPeriodRevenue = collect($chartData)->sum('total');
-                $previousPeriodRevenue = $user->sales()
-                    ->where('status', 'delivered')
-                    ->whereBetween('created_at', [
-                        now()->subMonths(23)->startOfMonth(),
-                        now()->subMonths(12)->endOfMonth()
-                    ])
-                    ->sum('final_price');
-            } elseif ($currentFilter === 'monthly') {
-                for ($i = 3; $i >= 0; $i--) {
-                    $weekStart = now()->subWeeks($i)->startOfWeek();
-                    $weekEnd = (clone $weekStart)->endOfWeek();
-                    $chartData[] = [
-                        'day' => "الأسبوع " . (4 - $i),
-                        'total' => $user->sales()->where('status', 'delivered')->whereBetween('created_at', [$weekStart, $weekEnd])->sum('final_price')
-                    ];
-                }
-                
-                $currentPeriodRevenue = collect($chartData)->sum('total');
-                $previousPeriodRevenue = $user->sales()
-                    ->where('status', 'delivered')
-                    ->whereBetween('created_at', [
-                        now()->subWeeks(7)->startOfWeek(),
-                        now()->subWeeks(4)->endOfWeek()
-                    ])
-                    ->sum('final_price');
-            } else {
-                for ($i = 6; $i >= 0; $i--) {
-                    $day = now()->subDays($i);
-                    $chartData[] = [
-                        'day' => $day->locale('ar')->dayName,
-                        'total' => $user->sales()->where('status', 'delivered')->whereDate('created_at', $day->toDateString())->sum('final_price')
-                    ];
-                }
-                
-                $currentPeriodRevenue = collect($chartData)->sum('total');
-                $previousPeriodRevenue = $user->sales()
-                    ->where('status', 'delivered')
-                    ->whereBetween('created_at', [
-                        now()->subDays(13)->startOfDay(),
-                        now()->subDays(7)->endOfDay()
-                    ])
-                    ->sum('final_price');
-            }
-            
-            if ($previousPeriodRevenue > 0) {
-                $revenueTrend = (($currentPeriodRevenue - $previousPeriodRevenue) / $previousPeriodRevenue) * 100;
-            } elseif ($currentPeriodRevenue > 0) {
-                $revenueTrend = 100.0;
-            } else {
-                $revenueTrend = 0.0;
-            }
-            
-            if ($revenueTrend > 0) {
-                $trendDirection = 'up';
-            } elseif ($revenueTrend < 0) {
-                $trendDirection = 'down';
-            } else {
-                $trendDirection = 'flat';
-            }
-            
-            $revenueTrend = abs($revenueTrend);
-        }
 
         $settings = Setting::pluck('value', 'key')->toArray();
 
@@ -357,13 +285,31 @@ class HomeController extends Controller
             $q->whereNull('end_date')->orWhere('end_date', '>', now());
         });
 
-        // City
-        $cityFilter = $request->get('city');
-        if (empty($cityFilter)) {
+        // City / District Filter
+        $districtFilter = $request->get('district') ?: $request->get('district_id');
+        $cityFilter = $request->get('city') ?: $request->get('city_id');
+        
+        if (empty($cityFilter) && empty($districtFilter)) {
             $cityFilter = Auth::check() ? Auth::user()->city_id : session('user_city_id');
         }
-        if (!empty($cityFilter)) {
-            $query->where('city_id', $cityFilter);
+
+        if (!empty($districtFilter)) {
+            $query->where('city_id', $districtFilter);
+            if (!empty($cityFilter)) {
+                $query->whereHas('city', function($cq) use ($cityFilter) {
+                    $cq->where('region_id', $cityFilter);
+                });
+            }
+        } elseif (!empty($cityFilter)) {
+            // Check if it's a Region ID (City level)
+            $isRegion = \App\Models\Region::where('id', $cityFilter)->exists();
+            if ($isRegion) {
+                $query->whereHas('city', function($cq) use ($cityFilter) {
+                    $cq->where('region_id', $cityFilter);
+                });
+            } else {
+                $query->where('city_id', $cityFilter);
+            }
         }
 
         // 4. Type Filter (auction, buy_now, etc.)
@@ -440,10 +386,11 @@ class HomeController extends Controller
         $ads = $query->paginate(12)->appends($request->all());
         
         $categories = Category::whereNull('parent_id')->with('subCategories')->get();
-        $cities = City::all();
+        $regions = \App\Models\Region::orderBy('name')->get();
+        $cities = \App\Models\City::orderBy('name')->get();
         $settings = Setting::pluck('value', 'key')->toArray();
 
-        return view('search', compact('ads', 'categories', 'cities', 'settings', 'activeCategory'));
+        return view('search', compact('ads', 'categories', 'regions', 'cities', 'settings', 'activeCategory'));
     }
     public function showAd($id)
     {

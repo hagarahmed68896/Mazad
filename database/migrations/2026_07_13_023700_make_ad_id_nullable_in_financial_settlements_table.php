@@ -10,7 +10,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE financial_settlements MODIFY COLUMN ad_id BIGINT UNSIGNED NULL");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE financial_settlements MODIFY COLUMN ad_id BIGINT UNSIGNED NULL");
+        }
     }
 
     /**
@@ -18,6 +20,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE financial_settlements MODIFY COLUMN ad_id BIGINT UNSIGNED NOT NULL");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE financial_settlements MODIFY COLUMN ad_id BIGINT UNSIGNED NOT NULL");
+        }
     }
 };

@@ -85,9 +85,31 @@ class LookLaterController extends Controller
             $query->where('category_id', $request->category_id);
         }
 
-        // 3. City Filter
-        if ($request->has('city_id') && !empty($request->city_id)) {
-            $query->where('city_id', $request->city_id);
+        // 3. City / District Filter
+        $districtId = $request->district_id ?: $request->district;
+        $cityOrRegionId = $request->city_id ?: $request->city;
+
+        if (!empty($districtId)) {
+            // If district_id is explicitly sent, it's the neighborhood (database city_id)
+            $query->where('city_id', $districtId);
+            
+            // And if cityOrRegionId is also sent, it represents the region/city
+            if (!empty($cityOrRegionId)) {
+                $query->whereHas('city', function($cq) use ($cityOrRegionId) {
+                    $cq->where('region_id', $cityOrRegionId);
+                });
+            }
+        } elseif (!empty($cityOrRegionId)) {
+            // If only city_id is sent, check if it exists as a Region (e.g. Riyadh)
+            $isRegion = \App\Models\Region::where('id', $cityOrRegionId)->exists();
+            if ($isRegion) {
+                $query->whereHas('city', function($cq) use ($cityOrRegionId) {
+                    $cq->where('region_id', $cityOrRegionId);
+                });
+            } else {
+                // Fallback: treat it as a district ID
+                $query->where('city_id', $cityOrRegionId);
+            }
         }
 
         // 3b. Dynamic Category Properties Filter (e.g., props[1]=2024)

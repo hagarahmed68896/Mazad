@@ -101,81 +101,138 @@ class OrderController extends Controller
 
     public function mySales(Request $request)
     {
-        $status = $request->query('status', 'all'); // 'all', 'sold', 'not_sold'
-        $user = Auth::user();
-        
-        $query = Ad::where('user_id', $user->id)->with(['orders.buyer', 'category', 'city']);
-        
-        // 1. Tab Status Filter
-        if ($status === 'sold') {
-            $query->whereHas('orders');
-        } elseif ($status === 'not_sold') {
-            $query->whereDoesntHave('orders');
-        }
-        
-        // 2. Search Keyword Filter
-        if ($request->has('q') && !empty($request->q)) {
-            $query->where(function($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->q . '%')
-                  ->orWhere('description', 'like', '%' . $request->q . '%');
-            });
-        }
-        
-        // 3. City Filter
-        if ($request->has('city') && !empty($request->city)) {
-            $query->where('city_id', $request->city);
-        }
-        
-        // 4. Category Filter
-        $activeCategory = null;
-        if ($request->has('category') && !empty($request->category)) {
-            $activeCategory = \App\Models\Category::with('properties')->find($request->category);
-            $query->where('category_id', $request->category);
-        }
+        try {
+            $status = $request->query('status', 'all'); // 'all', 'sold', 'not_sold'
+            $user = Auth::user();
 
-        // 4.1. Dynamic Category Properties Filter
-        if ($activeCategory && $request->has('props') && is_array($request->props)) {
-            foreach ($request->props as $propId => $val) {
-                if ($val !== null && $val !== '') {
-                    $query->whereHas('adProperties', function($q) use ($propId, $val) {
-                        $q->where('property_id', $propId);
-                        if (is_array($val)) {
-                            $q->whereIn('value', $val);
-                        } else {
-                            $q->where('value', $val);
-                        }
-                    });
+            // Calculate Seller Dashboard Stats
+            $totalSalesAmount = Order::where('seller_id', $user->id)->sum('final_price');
+            $netEarnings = $totalSalesAmount * 0.975; // 97.5% of total sales (excluding 2.5% platform commission)
+            $newOrdersCount = Order::where('seller_id', $user->id)
+                ->whereIn('status', ['pending_payment', 'paid', 'receiving'])
+                ->count();
+            
+            $totalOrdersCount = Order::where('seller_id', $user->id)->count();
+            $averageOrderValue = $totalOrdersCount > 0 ? round($totalSalesAmount / $totalOrdersCount) : 0;
+            
+            $totalViews = Ad::where('user_id', $user->id)->sum('views_count') ?? 0;
+            $conversionRate = $totalViews > 0 ? round(($totalOrdersCount / $totalViews) * 100, 1) : 0;
+            
+            $sellerRating = \App\Models\Review::where('rated_user_id', $user->id)->avg('rating') ?? 0;
+            $sellerRating = round($sellerRating, 1);
+            
+            $totalAdsCount = Ad::where('user_id', $user->id)->count();
+            $soldAdsCount = Ad::where('user_id', $user->id)->whereHas('orders')->count();
+            $soldRate = $totalAdsCount > 0 ? round(($soldAdsCount / $totalAdsCount) * 100) : 0;
+
+            // Get last 6 months sales data for chart (agnostic to database engine)
+            $sixMonthsAgo = now()->subMonths(5)->startOfMonth();
+            $ordersForChart = Order::where('seller_id', $user->id)
+                ->whereIn('status', ['paid', 'receiving', 'received'])
+                ->where('created_at', '>=', $sixMonthsAgo)
+                ->select('created_at', 'final_price')
+                ->get();
+
+            $chartData = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $monthName = now()->subMonths($i)->translatedFormat('F');
+                $monthKey = now()->subMonths($i)->format('Y-m');
+                
+                $total = $ordersForChart->filter(function($order) use ($monthKey) {
+                    return $order->created_at->format('Y-m') === $monthKey;
+                })->sum('final_price');
+
+                $chartData[] = [
+                    'label' => $monthName,
+                    'total' => $total
+                ];
+            }
+            
+            $query = Ad::where('user_id', $user->id)->with(['orders.buyer', 'category', 'city']);
+            
+            // 1. Tab Status Filter
+            if ($status === 'sold') {
+                $query->whereHas('orders');
+            } elseif ($status === 'not_sold') {
+                $query->whereDoesntHave('orders');
+            }
+            
+            // 2. Search Keyword Filter
+            if ($request->has('q') && !empty($request->q)) {
+                $query->where(function($q) use ($request) {
+                    $q->where('title', 'like', '%' . $request->q . '%')
+                      ->orWhere('description', 'like', '%' . $request->q . '%');
+                });
+            }
+            
+            // 3. City Filter
+            if ($request->has('city') && !empty($request->city)) {
+                $query->where('city_id', $request->city);
+            }
+            
+            // 4. Category Filter
+            $activeCategory = null;
+            if ($request->has('category') && !empty($request->category)) {
+                $activeCategory = \App\Models\Category::with('properties')->find($request->category);
+                $query->where('category_id', $request->category);
+            }
+
+            // 4.1. Dynamic Category Properties Filter
+            if ($activeCategory && $request->has('props') && is_array($request->props)) {
+                foreach ($request->props as $propId => $val) {
+                    if ($val !== null && $val !== '') {
+                        $query->whereHas('adProperties', function($q) use ($propId, $val) {
+                            $q->where('property_id', $propId);
+                            if (is_array($val)) {
+                                $q->whereIn('value', $val);
+                            } else {
+                                $q->where('value', $val);
+                            }
+                        });
+                    }
                 }
             }
-        }
-        
-        // 5. Ad Type Filter
-        if ($request->has('type') && !empty($request->type)) {
-            if ($request->type === 'auction') {
-                $query->whereIn('type', ['electronic_auction', 'hybrid_auction']);
-            } elseif ($request->type === 'direct_purchase') {
-                $query->where('type', 'direct_purchase');
-            } else {
-                $query->where('type', $request->type);
+            
+            // 5. Ad Type Filter
+            if ($request->has('type') && !empty($request->type)) {
+                if ($request->type === 'auction') {
+                    $query->whereIn('type', ['electronic_auction', 'hybrid_auction']);
+                } elseif ($request->type === 'direct_purchase') {
+                    $query->where('type', 'direct_purchase');
+                } else {
+                    $query->where('type', $request->type);
+                }
             }
+            
+            // 6. Sorting
+            $sort = $request->get('sort', 'newest');
+            if ($sort === 'price_high') {
+                $query->orderBy('price', 'desc');
+            } elseif ($sort === 'price_low') {
+                $query->orderBy('price', 'asc');
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+            
+            $ads = $query->paginate(12)->appends($request->query());
+            
+            $cities = \App\Models\City::orderBy('name')->get();
+            $categories = \App\Models\Category::whereNull('parent_id')->with('subCategories')->get();
+            
+            return view('ads.my-sales', compact(
+                'ads', 'status', 'cities', 'categories', 'activeCategory',
+                'totalSalesAmount', 'netEarnings', 'newOrdersCount', 'soldRate',
+                'averageOrderValue', 'conversionRate', 'sellerRating', 'chartData'
+            ));
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ], 500, ['Content-Type' => 'application/json; charset=utf-8'], JSON_UNESCAPED_UNICODE);
         }
-        
-        // 6. Sorting
-        $sort = $request->get('sort', 'newest');
-        if ($sort === 'price_high') {
-            $query->orderBy('price', 'desc');
-        } elseif ($sort === 'price_low') {
-            $query->orderBy('price', 'asc');
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
-        
-        $ads = $query->paginate(12)->appends($request->query());
-        
-        $cities = \App\Models\City::orderBy('name')->get();
-        $categories = \App\Models\Category::whereNull('parent_id')->with('subCategories')->get();
-        
-        return view('ads.my-sales', compact('ads', 'status', 'cities', 'categories', 'activeCategory'));
     }
 
     public function myPurchases(Request $request)

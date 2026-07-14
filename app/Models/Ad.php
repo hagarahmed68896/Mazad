@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Ad extends Model
 {
@@ -19,6 +20,22 @@ class Ad extends Model
     ];
 
     protected $appends = ['is_favorited', 'is_look_later', 'is_real_estate', 'is_cars'];
+
+    protected static function booted()
+    {
+        static::retrieved(function ($ad) {
+            // Auto finish active ads whose end date is past
+            if ($ad->status === 'active' && $ad->end_date && \Carbon\Carbon::parse($ad->end_date)->isPast()) {
+                $ad->status = 'finished';
+                $ad->save();
+            }
+            // Auto activate upcoming ads whose start date is past
+            elseif ($ad->status === 'upcoming' && $ad->start_date && \Carbon\Carbon::parse($ad->start_date)->isPast()) {
+                $ad->status = 'active';
+                $ad->save();
+            }
+        });
+    }
 
     public function getIsRealEstateAttribute()
     {
@@ -350,5 +367,45 @@ class Ad extends Model
         $host = rtrim($host, '/');
 
         return $host . '/' . ltrim($value, '/');
+    }
+
+    public function toArray()
+    {
+        $array = parent::toArray();
+        
+        if ($this->relationLoaded('city') && $this->city) {
+            $array['district'] = [
+                'id' => $this->city->id,
+                'name' => $this->city->name,
+            ];
+            
+            $region = $this->city->region;
+            if ($region) {
+                $array['city'] = [
+                    'id' => $region->id,
+                    'name' => $region->name,
+                ];
+            } else {
+                $array['city'] = null;
+            }
+        } else {
+            if ($this->city_id) {
+                // To prevent infinite loop, we fetch via Query Builder
+                $cityObj = DB::table('cities')->find($this->city_id);
+                if ($cityObj) {
+                    $array['district'] = [
+                        'id' => $cityObj->id,
+                        'name' => $cityObj->name,
+                    ];
+                    $regionObj = DB::table('regions')->find($cityObj->region_id);
+                    $array['city'] = $regionObj ? [
+                        'id' => $regionObj->id,
+                        'name' => $regionObj->name,
+                    ] : null;
+                }
+            }
+        }
+        
+        return $array;
     }
 }

@@ -863,7 +863,7 @@
                                     </div>
                                     
                                     <div class="p-card-body">
-                                        <span class="p-category-pill" style="background-color: #DEF7EC; color: #03543F;">{{ $sAd->category->name ?? 'خدمات شركاء' }}</span>
+                                        <span class="p-category-pill" style="background-color: #DEF7EC; color: #03543F;">{{ $sAd->category?->name ?? 'خدمات شركاء' }}</span>
                                         <h3 class="p-ad-title">{{ $sAd->title ?? 'طلب خدمة شريك' }}</h3>
                                         
                                         <div class="p-price-row">
@@ -952,9 +952,9 @@
                                     </div>
                                     
                                     <div class="p-card-body">
-                                        <span class="p-category-pill">{{ $ad->category->name ?? 'غير مصنف' }}</span>
+                                        <span class="p-category-pill">{{ $ad?->category?->name ?? 'غير مصنف' }}</span>
                                         <a href="{{ $ad ? route('ads.show', $ad->id) : '#' }}" style="text-decoration: none; color: inherit;">
-                                            <h3 class="p-ad-title">{{ $ad->title ?? 'طلب شراء إعلان' }}</h3>
+                                            <h3 class="p-ad-title">{{ $ad?->title ?? 'طلب شراء إعلان' }}</h3>
                                         </a>
                                         
                                         <div class="p-price-row">

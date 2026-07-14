@@ -493,22 +493,38 @@
                             <i class="fa-solid fa-chevron-down"></i>
                         </div>
                         <div class="filter-group-content active">
-                            <div class="location-filter-wrapper">
-                                <button type="button" class="location-icon-btn" onclick="handleLocationClick()">
-                                    <i class="fa-solid fa-location-dot"></i>
-                                </button>
-                                @php
-                                    $selectedCityId = request('city') ?: (Auth::check() ? Auth::user()->city_id : null);
-                                @endphp
-                                <select name="city" class="filter-select" onchange="this.form.submit()">
-                                    <option value="">حدد الموقع</option>
-                                    @foreach($cities as $city)
-                                        <option value="{{ $city->id }}" {{ $selectedCityId == $city->id ? 'selected' : '' }}>{{ $city->name }}</option>
+                            <!-- City select -->
+                            <div class="location-filter-wrapper mb-3" style="margin-bottom: 0.75rem;">
+                                <select name="city_id" id="citySelect" class="filter-select" onchange="filterDistrictsAndSubmit()" style="width: 100%;">
+                                    <option value="">كل المدن</option>
+                                    @foreach($regions as $reg)
+                                        <option value="{{ $reg->id }}" {{ request('city_id') == $reg->id ? 'selected' : '' }}>{{ $reg->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <!-- Neighborhood/District select -->
+                            <div class="location-filter-wrapper mb-3" style="display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.75rem;">
+                                <select name="district_id" id="districtSelect" class="filter-select" onchange="this.form.submit()" style="width: 100%;">
+                                    <option value="">كل الأحياء</option>
+                                    @foreach($cities as $dist)
+                                        <option value="{{ $dist->id }}" data-region-id="{{ $dist->region_id }}" {{ request('district_id') == $dist->id ? 'selected' : '' }}>{{ $dist->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             @php
                                 $currentAddr = Auth::check() ? Auth::user()->address : null;
+                                if (request()->filled('city_id')) {
+                                    $reg = \App\Models\Region::find(request('city_id'));
+                                    if ($reg) {
+                                        $currentAddr = $reg->name;
+                                        if (request()->filled('district_id')) {
+                                            $dist = \App\Models\City::find(request('district_id'));
+                                            if ($dist) {
+                                                $currentAddr .= '، ' . $dist->name;
+                                            }
+                                        }
+                                    }
+                                }
                             @endphp
                             @if($currentAddr)
                                 <div class="current-location-status">
@@ -1152,19 +1168,14 @@
         let currentLocationMarker = null;
 
         function handleLocationClick() {
-            if (!isLoggedIn) {
-                showAuthModal();
-                return;
-            }
-
             const modal = document.getElementById('locationModal');
             if (modal) {
                 modal.style.display = 'flex';
                 
                 // Small delay to ensure modal is visible for Leaflet
                 setTimeout(() => {
-                    const savedLat = {{ Auth::check() ? (Auth::user()->latitude ?? 'null') : 'null' }};
-                    const savedLng = {{ Auth::check() ? (Auth::user()->longitude ?? 'null') : 'null' }};
+                    const savedLat = {{ Auth::check() ? (Auth::user()->latitude ?? 'null') : (session('user_latitude') ?? 'null') }};
+                    const savedLng = {{ Auth::check() ? (Auth::user()->longitude ?? 'null') : (session('user_longitude') ?? 'null') }};
                     
                     if (!locationMapInstance) {
                         locationMapInstance = L.map('locationMap').setView([savedLat || 24.7136, savedLng || 46.6753], savedLat ? 13 : 6);
@@ -1344,7 +1355,42 @@
         setInterval(updateCountdowns, 1000);
         updateCountdowns();
 
+        window.filterDistrictsAndSubmit = function() {
+            const citySelect = document.getElementById('citySelect');
+            const districtSelect = document.getElementById('districtSelect');
+            if (citySelect && districtSelect) {
+                districtSelect.value = "";
+                citySelect.form.submit();
+            }
+        };
+
+        function updateDistrictDropdownOptions() {
+            const citySelect = document.getElementById('citySelect');
+            const districtSelect = document.getElementById('districtSelect');
+            if (!citySelect || !districtSelect) return;
+
+            const selectedCityId = citySelect.value;
+            const options = districtSelect.querySelectorAll('option');
+
+            options.forEach(opt => {
+                const optRegionId = opt.getAttribute('data-region-id');
+                if (!optRegionId) {
+                    opt.style.display = "";
+                    return;
+                }
+
+                if (!selectedCityId) {
+                    opt.style.display = "";
+                } else if (optRegionId == selectedCityId) {
+                    opt.style.display = "";
+                } else {
+                    opt.style.display = "none";
+                }
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            updateDistrictDropdownOptions();
 
             const initialView = "{{ request('view', 'grid') }}";
             if (initialView !== 'grid') {

@@ -681,6 +681,261 @@
         font-weight: 800;
         font-size: 0.9rem;
     }
+
+    /* Dashboard Stats Grid */
+    .dashboard-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+    }
+    .stat-card {
+        background: #ffffff;
+        border: 1px solid #E2E8F0;
+        border-radius: 24px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.02);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+    }
+    .stat-card-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    .stat-card-icon.blue { background-color: #E8F1FE; color: #1A73E8; }
+    .stat-card-icon.green { background-color: #ECFDF5; color: #10B981; }
+    .stat-card-icon.orange { background-color: #FFF7ED; color: #F97316; }
+    .stat-card-icon.purple { background-color: #F5F3FF; color: #8B5CF6; }
+    .stat-card-icon.cyan { background-color: #E0F7FA; color: #00ACC1; }
+    .stat-card-icon.gold { background-color: #FFFDE7; color: #FBC02D; }
+
+    /* Analytics Section Styling */
+    .analytics-section {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+    }
+    .analytics-card {
+        background: #ffffff;
+        border: 1px solid #E2E8F0;
+        border-radius: 24px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.02);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 340px;
+    }
+    .card-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+        border-bottom: 1.5px solid #F1F5F9;
+        padding-bottom: 0.75rem;
+    }
+    .card-header-row h3 {
+        font-size: 1.1rem;
+        font-weight: 850;
+        color: #1E293B;
+        margin: 0;
+    }
+    .card-header-row .sub-text {
+        font-size: 0.8rem;
+        color: #64748B;
+        font-weight: 700;
+    }
+    .card-header-row .view-all-link {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #1A73E8;
+        text-decoration: none;
+    }
+    .card-header-row .view-all-link:hover {
+        text-decoration: underline;
+    }
+    .chart-container {
+        position: relative;
+        height: 260px;
+        width: 100%;
+        flex-grow: 1;
+    }
+    
+    /* Activity List Styling */
+    .activity-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        flex-grow: 1;
+        justify-content: center;
+    }
+    .activity-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: 16px;
+        background: #F8FAFC;
+        border: 1px solid #F1F5F9;
+        transition: transform 0.2s, background-color 0.2s;
+    }
+    .activity-item:hover {
+        transform: translateX(-3px);
+        background: #F1F5F9;
+    }
+    .activity-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        background: #E8F1FE;
+        color: #1A73E8;
+        font-weight: 850;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .activity-details {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        gap: 0.15rem;
+        min-width: 0;
+    }
+    .activity-details .buyer-name {
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: #1E293B;
+    }
+    .activity-details .ad-title {
+        font-size: 0.75rem;
+        color: #64748B;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .activity-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-shrink: 0;
+    }
+    .activity-meta .price-value {
+        font-size: 0.85rem;
+        font-weight: 850;
+        color: #1E293B;
+    }
+    .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .status-dot.status-pending_payment { background-color: #EAB308; }
+    .status-dot.status-paid { background-color: #22C55E; }
+    .status-dot.status-receiving { background-color: #F97316; }
+    .status-dot.status-received { background-color: #1A73E8; }
+    .empty-activity {
+        padding: 3rem 1rem;
+        text-align: center;
+        color: #94A3B8;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    /* Stepper Styling */
+    .order-stepper-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        border-top: 1px dashed #E2E8F0;
+        gap: 0.15rem;
+    }
+    .stepper-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        opacity: 0.35;
+        transition: opacity 0.3s;
+    }
+    .stepper-step.active {
+        opacity: 1;
+    }
+    .stepper-circle {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background-color: #94A3B8;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.6rem;
+        font-weight: 900;
+        transition: background-color 0.3s;
+    }
+    .stepper-step.active .stepper-circle {
+        background-color: #1A73E8;
+    }
+    .stepper-step.active:nth-child(1) .stepper-circle { background-color: #F97316; } /* Orange */
+    .stepper-step.active:nth-child(3) .stepper-circle { background-color: #22C55E; } /* Green */
+    .stepper-step.active:nth-child(5) .stepper-circle { background-color: #3B82F6; } /* Blue */
+    .stepper-step.active:nth-child(7) .stepper-circle { background-color: #10B981; } /* Emerald */
+
+    .stepper-label {
+        font-size: 0.6rem;
+        font-weight: 800;
+        color: #64748B;
+    }
+    .stepper-step.active .stepper-label {
+        color: #1E293B;
+    }
+    .stepper-line {
+        flex-grow: 1;
+        height: 2px;
+        background-color: #E2E8F0;
+        margin-bottom: 0.75rem;
+        transition: background-color 0.3s;
+    }
+    .stepper-line.active {
+        background-color: #1A73E8;
+    }
+    
+    .stat-card-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    .stat-card-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #64748B;
+    }
+    .stat-card-value {
+        font-size: 1.4rem;
+        font-weight: 900;
+        color: #1E293B;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
 </style>
 @endpush
 
@@ -695,9 +950,90 @@
         </a>
 
         <!-- Page Header -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <h1 class="page-title !mb-0" style="margin-bottom: 0 !important;">مبيعاتي</h1>
         </div>
+
+        <!-- Dashboard Stats Grid -->
+        <div class="dashboard-stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+            <!-- Total Sales -->
+            <div class="stat-card">
+                <div class="stat-card-icon blue">
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+                <div class="stat-card-info">
+                    <span class="stat-card-label">إجمالي المبيعات</span>
+                    <span class="stat-card-value">
+                        <span>{{ number_format($totalSalesAmount) }}</span>
+                        <x-riyal-icon class="w-5 h-5 text-[#1A73E8]" />
+                    </span>
+                </div>
+            </div>
+
+            <!-- Net Earnings -->
+            <div class="stat-card">
+                <div class="stat-card-icon green">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div class="stat-card-info">
+                    <span class="stat-card-label">الأرباح الصافية</span>
+                    <span class="stat-card-value">
+                        <span>{{ number_format($netEarnings) }}</span>
+                        <x-riyal-icon class="w-5 h-5 text-[#10B981]" />
+                    </span>
+                </div>
+            </div>
+
+            <!-- Average Order Value -->
+            <div class="stat-card">
+                <div class="stat-card-icon purple">
+                    <i class="fa-solid fa-calculator"></i>
+                </div>
+                <div class="stat-card-info">
+                    <span class="stat-card-label">متوسط قيمة الطلب</span>
+                    <span class="stat-card-value">
+                        <span>{{ number_format($averageOrderValue) }}</span>
+                        <x-riyal-icon class="w-5 h-5 text-[#8B5CF6]" />
+                    </span>
+                </div>
+            </div>
+
+            <!-- New Orders -->
+            <div class="stat-card">
+                <div class="stat-card-icon orange">
+                    <i class="fa-solid fa-cart-plus"></i>
+                </div>
+                <div class="stat-card-info">
+                    <span class="stat-card-label">الطلبات الجديدة</span>
+                    <span class="stat-card-value">
+                        <span>{{ $newOrdersCount }}</span>
+                        <span class="text-sm font-bold text-slate-500 mr-1">طلب</span>
+                    </span>
+                </div>
+            </div>
+
+
+
+            <!-- Seller Rating -->
+            <div class="stat-card">
+                <div class="stat-card-icon gold">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+                <div class="stat-card-info">
+                    <span class="stat-card-label">تقييم المتجر/البائع</span>
+                    <span class="stat-card-value">
+                        @if($sellerRating > 0)
+                            <span>{{ $sellerRating }}</span>
+                            <span class="text-xs font-bold text-[#FBC02D] mr-1">من 5</span>
+                        @else
+                            <span class="text-sm font-bold text-slate-500">لا توجد تقييمات</span>
+                        @endif
+                    </span>
+                </div>
+            </div>
+        </div>
+
+
 
         <!-- Filter Tabs -->
         <div class="filter-tabs-container">
@@ -986,7 +1322,7 @@
                                     </div>
                                     
                                     <div class="p-card-body">
-                                        <span class="p-category-pill">{{ $ad->category->name ?? 'غير مصنف' }}</span>
+                                        <span class="p-category-pill">{{ $ad->category?->name ?? 'غير مصنف' }}</span>
                                         <a href="{{ in_array($ad->type, ['electronic_auction', 'hybrid_auction']) ? route('bids.history-page', $ad->id) : route('ads.show', $ad->id) }}" style="text-decoration: none; color: inherit;">
                                             <h3 class="p-ad-title">{{ $ad->title }}</h3>
                                         </a>
@@ -1020,9 +1356,35 @@
                                             <!-- Buyer details (only for sold items) -->
                                             <div class="buyer-info-row">
                                                 <div class="buyer-avatar-placeholder">
-                                                    {{ mb_substr($order->buyer->name, 0, 1) }}
+                                                    {{ mb_substr($order->buyer?->name ?? 'م', 0, 1) }}
                                                 </div>
-                                                <span class="buyer-name">{{ $order->buyer->name }}</span>
+                                                <span class="buyer-name">{{ $order->buyer?->name ?? 'مستخدم محذوف' }}</span>
+                                            </div>
+
+                                            <!-- Order Status Stepper -->
+                                            <div class="order-stepper-container">
+                                                <div class="stepper-step {{ in_array($order->status, ['pending_payment', 'paid', 'receiving', 'received']) ? 'active' : '' }}">
+                                                    <div class="stepper-circle">1</div>
+                                                    <span class="stepper-label">طلب</span>
+                                                </div>
+                                                <div class="stepper-line {{ in_array($order->status, ['paid', 'receiving', 'received']) ? 'active' : '' }}"></div>
+                                                
+                                                <div class="stepper-step {{ in_array($order->status, ['paid', 'receiving', 'received']) ? 'active' : '' }}">
+                                                    <div class="stepper-circle">2</div>
+                                                    <span class="stepper-label">دفع</span>
+                                                </div>
+                                                <div class="stepper-line {{ in_array($order->status, ['receiving', 'received']) ? 'active' : '' }}"></div>
+                                                
+                                                <div class="stepper-step {{ in_array($order->status, ['receiving', 'received']) ? 'active' : '' }}">
+                                                    <div class="stepper-circle">3</div>
+                                                    <span class="stepper-label">شحن</span>
+                                                </div>
+                                                <div class="stepper-line {{ $order->status === 'received' ? 'active' : '' }}"></div>
+                                                
+                                                <div class="stepper-step {{ $order->status === 'received' ? 'active' : '' }}">
+                                                    <div class="stepper-circle">4</div>
+                                                    <span class="stepper-label">استلام</span>
+                                                </div>
                                             </div>
                                         @else
                                             <!-- General stats (only for unsold items) -->

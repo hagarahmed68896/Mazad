@@ -10,7 +10,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE service_orders MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'pending_payment'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE service_orders MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'pending_payment'");
+        }
     }
 
     /**
@@ -18,6 +20,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE service_orders MODIFY COLUMN status ENUM('pending_payment', 'paid', 'under_review', 'completed', 'cancelled') NOT NULL DEFAULT 'pending_payment'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE service_orders MODIFY COLUMN status ENUM('pending_payment', 'paid', 'under_review', 'completed', 'cancelled') NOT NULL DEFAULT 'pending_payment'");
+        }
     }
 };

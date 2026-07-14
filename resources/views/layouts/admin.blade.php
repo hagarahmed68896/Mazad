@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js"></script>
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -389,7 +389,13 @@
 
                         // Re-initialize Alpine.js on the swapped elements
                         if (window.Alpine) {
-                            window.Alpine.initTree(mainContent);
+                            setTimeout(() => {
+                                mainContent.querySelectorAll('[x-data]').forEach(el => {
+                                    if (!el._x_dataStack) {
+                                        window.Alpine.initTree(el);
+                                    }
+                                });
+                            }, 0);
                         }
 
                         // Re-initialize Charts
@@ -434,7 +440,13 @@
                         }
                         
                         if (window.Alpine) {
-                            window.Alpine.initTree(mainContent);
+                            setTimeout(() => {
+                                mainContent.querySelectorAll('[x-data]').forEach(el => {
+                                    if (!el._x_dataStack) {
+                                        window.Alpine.initTree(el);
+                                    }
+                                });
+                            }, 0);
                         }
 
                         // Re-initialize Charts

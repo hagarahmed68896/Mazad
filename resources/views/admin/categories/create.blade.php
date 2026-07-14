@@ -3,7 +3,7 @@
 @section('title', 'إضافة فئة')
 
 @section('content')
-<div class="container-fluid mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl" x-data="categoryForm()">
+<div class="container-fluid mx-auto px-4 sm:px-6 lg:px-8 py-8" dir="rtl" x-data="createCategoryForm()">
     
     <!-- Title & Back -->
     <div class="flex items-center gap-4 mb-8">
@@ -41,29 +41,25 @@
                     
                     <input type="file" name="image" id="category_image" class="hidden" accept="image/*" @change="handleFileSelect($event)">
                     
-                    <template x-if="!imagePreview">
-                        <div class="flex flex-col items-center gap-4">
-                            <div class="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center text-[#1A73E8]">
+                    <div x-show="!imagePreview" class="flex flex-col items-center gap-4">
+                        <div class="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center text-[#1A73E8]">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-cloud-upload" viewBox="0 0 16 16">
   <path fill-rule="evenodd" d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.569 14.502 11 12.687 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383"/>
   <path fill-rule="evenodd" d="M7.646 4.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V14.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708z"/>
 </svg>                            </div>
-                            <div class="text-center">
-                                <p class="text-sm font-black text-[#1C1C1C]">اسحب الملف هنا</p>
-                                <p class="text-xs font-bold text-slate-400 mt-1">أو</p>
-                            </div>
-                            <button type="button" @click="document.getElementById('category_image').click()" class="px-8 py-2.5 bg-white border border-[#1A73E8] text-[#1A73E8] rounded-xl text-sm font-black hover:bg-blue-50 transition-all">تصفح الملفات</button>
+                        <div class="text-center">
+                            <p class="text-sm font-black text-[#1C1C1C]">اسحب الملف هنا</p>
+                            <p class="text-xs font-bold text-slate-400 mt-1">أو</p>
                         </div>
-                    </template>
+                        <button type="button" @click="document.getElementById('category_image').click()" class="px-8 py-2.5 bg-white border border-[#1A73E8] text-[#1A73E8] rounded-xl text-sm font-black hover:bg-blue-50 transition-all">تصفح الملفات</button>
+                    </div>
 
-                    <template x-if="imagePreview">
-                        <div class="relative w-full h-full p-4 flex items-center justify-center">
-                            <img :src="imagePreview" style="max-height: 200px; max-width: 100%; object-fit: contain;" class="rounded-2xl" alt="Preview">
-                            <button type="button" @click="removeImage()" class="absolute top-4 left-4 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-all">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </button>
-                        </div>
-                    </template>
+                    <div x-show="imagePreview" x-cloak class="relative w-full h-full p-4 flex items-center justify-center">
+                        <img :src="imagePreview" style="max-height: 200px; max-width: 100%; object-fit: contain;" class="rounded-2xl" alt="Preview">
+                        <button type="button" @click="removeImage()" class="absolute top-4 left-4 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-all">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -167,60 +163,58 @@
             <button type="submit" class="px-8 py-4 bg-[#1A73E8] text-white rounded-2xl font-black shadow-[0_10px_30px_-10px_rgba(26,115,232,0.5)] hover:bg-blue-700 transition-all active:scale-95">إضافة فئة</button>
         </div>
     </form>
-</div>
-@endsection
 
-@push('scripts')
-<script>
-    function categoryForm() {
-        return {
-            dragOver: false,
-            imagePreview: null,
-            pages: [''],
-            
-            handleFileSelect(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    this.previewImage(file);
+    <script>
+        function createCategoryForm() {
+            return {
+                dragOver: false,
+                imagePreview: null,
+                pages: @json(old('pages') ?? ['']),
+                
+                handleFileSelect(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.previewImage(file);
+                    }
+                },
+                
+                handleDrop(event) {
+                    this.dragOver = false;
+                    const file = event.dataTransfer.files[0];
+                    if (file) {
+                        const input = document.getElementById('category_image');
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(file);
+                        input.files = dataTransfer.files;
+                        this.previewImage(file);
+                    }
+                },
+                
+                previewImage(file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.imagePreview = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                },
+                
+                removeImage() {
+                    this.imagePreview = null;
+                    document.getElementById('category_image').value = '';
+                },
+                
+                addPage() {
+                    this.pages.push('');
+                },
+                
+                removePage(index) {
+                    this.pages.splice(index, 1);
                 }
-            },
-            
-            handleDrop(event) {
-                this.dragOver = false;
-                const file = event.dataTransfer.files[0];
-                if (file) {
-                    const input = document.getElementById('category_image');
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(file);
-                    input.files = dataTransfer.files;
-                    this.previewImage(file);
-                }
-            },
-            
-            previewImage(file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    this.imagePreview = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            },
-            
-            removeImage() {
-                this.imagePreview = null;
-                document.getElementById('category_image').value = '';
-            },
-            
-            addPage() {
-                this.pages.push('');
-            },
-            
-            removePage(index) {
-                this.pages.splice(index, 1);
             }
         }
-    }
-</script>
-@endpush
+    </script>
+</div>
+@endsection
 
 
 

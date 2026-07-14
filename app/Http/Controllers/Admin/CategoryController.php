@@ -70,7 +70,9 @@ class CategoryController extends Controller
         try {
             DB::beginTransaction();
 
-            $categoryData = $request->only(['name', 'deposit_value', 'tax_value']);
+            $categoryData = $request->only(['name']);
+            $categoryData['deposit_value'] = $request->filled('deposit_value') ? $request->deposit_value : 0;
+            $categoryData['tax_value'] = $request->filled('tax_value') ? $request->tax_value : 0;
             $categoryData['ad_types'] = $request->has('ad_type') ? [$request->ad_type] : [];
             
             if ($request->hasFile('image')) {
@@ -142,7 +144,9 @@ class CategoryController extends Controller
         try {
             DB::beginTransaction();
 
-            $categoryData = $request->only(['name', 'deposit_value', 'tax_value']);
+            $categoryData = $request->only(['name']);
+            $categoryData['deposit_value'] = $request->filled('deposit_value') ? $request->deposit_value : 0;
+            $categoryData['tax_value'] = $request->filled('tax_value') ? $request->tax_value : 0;
             $categoryData['ad_types'] = $request->has('ad_type') ? [$request->ad_type] : [];
             
             if ($request->hasFile('image')) {

@@ -165,6 +165,8 @@ class AdController extends Controller
             'attachment_links' => 'nullable|array',
             'attachment_links.*' => 'nullable|url',
             'start_date' => 'nullable|date|before_or_equal:' . $maxStartDate,
+            'enfaz_license_number' => 'nullable|string|max:255',
+            'enfaz_brochure' => 'nullable|file|mimes:pdf,jpeg,png,jpg|max:20480',
         ];
 
         if ($request->filled('start_date')) {
@@ -328,6 +330,15 @@ class AdController extends Controller
                 $mainImage = $imagePaths[0];
             }
 
+            // Upload Enfaz Brochure
+            $enfazBrochurePath = null;
+            if ($request->is_enfaz && $request->hasFile('enfaz_brochure')) {
+                $file = $request->file('enfaz_brochure');
+                $filename = time() . '_brochure.' . $file->getClientOriginalExtension();
+                $file->move(public_path('uploads/ads/brochures'), $filename);
+                $enfazBrochurePath = 'uploads/ads/brochures/' . $filename;
+            }
+
             $ad = Ad::create([
                 'user_id'        => $user->id,
                 'category_id'    => $request->category_id,
@@ -349,6 +360,8 @@ class AdController extends Controller
                 'image'          => $mainImage,
                 'is_featured'    => $request->is_featured ? 1 : 0,
                 'is_enfaz'       => $request->is_enfaz ?? 0,
+                'enfaz_license_number' => $request->is_enfaz ? $request->enfaz_license_number : null,
+                'enfaz_brochure'       => $request->is_enfaz ? $enfazBrochurePath : null,
                 'auction_type'   => $request->auction_type,
                 'shipping_price' => $request->shipping_price ?? 0,
                 'shipping_type'  => $request->shipping_type,
@@ -641,6 +654,19 @@ class AdController extends Controller
                 }
             }
 
+            // Upload new Enfaz Brochure if provided
+            $enfazBrochurePath = $ad->enfaz_brochure;
+            if ($request->is_enfaz && $request->hasFile('enfaz_brochure')) {
+                // Delete old brochure file if exists
+                if ($ad->enfaz_brochure && file_exists(public_path($ad->enfaz_brochure))) {
+                    @unlink(public_path($ad->enfaz_brochure));
+                }
+                $file = $request->file('enfaz_brochure');
+                $filename = time() . '_brochure.' . $file->getClientOriginalExtension();
+                $file->move(public_path('uploads/ads/brochures'), $filename);
+                $enfazBrochurePath = 'uploads/ads/brochures/' . $filename;
+            }
+
             $ad->update([
                 'title'          => $request->title ?? $ad->title,
                 'description'    => $request->description ?? $ad->description,
@@ -657,6 +683,9 @@ class AdController extends Controller
                 'bid_increment'  => $bidIncrement,
                 'end_date'       => $request->end_date ? $this->parseSafeDate($request->end_date, 'Y-m-d H:i:s') : $ad->end_date,
                 'is_featured'    => $request->has('is_featured') ? ($request->is_featured ? 1 : 0) : $ad->is_featured,
+                'is_enfaz'       => $request->is_enfaz ?? 0,
+                'enfaz_license_number' => $request->is_enfaz ? ($request->enfaz_license_number ?? $ad->enfaz_license_number) : null,
+                'enfaz_brochure'       => $request->is_enfaz ? $enfazBrochurePath : null,
                 'auction_type'   => $request->auction_type ?? $ad->auction_type,
                 'shipping_price' => $request->shipping_price ?? $ad->shipping_price,
                 'shipping_type'  => $request->shipping_type ?? $ad->shipping_type,

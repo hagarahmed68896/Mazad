@@ -395,6 +395,51 @@
                 </div>
             </div>
 
+            <!-- ENFAZ FIELD (SHARED FOR AUCTION & TENDER) -->
+            <div id="enfazFields" class="{{ $ad->type != 'auction' && $ad->type != 'tender' ? 'hidden' : '' }} space-y-4">
+                <label id="enfazLabel" class="block text-gray-700 font-black">
+                    @if($ad->type == 'tender')
+                        هل المناقصة عن طريق إنفاذ؟
+                    @else
+                        هل المزاد عن طريق إنفاذ؟
+                    @endif
+                </label>
+                <div class="relative">
+                    <select name="is_enfaz" onchange="toggleEnfazExtraFields()" class="form-input w-full appearance-none bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 outline-none focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all cursor-pointer">
+                        <option value="0" {{ ($ad->is_enfaz ?? 0) == 0 ? 'selected' : '' }}>لا</option>
+                        <option value="1" {{ ($ad->is_enfaz ?? 0) == 1 ? 'selected' : '' }}>نعم</option>
+                    </select>
+                    <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-chevron-down text-gray-400"></i>
+                    </div>
+                </div>
+
+                <!-- Enfaz Extra Fields -->
+                <div id="enfazExtraFields" class="hidden space-y-4 mt-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div class="space-y-2">
+                        <label class="block text-gray-700 font-black">رقم الترخيص / قرار الإسناد <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input type="text" name="enfaz_license_number" id="enfaz_license_number_input" placeholder="أدخل رقم الترخيص أو قرار الإسناد" value="{{ $ad->enfaz_license_number }}" class="form-input">
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-gray-700 font-black">كراسة الشروط والمواصفات <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input type="file" name="enfaz_brochure" id="enfaz_brochure_input" accept=".pdf,image/*" class="form-input py-3">
+                            <p class="text-xs text-gray-400 mt-1">المستندات المدعومة: PDF أو الصور (حد أقصى 20 ميجابايت)</p>
+                            @if($ad->enfaz_brochure)
+                                <div class="mt-2 text-sm text-gray-600 flex items-center gap-2">
+                                    <span>الملف الحالي:</span>
+                                    <a href="{{ asset($ad->enfaz_brochure) }}" target="_blank" class="text-blue-500 font-bold hover:underline flex items-center gap-1">
+                                        <i class="fa-solid fa-file-pdf"></i> عرض كراسة الشروط
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- AUCTION ONLY FIELDS -->
             <div id="auctionFields" class="{{ $ad->type != 'auction' ? 'hidden' : '' }} space-y-8">
                 <div class="space-y-4">
@@ -403,19 +448,6 @@
                         <select name="auction_type" class="form-input w-full appearance-none bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 outline-none focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all cursor-pointer">
                             <option value="electronic" {{ ($ad->auction_type ?? 'electronic') == 'electronic' ? 'selected' : '' }}>إلكتروني</option>
                             <option value="hybrid" {{ ($ad->auction_type ?? '') == 'hybrid' ? 'selected' : '' }}>هجين</option>
-                        </select>
-                        <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                            <i class="fa-solid fa-chevron-down text-gray-400"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <label class="block text-gray-700 font-black">هل المزاد عن طريق إنفاذ؟</label>
-                    <div class="relative">
-                        <select name="is_enfaz" class="form-input w-full appearance-none bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 outline-none focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all cursor-pointer">
-                            <option value="0" {{ ($ad->is_enfaz ?? 0) == 0 ? 'selected' : '' }}>لا</option>
-                            <option value="1" {{ ($ad->is_enfaz ?? 0) == 1 ? 'selected' : '' }}>نعم</option>
                         </select>
                         <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
                             <i class="fa-solid fa-chevron-down text-gray-400"></i>
@@ -1343,5 +1375,33 @@
             .catch(() => Swal.fire({ icon: 'error', title: 'حدث خطأ أثناء التعيين' }));
         });
     };
+
+    window.toggleEnfazExtraFields = function() {
+        const isEnfazSelect = document.querySelector('select[name="is_enfaz"]');
+        if (!isEnfazSelect) return;
+        const isEnfaz = isEnfazSelect.value === '1';
+        const enfazExtraFields = document.getElementById('enfazExtraFields');
+        const licenseInput = document.getElementById('enfaz_license_number_input');
+        const brochureInput = document.getElementById('enfaz_brochure_input');
+        const hasExistingBrochure = "{{ $ad->enfaz_brochure ? 'true' : 'false' }}" === 'true';
+        
+        if (isEnfaz) {
+            if (enfazExtraFields) enfazExtraFields.classList.remove('hidden');
+            if (licenseInput) licenseInput.setAttribute('required', 'required');
+            if (brochureInput && !hasExistingBrochure) brochureInput.setAttribute('required', 'required');
+        } else {
+            if (enfazExtraFields) enfazExtraFields.classList.add('hidden');
+            if (licenseInput) {
+                licenseInput.removeAttribute('required');
+            }
+            if (brochureInput) {
+                brochureInput.removeAttribute('required');
+            }
+        }
+    };
+
+    document.addEventListener("DOMContentLoaded", function() {
+        toggleEnfazExtraFields();
+    });
 </script>
 @endsection

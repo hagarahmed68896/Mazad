@@ -16,7 +16,8 @@ class Ad extends Model
         'user_id', 'category_id', 'city_id', 'address', 'lat', 'lng', 'title', 'image', 'description', 'inspection_info', 'type',
         'deposit_amount', 'price', 'bid_increment', 'bids_count', 'views_count', 'status', 'end_date', 'bid_status', 'is_featured', 'is_enfaz',
         'auction_type', 'shipping_price', 'shipping_type', 'youtube_link', 'start_date', 'award_duration', 'quantity', 'min_sale_price', 
-        'allow_bidding', 'allow_negotiation', 'buy_now_price', 'inspection_date', 'inspection_end_date'
+        'allow_bidding', 'allow_negotiation', 'buy_now_price', 'inspection_date', 'inspection_end_date',
+        'enfaz_license_number', 'enfaz_brochure'
     ];
 
     protected $appends = ['is_favorited', 'is_look_later', 'is_real_estate', 'is_cars'];

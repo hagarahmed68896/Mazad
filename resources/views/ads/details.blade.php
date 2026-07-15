@@ -521,6 +521,43 @@
                 </div>
             </div>
 
+            <!-- ENFAZ FIELD (SHARED FOR AUCTION & TENDER) -->
+            <div id="enfazFields" class="{{ $type != 'auction' && $type != 'tender' ? 'hidden' : '' }} space-y-4">
+                <label id="enfazLabel" class="block text-gray-700 font-black">
+                    @if($type == 'tender')
+                        هل المناقصة عن طريق إنفاذ؟
+                    @else
+                        هل المزاد عن طريق إنفاذ؟
+                    @endif
+                </label>
+                <div class="relative">
+                    <select name="is_enfaz" onchange="toggleEnfazExtraFields()" class="form-input w-full appearance-none bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 outline-none focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all cursor-pointer">
+                        <option value="0" selected>لا</option>
+                        <option value="1">نعم</option>
+                    </select>
+                    <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-chevron-down text-gray-400"></i>
+                    </div>
+                </div>
+
+                <!-- Enfaz Extra Fields -->
+                <div id="enfazExtraFields" class="hidden space-y-4 mt-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div class="space-y-2">
+                        <label class="block text-gray-700 font-black">رقم الترخيص / قرار الإسناد <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input type="text" name="enfaz_license_number" id="enfaz_license_number_input" placeholder="أدخل رقم الترخيص أو قرار الإسناد" class="form-input">
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-gray-700 font-black">كراسة الشروط والمواصفات <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input type="file" name="enfaz_brochure" id="enfaz_brochure_input" accept=".pdf,image/*" class="form-input py-3">
+                            <p class="text-xs text-gray-400 mt-1">المستندات المدعومة: PDF أو الصور (حد أقصى 20 ميجابايت)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- AUCTION ONLY FIELDS -->
             <div id="auctionFields" class="{{ $type != 'auction' ? 'hidden' : '' }} space-y-8">
                 <div class="space-y-4">
@@ -529,19 +566,6 @@
                         <select name="auction_type" class="form-input w-full appearance-none bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 outline-none focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all cursor-pointer">
                             <option value="electronic" selected>إلكتروني</option>
                             <option value="hybrid">هجين</option>
-                        </select>
-                        <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                            <i class="fa-solid fa-chevron-down text-gray-400"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <label class="block text-gray-700 font-black">هل المزاد عن طريق إنفاذ؟</label>
-                    <div class="relative">
-                        <select name="is_enfaz" class="form-input w-full appearance-none bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 outline-none focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all cursor-pointer">
-                            <option value="0" selected>لا</option>
-                            <option value="1">نعم</option>
                         </select>
                         <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
                             <i class="fa-solid fa-chevron-down text-gray-400"></i>
@@ -1046,6 +1070,31 @@
         }
     };
     
+    window.toggleEnfazExtraFields = function() {
+        const isEnfazSelect = document.querySelector('select[name="is_enfaz"]');
+        if (!isEnfazSelect) return;
+        const isEnfaz = isEnfazSelect.value === '1';
+        const enfazExtraFields = document.getElementById('enfazExtraFields');
+        const licenseInput = document.getElementById('enfaz_license_number_input');
+        const brochureInput = document.getElementById('enfaz_brochure_input');
+        
+        if (isEnfaz) {
+            if (enfazExtraFields) enfazExtraFields.classList.remove('hidden');
+            if (licenseInput) licenseInput.setAttribute('required', 'required');
+            if (brochureInput) brochureInput.setAttribute('required', 'required');
+        } else {
+            if (enfazExtraFields) enfazExtraFields.classList.add('hidden');
+            if (licenseInput) {
+                licenseInput.removeAttribute('required');
+                licenseInput.value = '';
+            }
+            if (brochureInput) {
+                brochureInput.removeAttribute('required');
+                brochureInput.value = '';
+            }
+        }
+    };
+
     window.togglePriceFields = function() {
         const adTypeSelect = document.querySelector('select[name="ad_type"]');
         if (!adTypeSelect) return;
@@ -1053,19 +1102,33 @@
         const auctionFields = document.getElementById('auctionFields');
         const directFields = document.getElementById('directFields');
         const tenderFields = document.getElementById('tenderFields');
+        const enfazFields = document.getElementById('enfazFields');
+        const enfazLabel = document.getElementById('enfazLabel');
         
         if (adType === 'auction') {
             auctionFields.classList.remove('hidden');
             directFields.classList.add('hidden');
             tenderFields.classList.add('hidden');
+            if (enfazFields) enfazFields.classList.remove('hidden');
+            if (enfazLabel) enfazLabel.innerText = "هل المزاد عن طريق إنفاذ؟";
+            toggleEnfazExtraFields();
         } else if (adType === 'tender') {
             auctionFields.classList.add('hidden');
             directFields.classList.add('hidden');
             tenderFields.classList.remove('hidden');
+            if (enfazFields) enfazFields.classList.remove('hidden');
+            if (enfazLabel) enfazLabel.innerText = "هل المناقصة عن طريق إنفاذ؟";
+            toggleEnfazExtraFields();
         } else {
             auctionFields.classList.add('hidden');
             directFields.classList.remove('hidden');
             tenderFields.classList.add('hidden');
+            if (enfazFields) enfazFields.classList.add('hidden');
+            const isEnfazSelect = document.querySelector('select[name="is_enfaz"]');
+            if (isEnfazSelect) {
+                isEnfazSelect.value = '0';
+                toggleEnfazExtraFields();
+            }
         }
     };
 

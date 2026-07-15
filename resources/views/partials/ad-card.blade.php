@@ -41,6 +41,9 @@
             @if($ad->is_featured)
                 <span class="p-badge-pill featured"><i class="fa-solid fa-fire"></i> مميز</span>
             @endif
+            @if($ad->is_enfaz)
+                <span class="p-badge-pill enfaz" style="background-color: #10B981; color: white;"><i class="fa-solid fa-building-shield"></i> إنفاذ</span>
+            @endif
             <span class="p-badge-pill type">
                 @if($ad->type == 'electronic_auction') إلكتروني 
                 @elseif($ad->type == 'hybrid_auction') هجين

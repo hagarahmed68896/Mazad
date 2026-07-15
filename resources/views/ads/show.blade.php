@@ -77,6 +77,11 @@
                         <i class="fa-solid fa-fire"></i> مميز
                     </span>
                     @endif
+                    @if($ad->is_enfaz)
+                    <span class="bg-[#10B981] text-white px-4 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg shadow-emerald-200">
+                        <i class="fa-solid fa-building-shield"></i> إنفاذ
+                    </span>
+                    @endif
                 </div>
             </div>
         </div>
@@ -215,6 +220,20 @@
                                     @endif
                                 </span>
                             </div>
+                            @if($ad->is_enfaz)
+                                <div class="flex justify-between items-center p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100/50">
+                                    <span class="text-gray-500 font-bold flex items-center gap-1"><i class="fa-solid fa-building-shield text-emerald-600"></i> رقم ترخيص إنفاذ / الإسناد</span>
+                                    <span class="text-emerald-800 font-black">{{ $ad->enfaz_license_number ?? 'غير محدد' }}</span>
+                                </div>
+                                @if($ad->enfaz_brochure)
+                                    <div class="flex justify-between items-center p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100/50 col-span-1 md:col-span-2">
+                                        <span class="text-gray-500 font-bold flex items-center gap-1"><i class="fa-solid fa-file-pdf text-emerald-600"></i> كراسة الشروط والمواصفات</span>
+                                        <a href="{{ asset($ad->enfaz_brochure) }}" target="_blank" class="btn btn-p-primary py-2 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-emerald-100 transition-all">
+                                            <i class="fa-solid fa-download"></i> تحميل كراسة الشروط
+                                        </a>
+                                    </div>
+                                @endif
+                            @endif
                         </div>
                     </div>
 

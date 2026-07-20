@@ -230,12 +230,14 @@
                         <td class="px-4 py-4 text-center rounded-l-2xl">
                             <div class="flex items-center justify-center gap-2">
                                 <!-- Send Now -->
+                                @if($notify->status !== 'sent')
                                 <form action="{{ route('admin.notifications.send', $notify->id) }}" method="POST" class="m-0 p-0 inline-block" onsubmit="this.querySelector('button[type=submit]').disabled = true;">
                                     @csrf
                                     <button type="submit" class="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-[#1A73E8] hover:!text-white transition-all group-hover:shadow-sm" title="إرسال الآن">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                                     </button>
                                 </form>
+                                @endif
                                 <!-- Edit -->
                                 <a href="{{ route('admin.notifications.edit', $notify->id) }}" class="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-emerald-500 hover:text-white transition-all group-hover:shadow-sm" title="تعديل">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>

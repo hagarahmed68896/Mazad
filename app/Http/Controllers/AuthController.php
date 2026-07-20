@@ -131,9 +131,15 @@ class AuthController extends Controller
         $phone = $credentials['phone'];
         $user = User::where('phone', $phone)->first();
 
+        if ($user && $user->email === 'admin@mazad.com') {
+            return redirect()->route('login')->withErrors([
+                'phone' => 'عذراً، هذا الرقم غير مسجل كحساب مستخدم.',
+            ])->onlyInput('phone');
+        }
+
         if ($user && app('hash')->check($credentials['password'], $user->password)) {
             if ($user->status === 'banned') {
-                return back()->withErrors([
+                return redirect()->route('login')->withErrors([
                     'phone' => 'تم إيقاف هذا الحساب من قبل الإدارة.',
                 ])->onlyInput('phone');
             }
@@ -169,7 +175,7 @@ class AuthController extends Controller
             return redirect()->to($redirectUrl);
         }
 
-        return back()->withErrors([
+        return redirect()->route('login')->withErrors([
             'phone' => 'بيانات الاعتماد المقدمة لا تتطابق مع سجلاتنا.',
         ])->onlyInput('phone');
     }
@@ -241,7 +247,7 @@ class AuthController extends Controller
             }
         }
 
-        return back()->with('error', 'رمز التحقق غير صحيح');
+        return redirect()->route('verify-otp')->with('error', 'رمز التحقق غير صحيح');
     }
 
     public function showVerificationSuccess()
@@ -290,12 +296,12 @@ class AuthController extends Controller
         $phone = $request->phone;
         $user = User::where('phone', $phone)->first();
 
-        if ($user) {
+        if ($user && $user->email !== 'admin@mazad.com') {
             session(['reset_phone' => $phone]);
             return redirect()->route('reset-password');
         }
 
-        return back()->withErrors([
+        return redirect()->route('forgot-password')->withErrors([
             'phone' => 'رقم الجوال هذا غير مسجل لدينا.',
         ])->onlyInput('phone');
     }

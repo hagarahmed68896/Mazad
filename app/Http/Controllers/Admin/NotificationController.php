@@ -80,7 +80,21 @@ class NotificationController extends Controller
 
     public function store(Request $request)
     {
-        $notification = Notification::create(array_merge($request->all(), ['user_id' => null]));
+        $rules = [
+            'type' => 'required|in:alert,notification',
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+            'status' => 'required|in:sent,scheduled,unsent',
+            'scheduled_at' => 'required_if:status,scheduled|nullable|date',
+        ];
+
+        $validated = $request->validate($rules);
+
+        if ($validated['status'] !== 'scheduled') {
+            $validated['scheduled_at'] = null;
+        }
+
+        $notification = Notification::create(array_merge($validated, ['user_id' => null]));
         
         if ($notification->status === 'sent') {
             $this->sendToAllUsers($notification);
@@ -96,8 +110,22 @@ class NotificationController extends Controller
 
     public function update(Request $request, Notification $notification)
     {
+        $rules = [
+            'type' => 'required|in:alert,notification',
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+            'status' => 'required|in:sent,scheduled,unsent',
+            'scheduled_at' => 'required_if:status,scheduled|nullable|date',
+        ];
+
+        $validated = $request->validate($rules);
+
+        if ($validated['status'] !== 'scheduled') {
+            $validated['scheduled_at'] = null;
+        }
+
         $oldStatus = $notification->status;
-        $notification->update($request->all());
+        $notification->update($validated);
         
         if ($oldStatus !== 'sent' && $notification->status === 'sent') {
             if (is_null($notification->user_id)) {

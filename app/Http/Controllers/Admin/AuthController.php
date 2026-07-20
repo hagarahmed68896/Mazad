@@ -48,7 +48,7 @@ class AuthController extends Controller
         $user = User::where('phone', $phone)->first();
 
         if (!$user || $user->email !== 'admin@mazad.com') {
-            return back()->withErrors([
+            return redirect()->route('admin.login')->withErrors([
                 'phone' => 'عذراً، هذا الحساب لا يملك صلاحيات دخول لوحة التحكم.',
             ])->onlyInput('phone');
         }
@@ -60,7 +60,7 @@ class AuthController extends Controller
             return redirect()->route('admin.verify-otp');
         }
 
-        return back()->withErrors([
+        return redirect()->route('admin.login')->withErrors([
             'phone' => 'بيانات الاعتماد المقدمة لا تتطابق مع سجلاتنا.',
         ])->onlyInput('phone');
     }
@@ -127,7 +127,7 @@ class AuthController extends Controller
             }
         }
 
-        return back()->with('error', 'رمز التحقق غير صحيح');
+        return redirect()->route('admin.verify-otp')->with('error', 'رمز التحقق غير صحيح');
     }
 
     public function showVerificationSuccess()

@@ -12,6 +12,11 @@ class Notification extends Model
 
     protected $fillable = ['type', 'title', 'content', 'user_id', 'status', 'scheduled_at', 'read_at'];
 
+    protected $casts = [
+        'scheduled_at' => 'datetime',
+        'read_at' => 'datetime',
+    ];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

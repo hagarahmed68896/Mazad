@@ -8,8 +8,6 @@ use App\Models\Ad;
 use App\Models\ServiceOrder;
 use App\Models\Transaction;
 use App\Models\FinancialSettlement;
-use App\Models\Conversation;
-use App\Models\Message;
 use App\Models\Setting;
 use App\Models\Notification;
 use Illuminate\Support\Facades\Auth;
@@ -144,36 +142,9 @@ class ServiceOrderController extends Controller
                 'status'             => 'completed',
             ]);
 
-            // 3. Automated Chat initiation and notification message
+            // 3. Automated notification model alert to the seller
             $buyer = Auth::user();
             $sellerId = $service->user_id;
-
-            // Find or create chat conversation
-            $conversation = Conversation::where(function($q) use ($buyer, $sellerId) {
-                $q->where(function($sq) use ($buyer, $sellerId) {
-                    $sq->where('user_one_id', $buyer->id)->where('user_two_id', $sellerId);
-                })->orWhere(function($sq) use ($buyer, $sellerId) {
-                    $sq->where('user_one_id', $sellerId)->where('user_two_id', $buyer->id);
-                });
-            })->first();
-
-            if (!$conversation) {
-                $conversation = Conversation::create([
-                    'user_one_id' => $buyer->id,
-                    'user_two_id' => $sellerId,
-                    'last_message_at' => now(),
-                ]);
-            }
-
-            // Send notification message in chat
-            $messageContent = "🚨 طلب خدمة جديد: لقد قام العميل [{$buyer->name}] بطلب خدمتك: \"{$service->title}\" ودفع التكاليف بالكامل شاملة عمولة المنصة بقيمة {$totalPrice} ريال.\n\nرقم الطلب: #{$order->order_number}\n\nيرجى تنفيذ الخدمة وإرفاق تقرير إنجاز الخدمة في صفحة طلباتك المستلمة لتسوية مستحقاتك وتحويلها إلى محفظتك المعتمدة.";
-            
-            Message::create([
-                'conversation_id' => $conversation->id,
-                'sender_id'       => $buyer->id,
-                'content'         => $messageContent,
-                'type'            => 'text'
-            ]);
 
             // Send notification model alert to the seller
             Notification::create([

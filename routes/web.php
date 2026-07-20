@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 
+
+
 Route::get('/run-db-updates', function () {
     try {
         \Illuminate\Support\Facades\Artisan::call('migrate');

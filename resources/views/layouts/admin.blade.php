@@ -258,12 +258,11 @@
             <!-- Inner Canvas Content Page -->
             <div id="admin-main-content" class="flex-1 p-4 sm:p-8 lg:p-12 pt-4 sm:pt-0 pb-20">
                 @yield('content')
+                @stack('scripts')
             </div>
             
         </main>
     </div>
-
-    @stack('scripts')
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {

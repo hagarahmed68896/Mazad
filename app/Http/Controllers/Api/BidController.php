@@ -545,7 +545,7 @@ class BidController extends Controller
             Bid::where('ad_id', $bid->ad_id)->where('id', '!=', $bid->id)->whereIn('status', ['active', 'counter'])->update(['status' => 'rejected']);
             $bid->ad->update(['status' => 'finished']);
 
-            \App\Models\Order::create([
+            $order = \App\Models\Order::create([
                 'order_number' => 'ORD-' . strtoupper(\Illuminate\Support\Str::random(10)),
                 'ad_id' => $bid->ad_id,
                 'buyer_id' => $bid->user_id,
@@ -562,13 +562,18 @@ class BidController extends Controller
                 : 'تم قبول عرضك بقيمة ' . number_format($bid->amount) . ' ريال على إعلان "' . $bid->ad->title . '". يرجى الذهاب لصفحة مشترياتك لإتمام الدفع.';
 
             try {
-                \App\Models\Notification::create([
+                $notif = new \App\Models\Notification([
                     'user_id' => $notifyUserId,
                     'title' => $title,
                     'content' => $content,
-                    'type' => 'notification',
+                    'type' => 'winning_bid',
                     'status' => 'sent',
                 ]);
+                $notif->custom_payload = [
+                    'order_id' => (string) $order->id,
+                    'ad_id' => (string) $bid->ad_id,
+                ];
+                $notif->save();
             } catch (\Exception $e) {
                 // ignore
             }
@@ -715,13 +720,18 @@ class BidController extends Controller
                 $notifType = 'notification';
             }
 
-            \App\Models\Notification::create([
+            $notif = new \App\Models\Notification([
                 'user_id' => $userId,
                 'title' => $title,
                 'content' => $content,
                 'type' => $notifType,
                 'status' => 'sent',
             ]);
+            $notif->custom_payload = [
+                'click_action' => $type === 'offer' ? 'offers_details' : 'ad_details',
+                'ad_id' => (string) $ad->id,
+            ];
+            $notif->save();
         } catch (\Exception $e) {
             \Log::warning('Failed to notify ad owner: ' . $e->getMessage());
         }

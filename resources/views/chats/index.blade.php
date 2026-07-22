@@ -522,6 +522,68 @@
             });
         }
 
+        // Live Chat AJAX Polling
+        @if(isset($activeConversation))
+        let lastMessageId = {{ $activeConversation->messages->last() ? $activeConversation->messages->last()->id : 0 }};
+        
+        function pollMessages() {
+            fetch(`/chats/{{ $activeConversation->id }}/messages`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.messages.length > 0) {
+                        const container = document.getElementById('messagesContainer');
+                        let hasNew = false;
+                        
+                        data.messages.forEach(msg => {
+                            if (msg.id > lastMessageId) {
+                                const isMine = msg.sender_id == {{ auth()->id() }};
+                                if (!isMine) {
+                                    const messageDiv = document.createElement('div');
+                                    messageDiv.className = `flex ${isMine ? 'justify-start flex-row-reverse' : 'justify-start'} gap-4`;
+                                    
+                                    let attachmentHtml = '';
+                                    if (msg.attachment) {
+                                        const ext = msg.attachment.split('.').pop().toLowerCase();
+                                        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                                            attachmentHtml = `<a href="${msg.attachment}" target="_blank"><img src="${msg.attachment}" class="rounded-xl max-w-full h-auto shadow-sm hover:opacity-90 transition-all mb-2"></a>`;
+                                        } else {
+                                            const basename = msg.attachment.split('/').pop();
+                                            attachmentHtml = `<a href="${msg.attachment}" target="_blank" class="flex items-center gap-3 p-3 bg-gray-100 rounded-xl hover:opacity-80 transition-all mb-2"><i class="fa-solid fa-file-lines text-xl"></i><div class="flex-1 min-w-0"><div class="text-[10px] opacity-70 mb-0.5">مرفق</div><div class="text-xs truncate">${basename}</div></div><i class="fa-solid fa-download text-xs opacity-50"></i></a>`;
+                                        }
+                                    }
+                                    
+                                    messageDiv.innerHTML = `
+                                        <img src="${msg.sender_avatar}" class="w-10 h-10 rounded-full shrink-0 shadow-sm border border-gray-100">
+                                        <div class="max-w-[70%]">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <span class="text-xs font-black text-gray-900">${msg.sender_name}</span>
+                                                <span class="text-[10px] text-gray-400 font-bold">${msg.time} م</span>
+                                            </div>
+                                            <div class="p-4 rounded-2xl font-bold text-sm leading-relaxed bg-white text-gray-700 shadow-sm border border-gray-50 rounded-tr-none">
+                                                ${attachmentHtml}
+                                                ${msg.content || ''}
+                                            </div>
+                                        </div>
+                                    `;
+                                    container.appendChild(messageDiv);
+                                    hasNew = true;
+                                }
+                                lastMessageId = msg.id;
+                            }
+                        });
+                        
+                        if (hasNew) {
+                            container.scrollTop = container.scrollHeight;
+                        }
+                    }
+                })
+                .catch(err => console.error('Error polling messages:', err));
+        }
+        
+        // Poll every 3 seconds
+        setInterval(pollMessages, 3000);
+        @endif
+
         // Sidebar Conversation Search
         const conversationSearch = document.getElementById('conversationSearch');
         if (conversationSearch) {

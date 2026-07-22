@@ -691,12 +691,85 @@
                 } else {
                     // Standard text format for cards
                     timerEl.innerText = `${days}ي ${hours}س ${minutes}د ${seconds}ث`;
-                }
             });
         }
         setInterval(updateCountdowns, 1000);
         updateCountdowns();
     </script>
+    
+    @auth
+    <script>
+        function checkGlobalChatStatus() {
+            fetch('/chats/status')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        // 1. Update Navbar Badge
+                        const badge = document.getElementById('navChatBadge');
+                        if (badge) {
+                            if (data.total_unread > 0) {
+                                badge.textContent = data.total_unread;
+                                badge.style.display = 'flex';
+                            } else {
+                                badge.style.display = 'none';
+                            }
+                        }
+
+                        // 2. Update Sidebar Chat items if currently on the chats index page
+                        if (window.location.pathname.startsWith('/chats') && data.conversations) {
+                            data.conversations.forEach(conv => {
+                                const activeItem = document.querySelector(`a[href*="id=${conv.id}"]`);
+                                if (activeItem) {
+                                    // Update last message preview
+                                    const textEl = activeItem.querySelector('p.text-xs');
+                                    if (textEl) {
+                                        // Update preview text if not already updated
+                                        if (textEl.textContent.trim().indexOf('أنت:') === -1) {
+                                            textEl.textContent = conv.last_message;
+                                        }
+                                    }
+
+                                    // Update time
+                                    const timeEl = activeItem.querySelector('span.text-\\[10px\\]');
+                                    if (timeEl && conv.last_message_time) {
+                                        timeEl.textContent = conv.last_message_time;
+                                    }
+
+                                    // Update conversation badge
+                                    let badgeContainer = activeItem.querySelector('.unread-count-badge');
+                                    if (conv.unread_count > 0) {
+                                        if (badgeContainer) {
+                                            badgeContainer.textContent = conv.unread_count;
+                                            badgeContainer.style.display = 'flex';
+                                        } else {
+                                            // Create badge if not exist
+                                            const badgeParent = activeItem.querySelector('.flex-1 .flex.justify-between.items-center:last-child');
+                                            if (badgeParent) {
+                                                const newBadge = document.createElement('span');
+                                                newBadge.className = 'unread-count-badge w-5 h-5 bg-primary text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-lg shadow-blue-100';
+                                                newBadge.textContent = conv.unread_count;
+                                                badgeParent.appendChild(newBadge);
+                                            }
+                                        }
+                                    } else {
+                                        if (badgeContainer) {
+                                            badgeContainer.remove();
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                })
+                .catch(err => console.error('Error checking global chat status:', err));
+        }
+
+        // Check chat status every 4 seconds globally
+        setInterval(checkGlobalChatStatus, 4000);
+        checkGlobalChatStatus();
+    </script>
+    @endauth
+
     @stack('scripts')
 </body>
 </html>

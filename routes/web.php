@@ -112,6 +112,8 @@ Route::middleware('auth')->group(function() {
     Route::get('/chats', [\App\Http\Controllers\ChatController::class, 'index'])->name('chats.index');
     Route::get('/chats/with/{userId}', [\App\Http\Controllers\ChatController::class, 'chatWithUser'])->name('chats.with');
     Route::post('/chats/start', [\App\Http\Controllers\ChatController::class, 'startConversation'])->name('chats.start');
+    Route::get('/chats/status', [\App\Http\Controllers\ChatController::class, 'getStatus'])->name('chats.status');
+    Route::get('/chats/{id}/messages', [\App\Http\Controllers\ChatController::class, 'getMessages'])->name('chats.messages');
     Route::post('/chats/{id}/message', [\App\Http\Controllers\ChatController::class, 'sendMessage'])->name('chats.send');
     Route::delete('/chats/{id}', [\App\Http\Controllers\ChatController::class, 'destroy'])->name('chats.destroy');
     Route::post('/chats/{id}/toggle-pin', [\App\Http\Controllers\ChatController::class, 'togglePin'])->name('chats.pin');

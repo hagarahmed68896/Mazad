@@ -287,13 +287,18 @@ class BidController extends Controller
     private function notifyOutbid(int $userId, Ad $ad, float $newPrice): void
     {
         try {
-            Notification::create([
+            $notification = new Notification([
                 'user_id' => $userId,
                 'title' => 'تم تجاوز مزايدتك',
                 'content' => 'تم تجاوز مزايدتك على "' . $ad->title . '". السعر الحالي ' . number_format($newPrice) . ' ريال. قم برفع الحد الأعلى لمزايدتك الآن!',
                 'type' => 'bid_outbid',
                 'status' => 'sent',
             ]);
+            $notification->custom_payload = [
+                'click_action' => 'ad_details',
+                'ad_id' => (string) $ad->id,
+            ];
+            $notification->save();
         } catch (\Exception $e) {
             \Log::warning('Failed to create outbid notification: ' . $e->getMessage());
         }
@@ -319,13 +324,18 @@ class BidController extends Controller
                 $notifType = 'notification';
             }
 
-            Notification::create([
+            $notif = new Notification([
                 'user_id' => $userId,
                 'title' => $title,
                 'content' => $content,
                 'type' => $notifType,
                 'status' => 'sent',
             ]);
+            $notif->custom_payload = [
+                'click_action' => $type === 'offer' ? 'offers_details' : 'ad_details',
+                'ad_id' => (string) $ad->id,
+            ];
+            $notif->save();
         } catch (\Exception $e) {
             \Log::warning('Failed to notify ad owner: ' . $e->getMessage());
         }
@@ -772,7 +782,7 @@ class BidController extends Controller
             $bid->ad->update(['status' => 'finished']);
 
             // Create Order
-            \App\Models\Order::create([
+            $order = \App\Models\Order::create([
                 'order_number' => 'ORD-' . strtoupper(\Illuminate\Support\Str::random(10)),
                 'ad_id' => $bid->ad_id,
                 'buyer_id' => $bid->user_id,
@@ -789,13 +799,18 @@ class BidController extends Controller
                 : 'تم قبول عرضك بقيمة ' . number_format($bid->amount) . ' ريال على إعلان "' . $bid->ad->title . '". يرجى الذهاب لصفحة مشترياتك لإتمام الدفع.';
 
             try {
-                Notification::create([
+                $notif = new Notification([
                     'user_id' => $notifyUserId,
                     'title' => $title,
                     'content' => $content,
-                    'type' => 'notification',
+                    'type' => 'winning_bid',
                     'status' => 'sent',
                 ]);
+                $notif->custom_payload = [
+                    'order_id' => (string) $order->id,
+                    'ad_id' => (string) $bid->ad_id,
+                ];
+                $notif->save();
             } catch (\Exception $e) {
                 \Log::warning('Notification failed: ' . $e->getMessage());
             }

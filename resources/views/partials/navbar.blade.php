@@ -91,12 +91,10 @@
                             <span class="nav-badge" id="cartCount" style="display: {{ $cartCount > 0 ? 'flex' : 'none' }}">{{ $cartCount }}</span>
                         </a>
                         @endif
-                        <a href="{{ route('chats.index') }}" class="nav-icon-link">
+                        <a href="{{ route('chats.index') }}" class="nav-icon-link" id="navChatBtn" style="position: relative;">
                             <i class="fa-regular fa-comment-dots"></i>
                             @php $unreadMessages = Auth::user()->unreadMessagesCount(); @endphp
-                            @if($unreadMessages > 0)
-                                <span class="nav-badge">{{ $unreadMessages }}</span>
-                            @endif
+                            <span class="nav-badge" id="navChatBadge" style="display: {{ $unreadMessages > 0 ? 'flex' : 'none' }}">{{ $unreadMessages }}</span>
                         </a>
                         <div class="notification-wrapper" style="position: relative;">
                             <a href="javascript:void(0)" onclick="toggleNotifications()" class="nav-icon-link" id="notificationBtn">

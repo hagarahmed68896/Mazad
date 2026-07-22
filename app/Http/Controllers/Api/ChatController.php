@@ -224,6 +224,26 @@ class ChatController extends Controller
             // Log or ignore broadcasting errors to prevent blocking the message save response
         }
 
+        // Send FCM notification to the receiver if they have FCM token
+        try {
+            if ($otherUser && $otherUser->fcm_token) {
+                $body = $message->type === 'file' ? 'أرسل لك ملفاً 📁' : $message->content;
+                \App\Services\FcmService::sendPush(
+                    $otherUser->fcm_token,
+                    $user->name,
+                    $body,
+                    [
+                        'type' => 'chat_message',
+                        'conversation_id' => (string) $conversation->id,
+                        'sender_id' => (string) $user->id,
+                        'sender_name' => (string) $user->name,
+                    ]
+                );
+            }
+        } catch (\Exception $e) {
+            \Log::warning('FCM Chat Notification failed: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'data' => $message

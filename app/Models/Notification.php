@@ -62,21 +62,25 @@ class Notification extends Model
         
         if ($user->all_notifications || $this->type === 'alert') {
             try {
+                $routingType = isset($extraData['click_action']) ? $extraData['click_action'] : $this->type;
+                
                 $customData = array_merge([
                     'notification_id' => (string) $this->id,
-                    'type' => (string) $this->type,
+                    'type' => (string) $routingType,
                 ], $extraData);
                 
-                if ($this->type === 'bid_outbid') {
+                unset($customData['click_action']);
+                
+                if ($this->type === 'bid_outbid' || $routingType === 'bid_outbid') {
                     $customData['actions'] = json_encode([
                         ['action' => 'bid', 'label' => 'إعطاء عرض', 'color' => 'blue']
                     ], JSON_UNESCAPED_UNICODE);
-                } elseif (str_contains($this->type, 'offer')) {
+                } elseif (str_contains($this->type, 'offer') || str_contains($routingType, 'offer')) {
                     $customData['actions'] = json_encode([
                         ['action' => 'accept', 'label' => 'قبول العرض', 'color' => 'blue'],
                         ['action' => 'reject', 'label' => 'رفض العرض', 'color' => 'grey']
                     ], JSON_UNESCAPED_UNICODE);
-                } elseif ($this->type === 'winning_bid') {
+                } elseif ($this->type === 'winning_bid' || $routingType === 'winning_bid') {
                     $customData['actions'] = json_encode([
                         ['action' => 'pay', 'label' => 'إتمام الدفع', 'color' => 'blue']
                     ], JSON_UNESCAPED_UNICODE);

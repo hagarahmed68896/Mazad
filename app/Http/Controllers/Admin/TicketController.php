@@ -113,13 +113,18 @@ class TicketController extends Controller
                     ? 'تم الرد على استفسارك رقم ' . $ticket->ticket_number . ' بنجاح. يمكنك قراءة الرد في صفحة استفساراتي.'
                     : 'تم مراجعة ومعالجة البلاغ رقم ' . $ticket->ticket_number . ' بنجاح واتخاذ الإجراءات اللازمة.';
 
-                \App\Models\Notification::create([
+                $notif = new \App\Models\Notification([
                     'user_id' => $ticket->user_id,
                     'title' => $title,
                     'content' => $content,
                     'type' => 'alert',
                     'status' => 'sent',
                 ]);
+                $notif->custom_payload = [
+                    'click_action' => 'ticket_details',
+                    'ticket_id' => (string) $ticket->id,
+                ];
+                $notif->save();
             }
 
             return redirect()->back()->with('success', 'تم اتخاذ الإجراء بنجاح وتم حل التذكرة.');
@@ -135,13 +140,18 @@ class TicketController extends Controller
                     ? 'تم الرد على استفسارك رقم ' . $ticket->ticket_number . ' بنجاح. يمكنك قراءة الرد في صفحة استفساراتي.'
                     : 'تم مراجعة ومعالجة البلاغ رقم ' . $ticket->ticket_number . ' بنجاح واتخاذ الإجراءات اللازمة.';
 
-                \App\Models\Notification::create([
+                $notif = new \App\Models\Notification([
                     'user_id' => $ticket->user_id,
                     'title' => $title,
                     'content' => $content,
                     'type' => 'alert',
                     'status' => 'sent',
                 ]);
+                $notif->custom_payload = [
+                    'click_action' => 'ticket_details',
+                    'ticket_id' => (string) $ticket->id,
+                ];
+                $notif->save();
             }
 
             return redirect()->back()->with('success', 'تم تحديث حالة التذكرة بنجاح');
@@ -156,13 +166,18 @@ class TicketController extends Controller
                 ? 'تم الرد على استفسارك رقم ' . $ticket->ticket_number . ' بنجاح. يمكنك قراءة الرد في صفحة استفساراتي.'
                 : 'تم مراجعة ومعالجة البلاغ رقم ' . $ticket->ticket_number . ' بنجاح واتخاذ الإجراءات اللازمة.';
 
-            \App\Models\Notification::create([
+            $notif = new \App\Models\Notification([
                 'user_id' => $ticket->user_id,
                 'title' => $title,
                 'content' => $content,
                 'type' => 'alert',
                 'status' => 'sent',
             ]);
+            $notif->custom_payload = [
+                'click_action' => 'ticket_details',
+                'ticket_id' => (string) $ticket->id,
+            ];
+            $notif->save();
         }
 
         return redirect()->back()->with('success', 'تم التحديث بنجاح');

@@ -31,13 +31,18 @@ class AdQuestionController extends Controller
 
         // Send notification to the ad owner (advertiser)
         try {
-            \App\Models\Notification::create([
+            $notif = new \App\Models\Notification([
                 'user_id' => $ad->user_id,
                 'title' => 'سؤال جديد على إعلانك 💬',
                 'content' => 'لديك سؤال جديد من مستخدم على إعلانك "' . $ad->title . '".',
                 'type' => 'notification',
                 'status' => 'sent',
             ]);
+            $notif->custom_payload = [
+                'click_action' => 'ad_questions',
+                'ad_id' => (string) $ad->id,
+            ];
+            $notif->save();
         } catch (\Exception $e) {
             \Log::warning('Failed to send notification for new question: ' . $e->getMessage());
         }
@@ -66,13 +71,18 @@ class AdQuestionController extends Controller
 
         // Send notification to the user who asked the question
         try {
-            \App\Models\Notification::create([
+            $notif = new \App\Models\Notification([
                 'user_id' => $question->user_id,
                 'title' => 'تم الرد على سؤالك 💬',
                 'content' => 'قام المعلن بالرد على سؤالك بخصوص الإعلان "' . $question->ad->title . '".',
                 'type' => 'notification',
                 'status' => 'sent',
             ]);
+            $notif->custom_payload = [
+                'click_action' => 'ad_details',
+                'ad_id' => (string) $question->ad_id,
+            ];
+            $notif->save();
         } catch (\Exception $e) {
             \Log::warning('Failed to send notification for question reply: ' . $e->getMessage());
         }

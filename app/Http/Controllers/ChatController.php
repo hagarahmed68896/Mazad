@@ -92,6 +92,74 @@ class ChatController extends Controller
         return view('chats.index', compact('categories', 'settings', 'conversations', 'activeConversation', 'filter', 'isBlocked', 'partnerServices'));
     }
 
+    public function getStatus()
+    {
+        $user = auth()->user();
+        if (!$user) return response()->json(['success' => false], 401);
+
+        $conversations = Conversation::where(function($q) use ($user) {
+                $q->where('user_one_id', $user->id)
+                  ->orWhere('user_two_id', $user->id);
+            })
+            ->with(['messages', 'userOne', 'userTwo'])
+            ->get();
+
+        $unreadCount = 0;
+        $conversationsData = $conversations->map(function($conv) use ($user, &$unreadCount) {
+            $convUnread = $conv->messages()->where('is_read', false)->where('sender_id', '!=', $user->id)->count();
+            $unreadCount += $convUnread;
+            
+            $lastMsg = $conv->messages->last();
+            
+            return [
+                'id' => $conv->id,
+                'unread_count' => $convUnread,
+                'last_message' => $lastMsg ? $lastMsg->content : 'لا توجد رسائل',
+                'last_message_time' => $conv->last_message_at ? \Carbon\Carbon::parse($conv->last_message_at)->format('H:i') : null,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'total_unread' => $unreadCount,
+            'conversations' => $conversationsData
+        ]);
+    }
+
+    public function getMessages($id)
+    {
+        $conversation = Conversation::findOrFail($id);
+        $user = auth()->user();
+
+        if ($conversation->user_one_id != $user->id && $conversation->user_two_id != $user->id) {
+            return response()->json(['success' => false, 'message' => 'غير مصرح لك بالدخول'], 403);
+        }
+
+        // Mark messages as read
+        Message::where('conversation_id', $conversation->id)
+            ->where('sender_id', '!=', $user->id)
+            ->update(['is_read' => true]);
+
+        $messages = $conversation->messages()->with('sender')->get()->map(function($msg) {
+            return [
+                'id' => $msg->id,
+                'sender_id' => $msg->sender_id,
+                'sender_name' => $msg->sender->name ?? '',
+                'sender_avatar' => ($msg->sender && $msg->sender->avatar) ? asset($msg->sender->avatar) : 'https://ui-avatars.com/api/?name='.urlencode($msg->sender->name ?? 'User').'&background=1A73E8&color=fff',
+                'content' => $msg->content,
+                'attachment' => $msg->attachment ? asset($msg->attachment) : null,
+                'type' => $msg->type,
+                'is_read' => (int) $msg->is_read,
+                'time' => $msg->created_at ? $msg->created_at->format('H:i') : now()->format('H:i'),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'messages' => $messages
+        ]);
+    }
+
     public function sendMessage(Request $request, $id)
     {
         $conversation = Conversation::findOrFail($id);
@@ -151,6 +219,27 @@ class ChatController extends Controller
 
             // Update conversation timestamp
             $conversation->update(['last_message_at' => now()]);
+
+            // Send FCM notification to the receiver if they have FCM token
+            try {
+                $otherUser = $conversation->otherUser();
+                if ($otherUser && $otherUser->fcm_token) {
+                    $body = $message->type === 'file' ? 'أرسل لك ملفاً 📁' : $message->content;
+                    \App\Services\FcmService::sendPush(
+                        $otherUser->fcm_token,
+                        $user->name,
+                        $body,
+                        [
+                            'type' => 'chat_message',
+                            'conversation_id' => (string) $conversation->id,
+                            'sender_id' => (string) $user->id,
+                            'sender_name' => (string) $user->name,
+                        ]
+                    );
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('FCM Chat Notification failed: ' . $e->getMessage());
+            }
 
             if ($request->ajax()) {
                 return response()->json([

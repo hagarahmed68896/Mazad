@@ -302,7 +302,7 @@
                             <i class="fa-regular fa-calendar text-gray-400 text-xl"></i>
                         </div>
                         <input type="text" id="inspection_date_single" 
-                               onfocus="(this.type='datetime-local'); setTimeout(() => { this.showPicker ? this.showPicker() : null }, 50)" 
+                               onfocus="(this.type='datetime-local'); this.min='{{ date('Y-m-d\TH:i') }}'; setTimeout(() => { this.showPicker ? this.showPicker() : null }, 50)" 
                                onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" 
                                value="{{ $ad->inspection_date ? \Carbon\Carbon::parse($ad->inspection_date)->format('Y-m-d\TH:i') : '' }}"
                                placeholder="أدخل تاريخ ووقت المعاينة" 
@@ -315,7 +315,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="space-y-2">
                             <label class="block text-gray-700 font-black">يوم المعاينة</label>
-                            <input type="date" id="inspection_range_date" class="form-input text-gray-500 font-bold">
+                            <input type="date" id="inspection_range_date" min="{{ date('Y-m-d') }}" class="form-input text-gray-500 font-bold">
                         </div>
                         <div class="space-y-2">
                             <label class="block text-gray-700 font-black">من الساعة</label>
@@ -584,6 +584,7 @@
                 </div>
             </div>
 
+            @if(!$isRealEstate)
             <!-- SHARED FIELDS -->
             <div class="space-y-6 pt-6 border-t border-gray-50">
                 <div class="space-y-2">
@@ -635,6 +636,7 @@
                     </div>
                 </div>
             </div>
+            @endif
         </div>
     </div>
             @php $stepCounter++; @endphp
@@ -736,7 +738,7 @@
                                 <i class="fa-regular fa-calendar text-gray-400 text-xl"></i>
                             </div>
                             <input type="text" 
-                                   onfocus="(this.type='datetime-local');" 
+                                   onfocus="(this.type='datetime-local'); this.min='{{ date('Y-m-d\TH:i') }}';" 
                                    onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" 
                                    name="start_date" 
                                    value="{{ $ad->start_date ? \Carbon\Carbon::parse($ad->start_date)->format('Y-m-d\TH:i') : '' }}"
@@ -752,7 +754,7 @@
                                 <i class="fa-regular fa-calendar text-gray-400 text-xl"></i>
                             </div>
                             <input type="text" 
-                                   onfocus="(this.type='datetime-local');" 
+                                   onfocus="(this.type='datetime-local'); this.min='{{ date('Y-m-d\TH:i') }}';" 
                                    onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" 
                                    name="end_date" 
                                    value="{{ $ad->end_date ? \Carbon\Carbon::parse($ad->end_date)->format('Y-m-d\TH:i') : '' }}"
@@ -1402,6 +1404,25 @@
 
     document.addEventListener("DOMContentLoaded", function() {
         toggleEnfazExtraFields();
+
+        // Keep ad end date min locked to ad start date value
+        const startDateInput = document.querySelector('input[name="start_date"]');
+        if (startDateInput) {
+            startDateInput.addEventListener('change', function() {
+                const endDateInput = document.querySelector('input[name="end_date"]');
+                if (endDateInput) {
+                    endDateInput.min = this.value;
+                    if (endDateInput.value && endDateInput.value < this.value) {
+                        endDateInput.value = this.value;
+                    }
+                }
+            });
+            // trigger on load to set initial min if value exists
+            if (startDateInput.value) {
+                const endDateInput = document.querySelector('input[name="end_date"]');
+                if (endDateInput) endDateInput.min = startDateInput.value;
+            }
+        }
     });
 </script>
 @endsection

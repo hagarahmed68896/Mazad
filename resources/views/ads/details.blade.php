@@ -418,7 +418,7 @@
                         <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none border-l-2 border-gray-100 pl-3">
                             <i class="fa-regular fa-calendar text-gray-400 text-xl"></i>
                         </div>
-                        <input type="text" id="inspection_date_single" onfocus="(this.type='datetime-local'); setTimeout(() => { this.showPicker ? this.showPicker() : null }, 50)" onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" placeholder="أدخل تاريخ ووقت المعاينة" class="form-input text-gray-500 font-bold w-full !pr-16 text-right [&::-webkit-calendar-picker-indicator]:hidden cursor-pointer">
+                        <input type="text" id="inspection_date_single" onfocus="(this.type='datetime-local'); this.min='{{ date('Y-m-d\TH:i') }}'; setTimeout(() => { this.showPicker ? this.showPicker() : null }, 50)" onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" placeholder="أدخل تاريخ ووقت المعاينة" class="form-input text-gray-500 font-bold w-full !pr-16 text-right [&::-webkit-calendar-picker-indicator]:hidden cursor-pointer">
                     </div>
                 </div>
 
@@ -428,11 +428,11 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-2">
                             <label class="block text-gray-700 font-black">📅 من تاريخ</label>
-                            <input type="date" id="inspection_range_start" class="form-input text-gray-500 font-bold">
+                            <input type="date" id="inspection_range_start" min="{{ date('Y-m-d') }}" class="form-input text-gray-500 font-bold">
                         </div>
                         <div class="space-y-2">
                             <label class="block text-gray-700 font-black">📅 إلى تاريخ</label>
-                            <input type="date" id="inspection_range_end" class="form-input text-gray-500 font-bold">
+                            <input type="date" id="inspection_range_end" min="{{ date('Y-m-d') }}" class="form-input text-gray-500 font-bold">
                         </div>
                     </div>
                     <!-- Daily Time Slots Row -->
@@ -696,6 +696,7 @@
                 </div>
             </div>
 
+            @if(!$isRealEstate)
             <!-- SHARED FIELDS -->
             <div class="space-y-6 pt-6 border-t border-gray-50">
                 <div class="space-y-2">
@@ -744,6 +745,7 @@
                     </div>
                 </div>
             </div>
+            @endif
         </div>
     </div>
             @php $stepCounter++; @endphp
@@ -830,7 +832,7 @@
                             <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none border-l-2 border-gray-100 pl-3">
                                 <i class="fa-regular fa-calendar text-gray-400 text-xl"></i>
                             </div>
-                            <input type="text" onfocus="(this.type='datetime-local'); setTimeout(() => { this.showPicker ? this.showPicker() : null }, 50)" onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" name="start_date" placeholder="أدخل تاريخ ووقت البدء" class="form-input text-gray-500 font-bold w-full !pr-16 text-right [&::-webkit-calendar-picker-indicator]:hidden cursor-pointer">
+                            <input type="text" onfocus="(this.type='datetime-local'); this.min='{{ date('Y-m-d\TH:i') }}'; setTimeout(() => { this.showPicker ? this.showPicker() : null }, 50)" onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" name="start_date" placeholder="أدخل تاريخ ووقت البدء" class="form-input text-gray-500 font-bold w-full !pr-16 text-right [&::-webkit-calendar-picker-indicator]:hidden cursor-pointer">
                         </div>
                     </div>
 
@@ -840,7 +842,7 @@
                             <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none border-l-2 border-gray-100 pl-3">
                                 <i class="fa-regular fa-calendar text-gray-400 text-xl"></i>
                             </div>
-                            <input type="text" onfocus="(this.type='datetime-local'); setTimeout(() => { this.showPicker ? this.showPicker() : null }, 50)" onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" name="end_date" placeholder="أدخل تاريخ ووقت الانتهاء" class="form-input text-gray-500 font-bold w-full !pr-16 text-right [&::-webkit-calendar-picker-indicator]:hidden cursor-pointer">
+                            <input type="text" onfocus="(this.type='datetime-local'); this.min='{{ date('Y-m-d\TH:i') }}'; setTimeout(() => { this.showPicker ? this.showPicker() : null }, 50)" onblur="(this.value == '' ? this.type='text' : this.type='datetime-local')" name="end_date" placeholder="أدخل تاريخ ووقت الانتهاء" class="form-input text-gray-500 font-bold w-full !pr-16 text-right [&::-webkit-calendar-picker-indicator]:hidden cursor-pointer">
                         </div>
                     </div>
 
@@ -1731,6 +1733,34 @@
         form.setAttribute('novalidate', 'novalidate');
         form.submit();
     };
+
+    // Keep end date min locked to start date value (Inspection Range)
+    const rangeStartInput = document.getElementById('inspection_range_start');
+    if (rangeStartInput) {
+        rangeStartInput.addEventListener('change', function() {
+            const rangeEndInput = document.getElementById('inspection_range_end');
+            if (rangeEndInput) {
+                rangeEndInput.min = this.value;
+                if (rangeEndInput.value && rangeEndInput.value < this.value) {
+                    rangeEndInput.value = this.value;
+                }
+            }
+        });
+    }
+
+    // Keep ad end date min locked to ad start date value
+    const startDateInput = document.querySelector('input[name="start_date"]');
+    if (startDateInput) {
+        startDateInput.addEventListener('change', function() {
+            const endDateInput = document.querySelector('input[name="end_date"]');
+            if (endDateInput) {
+                endDateInput.min = this.value;
+                if (endDateInput.value && endDateInput.value < this.value) {
+                    endDateInput.value = this.value;
+                }
+            }
+        });
+    }
 
     // Initialize UI on load
     updateUI();

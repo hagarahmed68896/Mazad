@@ -404,27 +404,41 @@ class BidController extends Controller
 
         // Get only the latest bid record per ad/buyer combination
         if ($role === 'buyer') {
-            $latestIds = Bid::where('user_id', $user->id)
-                            ->groupBy('ad_id')
-                            ->pluck(DB::raw('MAX(id)'));
+            $latestIdsQuery = Bid::where('user_id', $user->id)->groupBy('ad_id');
+            if ($request->filled('ad_id')) {
+                $latestIdsQuery->where('ad_id', $request->ad_id);
+            }
+            $latestIds = $latestIdsQuery->pluck(DB::raw('MAX(id)'));
         } elseif ($role === 'seller') {
-            $latestIds = Bid::whereHas('ad', function($q) use ($user) {
+            $latestIdsQuery = Bid::whereHas('ad', function($q) use ($user) {
                 $q->where('user_id', $user->id);
-            })->groupBy('ad_id', 'user_id')->pluck(DB::raw('MAX(id)'));
+            })->groupBy('ad_id', 'user_id');
+            if ($request->filled('ad_id')) {
+                $latestIdsQuery->where('ad_id', $request->ad_id);
+            }
+            $latestIds = $latestIdsQuery->pluck(DB::raw('MAX(id)'));
         } else {
             // 'all' role
-            $buyerIds = Bid::where('user_id', $user->id)
-                           ->groupBy('ad_id')
-                           ->pluck(DB::raw('MAX(id)'));
-                           
-            $sellerIds = Bid::whereHas('ad', function($q) use ($user) {
+            $buyerIdsQuery = Bid::where('user_id', $user->id)->groupBy('ad_id');
+            $sellerIdsQuery = Bid::whereHas('ad', function($q) use ($user) {
                 $q->where('user_id', $user->id);
-            })->groupBy('ad_id', 'user_id')->pluck(DB::raw('MAX(id)'));
+            })->groupBy('ad_id', 'user_id');
+
+            if ($request->filled('ad_id')) {
+                $buyerIdsQuery->where('ad_id', $request->ad_id);
+                $sellerIdsQuery->where('ad_id', $request->ad_id);
+            }
+
+            $buyerIds = $buyerIdsQuery->pluck(DB::raw('MAX(id)'));
+            $sellerIds = $sellerIdsQuery->pluck(DB::raw('MAX(id)'));
               
             $latestIds = $buyerIds->merge($sellerIds)->unique();
         }
 
         $query = Bid::whereIn('id', $latestIds);
+        if ($request->filled('ad_id')) {
+            $query->where('ad_id', $request->ad_id);
+        }
 
         // Filter by Role
         if ($role === 'buyer') {

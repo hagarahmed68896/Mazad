@@ -167,6 +167,8 @@ class AdController extends Controller
             'start_date' => 'nullable|date|before_or_equal:' . $maxStartDate,
             'enfaz_license_number' => 'nullable|string|max:255',
             'enfaz_brochure' => 'nullable|file|mimes:pdf,jpeg,png,jpg|max:20480',
+            'inspection_date'     => 'nullable|date|after_or_equal:today',
+            'inspection_end_date' => 'nullable|date|after_or_equal:inspection_date',
         ];
 
         if ($request->filled('start_date')) {
@@ -192,6 +194,8 @@ class AdController extends Controller
             'attachments.*.file' => 'يجب أن يكون المرفق ملفاً صالحاً.',
             'attachments.*.max' => 'يجب ألا يتجاوز حجم المرفق 20 ميجابايت.',
             'attachment_links.*.url' => 'يجب أن يكون رابط المرفق رابطاً صالحاً.',
+            'inspection_date.after_or_equal' => 'يجب أن يكون تاريخ المعاينة اليوم أو في المستقبل.',
+            'inspection_end_date.after_or_equal' => 'يجب أن يكون تاريخ نهاية المعاينة بعد أو مساوياً لتاريخ البدء.',
         ]);
 
         $user = auth('sanctum')->user();
@@ -499,6 +503,8 @@ class AdController extends Controller
             'attachment_links.*' => 'sometimes|nullable|url',
             'start_date' => 'sometimes|nullable|date|before_or_equal:' . $maxStartDate,
             'end_date' => 'sometimes|required|date|after:now|before_or_equal:' . $maxEndDate,
+            'inspection_date'     => 'sometimes|nullable|date|after_or_equal:today',
+            'inspection_end_date' => 'sometimes|nullable|date|after_or_equal:inspection_date',
         ], [
             'city_id.required' => 'المدينة مطلوبة إجباريًا.',
             'city_id.exists' => 'المدينة المحددة غير صالحة.',
@@ -513,6 +519,8 @@ class AdController extends Controller
             'attachments.*.file' => 'يجب أن يكون المرفق ملفاً صالحاً.',
             'attachments.*.max' => 'يجب ألا يتجاوز حجم المرفق 20 ميجابايت.',
             'attachment_links.*.url' => 'يجب أن يكون رابط المرفق رابطاً صالحاً.',
+            'inspection_date.after_or_equal' => 'يجب أن يكون تاريخ المعاينة اليوم أو في المستقبل.',
+            'inspection_end_date.after_or_equal' => 'يجب أن يكون تاريخ نهاية المعاينة بعد أو مساوياً لتاريخ البدء.',
         ]);
 
         $cityId = $request->district_id ?? $ad->city_id;

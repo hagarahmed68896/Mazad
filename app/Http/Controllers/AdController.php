@@ -149,8 +149,8 @@ class AdController extends Controller
             'title'        => 'required|string|max:255',
             'description'  => 'nullable|string',
             'category_id'  => 'required|exists:categories,id',
-            'city_id'      => 'required|exists:regions,id',
-            'district_id'  => 'required|exists:cities,id',
+            'city_id'      => ($isRealEstate ? 'nullable' : 'required') . '|exists:regions,id',
+            'district_id'  => ($isRealEstate ? 'nullable' : 'required') . '|exists:cities,id',
             'address'      => 'nullable|string',
             'lat'          => ($isRealEstate ? 'required' : 'nullable') . '|numeric|between:-90,90',
             'lng'          => ($isRealEstate ? 'required' : 'nullable') . '|numeric|between:-180,180',
@@ -160,6 +160,8 @@ class AdController extends Controller
             'start_date'   => 'nullable|date|before_or_equal:' . $maxStartDate,
             'enfaz_license_number' => 'nullable|string|max:255',
             'enfaz_brochure' => 'nullable|file|mimes:pdf,jpeg,png,jpg|max:20480',
+            'inspection_date'     => 'nullable|date|after_or_equal:today',
+            'inspection_end_date' => 'nullable|date|after_or_equal:inspection_date',
         ];
 
         if ($request->filled('start_date')) {
@@ -182,10 +184,76 @@ class AdController extends Controller
             'images.*.max' => 'يجب ألا يتجاوز حجم أي صورة 20 ميجابايت.',
             'images.*.image' => 'يجب أن يكون الملف المرفوع صورة صالحة.',
             'images.*.mimes' => 'يجب أن تكون الصور بصيغة jpeg أو png أو jpg فقط.',
+            'inspection_date.after_or_equal' => 'يجب أن يكون تاريخ المعاينة اليوم أو في المستقبل.',
+            'inspection_end_date.after_or_equal' => 'يجب أن يكون تاريخ نهاية المعاينة بعد أو مساوياً لتاريخ البدء.',
         ]);
 
         $user = Auth::user();
+        
         $cityId = $request->district_id;
+        if ($isRealEstate) {
+            if ($request->filled('district_id')) {
+                $cityId = $request->district_id;
+            } else {
+                $cityId = null;
+                if ($request->filled('address')) {
+                    $cities = \App\Models\City::all();
+                    foreach ($cities as $city) {
+                        if (mb_stripos($request->address, $city->name) !== false) {
+                            $cityId = $city->id;
+                            break;
+                        }
+                    }
+                }
+
+                if (!$cityId && $request->filled('address')) {
+                    $regions = \App\Models\Region::all();
+                    foreach ($regions as $region) {
+                        if (mb_stripos($request->address, $region->name) !== false) {
+                            $defaultCity = \App\Models\City::where('region_id', $region->id)->first();
+                            if ($defaultCity) {
+                                $cityId = $defaultCity->id;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!$cityId && $request->filled('lat') && $request->filled('lng')) {
+                    $majorCities = [
+                        'الرياض' => ['lat' => 24.7136, 'lng' => 46.6753],
+                        'جدة' => ['lat' => 21.4858, 'lng' => 39.1925],
+                        'الدمام' => ['lat' => 26.4207, 'lng' => 50.0888],
+                        'مكة' => ['lat' => 21.3891, 'lng' => 39.8579],
+                        'المدينة' => ['lat' => 24.4672, 'lng' => 39.6111],
+                    ];
+
+                    $minDistance = null;
+                    $nearestCityName = null;
+                    $userLat = (float) $request->lat;
+                    $userLng = (float) $request->lng;
+
+                    foreach ($majorCities as $cityName => $coords) {
+                        $dist = sqrt(pow($userLat - $coords['lat'], 2) + pow($userLng - $coords['lng'], 2));
+                        if ($minDistance === null || $dist < $minDistance) {
+                            $minDistance = $dist;
+                            $nearestCityName = $cityName;
+                        }
+                    }
+
+                    if ($nearestCityName) {
+                        $matchedCity = \App\Models\City::where('name', 'like', '%' . $nearestCityName . '%')->first();
+                        if ($matchedCity) {
+                            $cityId = $matchedCity->id;
+                        }
+                    }
+                }
+
+                if (!$cityId) {
+                    $cityId = 1;
+                }
+            }
+        }
 
         // Determine price & deposit based on ad_type
         $adClass = $request->ad_type ?? $request->type ?? 'direct_purchase';
@@ -580,8 +648,8 @@ class AdController extends Controller
         $rules = [
             'title'        => 'required|string|max:255',
             'description'  => 'nullable|string',
-            'city_id'      => 'required|exists:regions,id',
-            'district_id'  => 'required|exists:cities,id',
+            'city_id'      => ($isRealEstate ? 'nullable' : 'required') . '|exists:regions,id',
+            'district_id'  => ($isRealEstate ? 'nullable' : 'required') . '|exists:cities,id',
             'address'      => 'nullable|string',
             'lat'          => ($isRealEstate ? 'required' : 'nullable') . '|numeric|between:-90,90',
             'lng'          => ($isRealEstate ? 'required' : 'nullable') . '|numeric|between:-180,180',
@@ -589,6 +657,8 @@ class AdController extends Controller
             'image_urls'   => 'nullable|array',
             'image_urls.*' => 'nullable|url',
             'start_date'   => 'nullable|date|before_or_equal:' . $maxStartDate,
+            'inspection_date'     => 'nullable|date|after_or_equal:today',
+            'inspection_end_date' => 'nullable|date|after_or_equal:inspection_date',
         ];
 
         if ($request->filled('start_date')) {
@@ -611,9 +681,74 @@ class AdController extends Controller
             'images.*.max' => 'يجب ألا يتجاوز حجم أي صورة 20 ميجابايت.',
             'images.*.image' => 'يجب أن يكون الملف المرفوع صورة صالحة.',
             'images.*.mimes' => 'يجب أن تكون الصور بصيغة jpeg أو png أو jpg فقط.',
+            'inspection_date.after_or_equal' => 'يجب أن يكون تاريخ المعاينة اليوم أو في المستقبل.',
+            'inspection_end_date.after_or_equal' => 'يجب أن يكون تاريخ نهاية المعاينة بعد أو مساوياً لتاريخ البدء.',
         ]);
 
         $cityId = $request->district_id ?? $ad->city_id;
+        if ($isRealEstate) {
+            if ($request->filled('district_id')) {
+                $cityId = $request->district_id;
+            } else {
+                $resolvedCityId = null;
+                if ($request->filled('address')) {
+                    $cities = \App\Models\City::all();
+                    foreach ($cities as $city) {
+                        if (mb_stripos($request->address, $city->name) !== false) {
+                            $resolvedCityId = $city->id;
+                            break;
+                        }
+                    }
+                }
+
+                if (!$resolvedCityId && $request->filled('address')) {
+                    $regions = \App\Models\Region::all();
+                    foreach ($regions as $region) {
+                        if (mb_stripos($request->address, $region->name) !== false) {
+                            $defaultCity = \App\Models\City::where('region_id', $region->id)->first();
+                            if ($defaultCity) {
+                                $resolvedCityId = $defaultCity->id;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!$resolvedCityId && $request->filled('lat') && $request->filled('lng')) {
+                    $majorCities = [
+                        'الرياض' => ['lat' => 24.7136, 'lng' => 46.6753],
+                        'جدة' => ['lat' => 21.4858, 'lng' => 39.1925],
+                        'الدمام' => ['lat' => 26.4207, 'lng' => 50.0888],
+                        'مكة' => ['lat' => 21.3891, 'lng' => 39.8579],
+                        'المدينة' => ['lat' => 24.4672, 'lng' => 39.6111],
+                    ];
+
+                    $minDistance = null;
+                    $nearestCityName = null;
+                    $userLat = (float) $request->lat;
+                    $userLng = (float) $request->lng;
+
+                    foreach ($majorCities as $cityName => $coords) {
+                        $dist = sqrt(pow($userLat - $coords['lat'], 2) + pow($userLng - $coords['lng'], 2));
+                        if ($minDistance === null || $dist < $minDistance) {
+                            $minDistance = $dist;
+                            $nearestCityName = $cityName;
+                        }
+                    }
+
+                    if ($nearestCityName) {
+                        $matchedCity = \App\Models\City::where('name', 'like', '%' . $nearestCityName . '%')->first();
+                        if ($matchedCity) {
+                            $resolvedCityId = $matchedCity->id;
+                        }
+                    }
+                }
+
+                if ($resolvedCityId) {
+                    $cityId = $resolvedCityId;
+                }
+            }
+        }
 
         $adType = $ad->type;
         

@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'الشروط والأحكام | مزاد')
+@section('title', 'الشروط والأحكام | تمت')
 
 @push('styles')
 <style>

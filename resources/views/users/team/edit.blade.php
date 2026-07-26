@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', $type === 'representative' ? 'تعديل بيانات المندوب | مزاد' : 'تعديل بيانات المدير | مزاد')
+@section('title', $type === 'representative' ? 'تعديل بيانات المندوب | تمت' : 'تعديل بيانات المدير | تمت')
 
 @push('styles')
 <style>

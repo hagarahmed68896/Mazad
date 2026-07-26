@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'لوحة تحكم مزاد')</title>
+    <title>@yield('title', 'لوحة تحكم تَمَّت')</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
@@ -90,20 +90,34 @@
         }
 
         .auth-header {
-            margin-bottom: 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+            text-align: right;
+        }
+
+        .auth-header-text {
+            flex: 1;
         }
 
         .auth-header h1 {
             font-size: 2.25rem;
             font-weight: 700;
             color: var(--text-main);
-            margin-bottom: 0.75rem;
+            margin: 0 0 0.5rem 0;
         }
 
         .auth-header p {
             color: var(--text-muted);
             font-size: 1.05rem;
             line-height: 1.6;
+            margin: 0;
+        }
+
+        .auth-logo {
+            flex-shrink: 0;
         }
 
         .input-group {
@@ -285,6 +299,17 @@
             .auth-side { width: 100%; padding: 4rem 2rem; }
             .hero-title { font-size: 2.25rem; }
         }
+
+        @media (max-width: 576px) {
+            .auth-header {
+                flex-direction: column-reverse;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            .auth-logo {
+                margin-bottom: 0.5rem;
+            }
+        }
     </style>
     @stack('styles')
 </head>
@@ -294,7 +319,7 @@
         <!-- Hero Side (Right in RTL) -->
         <div class="hero-side">
             <div class="hero-content">
-                <h1 class="hero-title">لوحة تحكم مزاد</h1>
+                <h1 class="hero-title">لوحة تحكم تَمَّت</h1>
                 <p class="hero-description">نظام متكامل لإدارة الإعلانات، الحسابات والمنتجات بكفاءة وبأعلى معايير الأمان.</p>
                 
                 <div class="dashboard-mockup">
@@ -357,17 +382,11 @@
         <!-- Form Side (Left in RTL) -->
         <div class="auth-side">
             <div style="max-width: 440px; width: 100%; margin: 0 auto;">
-                <div class="logo-box">
-                    <a href="/">
-                        @include('partials.logo')
-                    </a>
-                </div>
-
                 @yield('content')
 
                 <div style="margin-top: 3rem; text-align: center;">
                     <p style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">
-                        جميع الحقوق محفوظة لمنصة مزاد © 2025
+                        جميع الحقوق محفوظة لمنصة تَمَّت © 2025
                     </p>
                 </div>
             </div>

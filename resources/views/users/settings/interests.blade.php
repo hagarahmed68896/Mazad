@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', Auth::user()->account_type === 'partner' ? 'الفئات | مزاد' : 'اهتماماتي | مزاد')
+@section('title', Auth::user()->account_type === 'partner' ? 'الفئات | تمت' : 'اهتماماتي | تمت')
 
 @push('styles')
 <style>

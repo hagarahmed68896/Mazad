@@ -1,6 +1,6 @@
 @extends('layouts.admin-auth')
 
-@section('title', 'تحقق من الرمز - لوحة تحكم مزاد')
+@section('title', 'تحقق من الرمز - لوحة تحكم تَمَّت')
 
 @push('styles')
 <style>
@@ -27,8 +27,15 @@
 
 @section('content')
     <div class="auth-header">
-        <h1>رمز التحقق</h1>
-        <p>تم إرسال رمز التحقق إلى رقم جوالك المسجل. يرجى إدخاله للمتابعة.</p>
+        <div class="auth-header-text">
+            <h1>رمز التحقق</h1>
+            <p>تم إرسال رمز التحقق إلى رقم جوالك المسجل. يرجى إدخاله للمتابعة.</p>
+        </div>
+        <div class="auth-logo">
+            <a href="/">
+                @include('partials.logo', ['height' => 'h-16'])
+            </a>
+        </div>
     </div>
 
     @if(session('error'))

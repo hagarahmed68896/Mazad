@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'ما الذي تريد بيعه؟ | مزاد')
+@section('title', 'ما الذي تريد بيعه؟ | تمت')
 
 @section('content')
 <!-- Override Navbar and Footer for this specific page -->

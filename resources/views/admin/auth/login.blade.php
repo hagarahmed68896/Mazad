@@ -1,11 +1,18 @@
 @extends('layouts.admin-auth')
 
-@section('title', 'تسجيل الدخول - لوحة تحكم مزاد')
+@section('title', 'تسجيل الدخول - لوحة تحكم تَمَّت')
 
 @section('content')
     <div class="auth-header">
-        <h1>تسجيل الدخول</h1>
-        <p>أدخل بياناتك للوصول إلى لوحة تحكم وإدارة النظام بكفاءة.</p>
+        <div class="auth-header-text">
+            <h1>تسجيل الدخول</h1>
+            <p>أدخل بياناتك للوصول إلى لوحة تحكم وإدارة النظام بكفاءة.</p>
+        </div>
+        <div class="auth-logo">
+            <a href="/">
+                @include('partials.logo', ['height' => 'h-16'])
+            </a>
+        </div>
     </div>
 
     @if($errors->any())

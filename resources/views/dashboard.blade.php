@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'لوحة التحكم - مزاد')
+@section('title', 'لوحة التحكم - تَمَّت')
 
 @section('content')
 <div id="dashboardChartsData" data-charts="{{ json_encode($charts) }}"></div>

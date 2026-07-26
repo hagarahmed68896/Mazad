@@ -399,11 +399,11 @@
                                 <p class="line-clamp-3">
                                     @if($isRepresentative && $parentCompany)
                                         {{ $seller->name }} مندوب معتمد لدى شركة {{ $parentCompany->company_name ?? $parentCompany->name }}، 
-                                        عضو نشط في منصة مزاد منذ {{ $seller->created_at->diffForHumans() }}.
+                                        عضو نشط في منصة تمت منذ {{ $seller->created_at->diffForHumans() }}.
                                         قام بإضافة {{ $seller->ads()->count() }} إعلان حتى الآن،
                                         ويتمتع بسمعة طيبة بناءً على تقييمات العملاء السابقة.
                                     @else
-                                        {{ $seller->name }} عضو نشط في منصة مزاد {{ $seller->created_at->diffForHumans() }}. 
+                                        {{ $seller->name }} عضو نشط في منصة تمت {{ $seller->created_at->diffForHumans() }}. 
                                         قام بإضافة {{ $seller->ads()->count() }} إعلان حتى الآن، 
                                         ويتمتع بسمعة طيبة بناءً على تقييمات العملاء السابقة.
                                     @endif
@@ -2100,7 +2100,7 @@
         if (navigator.share) {
             navigator.share({
                 title: '{{ $ad->title }}',
-                text: 'شاهد هذا الإعلان على منصة مزاد',
+                text: 'شاهد هذا الإعلان على منصة تمت',
                 url: window.location.href
             }).then(() => {
                 console.log('Successful share');

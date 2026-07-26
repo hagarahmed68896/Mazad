@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'أقسام المنصة | مزاد')
+@section('title', 'أقسام المنصة | تمت')
 
 @section('content')
 <main class="container py-12 mx-auto min-h-screen">

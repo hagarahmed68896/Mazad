@@ -1,11 +1,18 @@
 @extends('layouts.admin-auth')
 
-@section('title', 'إعادة تعيين كلمة المرور - لوحة تحكم مزاد')
+@section('title', 'إعادة تعيين كلمة المرور - لوحة تحكم تَمَّت')
 
 @section('content')
     <div class="auth-header">
-        <h1>كلمة مرور جديدة</h1>
-        <p>يرجى إدخال كلمة المرور الجديدة الخاصة بك وتأكيدها للمتابعة.</p>
+        <div class="auth-header-text">
+            <h1>كلمة مرور جديدة</h1>
+            <p>يرجى إدخال كلمة المرور الجديدة الخاصة بك وتأكيدها للمتابعة.</p>
+        </div>
+        <div class="auth-logo">
+            <a href="/">
+                @include('partials.logo', ['height' => 'h-16'])
+            </a>
+        </div>
     </div>
 
     @if($errors->any())

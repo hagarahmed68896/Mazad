@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'لوحة تحكم الشريك | مزاد')
+@section('title', 'لوحة تحكم الشريك | تمت')
 
 @push('styles')
 <style>

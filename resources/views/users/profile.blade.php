@@ -853,7 +853,7 @@
         if (navigator.share) {
             navigator.share({
                 title: 'الملف الشخصي لـ {{ $user->name }}',
-                text: 'شاهد إعلانات وعروض {{ $user->name }} على منصة مزاد',
+                text: 'شاهد إعلانات وعروض {{ $user->name }} على منصة تمت',
                 url: window.location.href
             });
         }

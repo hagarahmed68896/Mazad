@@ -151,7 +151,7 @@
                             }
 
                             $commonDetails = array_merge($commonDetails, [
-                                ['label' => 'الحالة:', 'value' => 'نشط', 'icon' => 'shield', 'status' => 'active'],
+                                ['label' => 'الحالة:', 'value' => $item->status === 'active' ? 'نشط' : 'محظور', 'icon' => 'shield', 'status' => $item->status],
                                 ['label' => 'التاريخ:', 'value' => $item->created_at->format('Y-m-d'), 'icon' => 'calendar']
                             ]);
 
@@ -165,7 +165,13 @@
                                 </div>
                                 <span class="text-[11px] font-black text-slate-400">{{ $detail['label'] }}</span>
                             </div>
-                            <span class="text-xs font-black text-slate-700 text-left leading-relaxed flex-1 ml-4 {{ isset($detail['ltr']) ? 'dir-ltr' : '' }}">{{ $detail['value'] }}</span>
+                            @if(isset($detail['status']))
+                                <span class="text-[11px] font-black px-2.5 py-0.5 rounded-lg {{ $detail['status'] === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100' }} ml-4">
+                                    {{ $detail['value'] }}
+                                </span>
+                            @else
+                                <span class="text-xs font-black text-slate-700 text-left leading-relaxed flex-1 ml-4 {{ isset($detail['ltr']) ? 'dir-ltr' : '' }}">{{ $detail['value'] }}</span>
+                            @endif
                         </div>
                         @endforeach
                     </div>

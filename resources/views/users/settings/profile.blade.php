@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'ملفي الشخصي | مزاد')
+@section('title', 'ملفي الشخصي | تمت')
 
 @push('styles')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>

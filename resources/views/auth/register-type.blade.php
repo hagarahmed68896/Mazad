@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>اختر نوع الحساب - منصة مزاد</title>
+    <title>اختر نوع الحساب - منصة تمت</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -80,7 +80,7 @@
 
     <!-- Footer -->
     <footer class="py-8 text-center bg-white border-t border-slate-100">
-        <p class="text-slate-400 text-sm font-medium">© 2025 منصة مزاد. جميع الحقوق محفوظة</p>
+        <p class="text-slate-400 text-sm font-medium">© 2025 منصة تمت. جميع الحقوق محفوظة</p>
     </footer>
 
 </body>

@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'أعضاء الفريق | مزاد')
+@section('title', 'أعضاء الفريق | تمت')
 
 @push('styles')
 <style>

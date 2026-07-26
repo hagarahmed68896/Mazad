@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'المفضلة | مزاد')
+@section('title', 'المفضلة | تمت')
 
 @push('styles')
 <style>

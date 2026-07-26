@@ -5,7 +5,7 @@
             <!-- Column 1: Logo & Info -->
             <div class="footer-col footer-col-logo" style="text-align: right;">
                 <div class="footer-logo">
-                    @include('partials.logo')
+                    @include('partials.logo', ['color' => 'text-white'])
                 </div>
                 <p>منصة موثوقة للمزادات والشراء الفوري، تجمعك بفرص مميزة على السيارات والعقارات وغيرها.<br>شارك، زايد، أو اشترِ بكل سهولة وأمان.</p>
                 <div class="social-links" style="justify-content: flex-start;">

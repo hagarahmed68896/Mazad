@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'تفاصيل الإعلان | مزاد')
+@section('title', 'تفاصيل الإعلان | تمت')
 
 @section('content')
 @php

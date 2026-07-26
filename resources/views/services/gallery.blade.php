@@ -228,7 +228,7 @@
         if (navigator.share) {
             navigator.share({
                 title: '{{ $service->title }}',
-                text: 'شاهد هذه الخدمة على منصة مزاد',
+                text: 'شاهد هذه الخدمة على منصة تمت',
                 url: '{{ route("services.show", $service->id) }}'
             }).then(() => {
                 console.log('Successful share');

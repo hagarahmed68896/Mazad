@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'إتمام الدفع للخدمة | مزاد')
+@section('title', 'إتمام الدفع للخدمة | تمت')
 
 @section('content')
 <div class="checkout-page bg-[#F8FAFC] min-h-screen py-16" dir="rtl" style="text-align: right; font-family: 'Cairo', sans-serif;">

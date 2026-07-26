@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'طلبات الخدمات الواردة | مزاد')
+@section('title', 'طلبات الخدمات الواردة | تمت')
 
 @section('content')
 <div class="partner-orders-page bg-[#F8FAFC] min-h-screen py-12" dir="rtl" style="text-align: right; font-family: 'Cairo', sans-serif;">

@@ -237,7 +237,7 @@
         if (navigator.share) {
             navigator.share({
                 title: '{{ $ad->title }}',
-                text: 'شاهد هذا الإعلان على منصة مزاد',
+                text: 'شاهد هذا الإعلان على منصة تمت',
                 url: '{{ route("ads.show", $ad->id) }}'
             }).then(() => {
                 console.log('Successful share');

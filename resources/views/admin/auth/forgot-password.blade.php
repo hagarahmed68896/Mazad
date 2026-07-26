@@ -1,11 +1,18 @@
 @extends('layouts.admin-auth')
 
-@section('title', 'نسيت كلمة المرور - لوحة تحكم مزاد')
+@section('title', 'نسيت كلمة المرور - لوحة تحكم تَمَّت')
 
 @section('content')
     <div class="auth-header">
-        <h1>نسيت كلمة المرور؟</h1>
-        <p>أدخل رقم جوالك المسجل وسنرسل لك رمز تحقق لإعادة تعيين كلمة المرور.</p>
+        <div class="auth-header-text">
+            <h1>نسيت كلمة المرور؟</h1>
+            <p>أدخل رقم جوالك المسجل وسنرسل لك رمز تحقق لإعادة تعيين كلمة المرور.</p>
+        </div>
+        <div class="auth-logo">
+            <a href="/">
+                @include('partials.logo', ['height' => 'h-16'])
+            </a>
+        </div>
     </div>
 
     @if($errors->any())

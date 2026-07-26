@@ -662,6 +662,11 @@ class AdController extends Controller
                 }
             }
 
+            // Heal null main image from existing gallery if it exists
+            if (!$mainImagePath) {
+                $mainImagePath = $ad->images()->first()?->image;
+            }
+
             // Upload new Enfaz Brochure if provided
             $enfazBrochurePath = $ad->enfaz_brochure;
             if ($request->is_enfaz && $request->hasFile('enfaz_brochure')) {

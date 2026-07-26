@@ -691,6 +691,7 @@
                 } else {
                     // Standard text format for cards
                     timerEl.innerText = `${days}ي ${hours}س ${minutes}د ${seconds}ث`;
+                }
             });
         }
         setInterval(updateCountdowns, 1000);

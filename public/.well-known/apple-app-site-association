@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "GRDDBB7786.com.ahmadalaboudi.tamtapp",
+        "paths": [
+          "/share",
+          "/share/*"
+        ]
+      }
+    ]
+  }
+}

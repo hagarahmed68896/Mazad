@@ -326,6 +326,10 @@ class AdController extends Controller
                 }
             }
 
+            if (count($imagePaths) > 0) {
+                $mainImage = $imagePaths[0];
+            }
+
             // Upload Enfaz Brochure
             $enfazBrochurePath = null;
             if ($request->is_enfaz && $request->hasFile('enfaz_brochure')) {
@@ -825,6 +829,11 @@ class AdController extends Controller
                         'image' => $path,
                     ]);
                 }
+            }
+
+            // Heal null main image from existing gallery if it exists
+            if (!$mainImagePath) {
+                $mainImagePath = $ad->images()->first()?->image;
             }
 
             // Upload new Enfaz Brochure if provided

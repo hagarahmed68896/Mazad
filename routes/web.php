@@ -14,10 +14,81 @@ Route::get('/run-db-updates', function () {
         \App\Models\Region::where('name', 'القاهرة')->delete();
         \App\Models\City::where('name', 'القاهرة')->delete();
         
-        return "Migration, Seeder and القاهرة cleanup executed successfully! 🎉";
+        // Clear all Laravel caches
+        \Illuminate\Support\Facades\Artisan::call('route:clear');
+        \Illuminate\Support\Facades\Artisan::call('config:clear');
+        \Illuminate\Support\Facades\Artisan::call('cache:clear');
+        \Illuminate\Support\Facades\Artisan::call('view:clear');
+        
+        return "Migration, Seeder, cache clear and القاهرة cleanup executed successfully! 🎉";
     } catch (\Exception $e) {
         return "Error: " . $e->getMessage();
     }
+});
+
+Route::get('/debug-cat/{id}', function ($id) {
+    $cat = \App\Models\Category::find($id);
+    if (!$cat) return "Category not found";
+    return [
+        'id' => $cat->id,
+        'name' => $cat->name,
+        'is_real_estate' => $cat->isRealEstate() ? 'YES' : 'NO',
+        'is_real_estate_local_prop' => $cat->is_real_estate ? 'YES' : 'NO',
+        'parent_name' => $cat->parent ? $cat->parent->name : 'NONE'
+    ];
+});
+
+Route::get('/debug-validate', function () {
+    $categoryId = request('category_id', 2);
+    $cat = \App\Models\Category::find($categoryId);
+    $isRealEstate = $cat ? $cat->isRealEstate() : false;
+    
+    $rules = [
+        'city_id'      => ($isRealEstate ? 'nullable' : 'required') . '|exists:regions,id',
+        'district_id'  => ($isRealEstate ? 'nullable' : 'required') . '|exists:cities,id',
+    ];
+    return [
+        'category_id' => $categoryId,
+        'cat_name' => $cat ? $cat->name : null,
+        'is_real_estate' => $isRealEstate,
+        'rules' => $rules
+    ];
+});
+
+Route::get('/debug-controller-code', function () {
+    $path = app_path('Http/Controllers/AdController.php');
+    if (!file_exists($path)) {
+        return "File not found: " . $path;
+    }
+    $content = file_get_contents($path);
+    $hasIsRealEstate = str_contains($content, '$isRealEstate');
+    $lines = explode("\n", $content);
+    $relevantLines = array_slice($lines, 135, 25);
+    return [
+        'has_is_real_estate' => $hasIsRealEstate ? 'YES' : 'NO',
+        'relevant_lines' => $relevantLines
+    ];
+});
+
+Route::get('/debug-latest-ad-image', function () {
+    $ad = \App\Models\Ad::latest('updated_at')->first();
+    if (!$ad) return "No ads found";
+    
+    $imagePath = $ad->image;
+    $publicPathExists = $imagePath ? file_exists(public_path($imagePath)) : false;
+    $basePathExists = $imagePath ? file_exists(base_path('public/' . $imagePath)) : false;
+    $publicHtmlExists = $imagePath ? file_exists('/home/kiwi.ws/public_html/' . $imagePath) : false;
+    
+    return [
+        'ad_id' => $ad->id,
+        'title' => $ad->title,
+        'image_in_db' => $imagePath,
+        'public_path_resolved' => public_path($imagePath),
+        'public_path_exists' => $publicPathExists ? 'YES' : 'NO',
+        'base_path_exists' => $basePathExists ? 'YES' : 'NO',
+        'public_html_exists' => $publicHtmlExists ? 'YES' : 'NO',
+        'gallery_images' => $ad->images->pluck('image')->toArray()
+    ];
 });
 
 Route::get('/', [\App\Http\Controllers\HomeController::class, 'index'])->name('home');

@@ -153,7 +153,27 @@ class Ad extends Model
                 str_contains($name, 'real estate') || 
                 str_contains($name, 'realestate') ||
                 str_contains($name, 'property') ||
-                str_contains($name, 'properties')
+                str_contains($name, 'properties') ||
+                str_contains($name, 'شقة') ||
+                str_contains($name, 'شقق') ||
+                str_contains($name, 'شقه') ||
+                str_contains($name, 'أرض') ||
+                str_contains($name, 'أراضي') ||
+                str_contains($name, 'ارض') ||
+                str_contains($name, 'اراضي') ||
+                str_contains($name, 'فيلا') ||
+                str_contains($name, 'فلل') ||
+                str_contains($name, 'بيت') ||
+                str_contains($name, 'بيوت') ||
+                str_contains($name, 'عمارة') ||
+                str_contains($name, 'عماره') ||
+                str_contains($name, 'عمائر') ||
+                str_contains($name, 'مكتب') ||
+                str_contains($name, 'مكاتب') ||
+                str_contains($name, 'معرض') ||
+                str_contains($name, 'معارض') ||
+                str_contains($name, 'استراحة') ||
+                str_contains($name, 'استراحات')
             ) {
                 return true;
             }

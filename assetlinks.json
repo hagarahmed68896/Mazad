@@ -1,9 +1,11 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.isky.mazad",
+      "package_name": "com.isky.tamtapp",
       "sha256_cert_fingerprints": [
         "0F:C6:7E:93:BA:B7:2A:E2:2E:C7:46:7E:30:D9:06:71:CA:F4:78:B5:91:77:90:37:E7:04:F9:63:19:20:4F:DE"
       ]

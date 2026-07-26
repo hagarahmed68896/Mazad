@@ -45,9 +45,7 @@
                 <i class="fa-regular fa-comment-dots"></i>
                 <span>الدردشات</span>
                 @php $unreadMessages = Auth::user()->unreadMessagesCount(); @endphp
-                @if($unreadMessages > 0)
-                    <span class="badge" style="background: #EF4444; color: white; border-radius: 50%; padding: 0.1rem 0.4rem; font-size: 0.7rem; margin-right: auto;">{{ $unreadMessages }}</span>
-                @endif
+                <span class="badge" id="sidebarChatBadge" style="background: #EF4444; color: white; border-radius: 50%; padding: 0.1rem 0.4rem; font-size: 0.7rem; margin-right: auto; display: {{ $unreadMessages > 0 ? 'inline-block' : 'none' }};">{{ $unreadMessages }}</span>
             </a>
             <a href="{{ route('profile.notifications.index') }}" class="sidebar-link">
                 <i class="fa-regular fa-bell"></i>

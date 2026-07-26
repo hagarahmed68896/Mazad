@@ -220,6 +220,13 @@ class ChatController extends Controller
             // Update conversation timestamp
             $conversation->update(['last_message_at' => now()]);
 
+            // Broadcast the message sent event via Pusher
+            try {
+                broadcast(new \App\Events\MessageSent($message))->toOthers();
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Pusher Broadcast failed: ' . $e->getMessage());
+            }
+
             // Send FCM notification to the receiver if they have FCM token
             try {
                 $otherUser = $conversation->otherUser();

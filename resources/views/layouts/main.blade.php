@@ -716,6 +716,17 @@
                             }
                         }
 
+                        // Update Sidebar Badge (Mobile Drawer)
+                        const sidebarBadge = document.getElementById('sidebarChatBadge');
+                        if (sidebarBadge) {
+                            if (data.total_unread > 0) {
+                                sidebarBadge.textContent = data.total_unread;
+                                sidebarBadge.style.display = 'inline-block';
+                            } else {
+                                sidebarBadge.style.display = 'none';
+                            }
+                        }
+
                         // 2. Update Sidebar Chat items if currently on the chats index page
                         if (window.location.pathname.startsWith('/chats') && data.conversations) {
                             data.conversations.forEach(conv => {

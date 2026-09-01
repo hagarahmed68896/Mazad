@@ -182,4 +182,24 @@ class ReviewController extends Controller
 
         return response()->stream($callback, 200, $headers);
     }
+
+    public function destroy($id)
+    {
+        $review = Review::findOrFail($id);
+        $review->delete();
+
+        return redirect()->route('admin.reviews.index')->with('success', 'تم حذف التقييم بنجاح');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'selected' => 'required|array',
+            'selected.*' => 'exists:reviews,id',
+        ]);
+
+        Review::whereIn('id', $request->selected)->delete();
+
+        return redirect()->route('admin.reviews.index')->with('success', 'تم حذف التقييمات المحددة بنجاح');
+    }
 }

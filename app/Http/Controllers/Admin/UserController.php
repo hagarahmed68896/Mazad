@@ -288,10 +288,11 @@ class UserController extends Controller
     public function create() { return back(); }
     public function show(Request $request, $id)
     {
+        \Carbon\Carbon::setLocale('ar');
         $item = User::findOrFail($id);
         
         // Chart Type
-        $chartType = $request->get('chart_type', 'monthly');
+        $chartType = $request->get('chart_type', 'weekly');
 
         // Chart Data Logic
         $performanceData = [];
@@ -299,7 +300,7 @@ class UserController extends Controller
             for ($i = 6; $i >= 0; $i--) {
                 $date = now()->subDays($i);
                 $performanceData[] = [
-                    'label' => $date->translatedFormat('D'),
+                    'label' => $date->translatedFormat('l'),
                     'count' => $item->purchases()->whereDate('created_at', $date->toDateString())->count() 
                              + $item->sales()->whereDate('created_at', $date->toDateString())->count()
                 ];
@@ -308,24 +309,24 @@ class UserController extends Controller
             for ($i = 11; $i >= 0; $i--) {
                 $month = now()->subMonths($i);
                 $performanceData[] = [
-                    'label' => $month->translatedFormat('M'),
+                    'label' => $month->translatedFormat('M Y'),
                     'count' => $item->purchases()->whereMonth('created_at', $month->month)->whereYear('created_at', $month->year)->count() 
                              + $item->sales()->whereMonth('created_at', $month->month)->whereYear('created_at', $month->year)->count()
                 ];
             }
-        } else { // monthly (last 30 days or current month weeks)
-            for ($i = 4; $i >= 0; $i--) {
+        } else { // monthly
+            for ($i = 3; $i >= 0; $i--) {
                 $week = now()->subWeeks($i);
                 $performanceData[] = [
-                    'label' => __('أسبوع') . ' ' . $week->weekOfMonth,
+                    'label' => 'أسبوع ' . (4 - $i),
                     'count' => $item->purchases()->whereBetween('created_at', [$week->startOfWeek(), $week->endOfWeek()])->count() 
                              + $item->sales()->whereBetween('created_at', [$week->startOfWeek(), $week->endOfWeek()])->count()
                 ];
             }
         }
 
-        if ($request->ajax()) {
-            return response()->json(['performanceData' => $performanceData]);
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['performanceData' => $performanceData, 'chartType' => $chartType]);
         }
 
         // Helper for Growth Calculations (This Week vs Last Week)
@@ -414,10 +415,46 @@ class UserController extends Controller
     }
 
     public function edit($id) { return back(); }
-    public function destroy($id) { return back(); }
-    public function bulkDestroy(Request $request) { 
-        User::whereIn('id', $request->selected ?? [])->delete();
-        return response()->json(['success' => true]); 
+    
+    public function destroy($id)
+    {
+        $user = User::findOrFail($id);
+        $accountType = $user->account_type;
+        $user->delete();
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        if (!str_contains(url()->previous(), "/accounts/individuals/{$id}") && 
+            !str_contains(url()->previous(), "/accounts/companies/{$id}") && 
+            !str_contains(url()->previous(), "/accounts/partners/{$id}") && 
+            !str_contains(url()->previous(), "/accounts/associates/{$id}")) {
+            return back()->with('success', 'تم حذف الحساب بنجاح.');
+        }
+
+        $redirectRoute = match($accountType) {
+            'company' => 'admin.accounts.companies',
+            'representative' => 'admin.accounts.partners',
+            'partner' => 'admin.accounts.associates',
+            default => 'admin.accounts.individuals',
+        };
+
+        return redirect()->route($redirectRoute)->with('success', 'تم حذف الحساب بنجاح.');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $ids = $request->selected ?? [];
+        if (!empty($ids)) {
+            User::whereIn('id', $ids)->delete();
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'تم حذف الحسابات المحددة بنجاح.');
     }
 
     public function bulkToggleBlock(Request $request)

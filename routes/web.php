@@ -286,7 +286,9 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
         Route::group(['prefix' => 'accounts', 'as' => 'accounts.'], function () {
             // Blocked Accounts
             Route::get('blocked', [\App\Http\Controllers\Admin\UserController::class, 'blockedAccounts'])->name('blocked-accounts');
+            Route::post('blocked/bulk-destroy', [\App\Http\Controllers\Admin\UserController::class, 'bulkDestroy'])->name('blocked.bulk-destroy');
             Route::post('blocked/bulk-toggle-block', [\App\Http\Controllers\Admin\UserController::class, 'bulkToggleBlock'])->name('blocked.bulk-toggle-block');
+            Route::delete('blocked/{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('blocked.destroy');
 
             // Individuals
             Route::get('individuals', [\App\Http\Controllers\Admin\UserController::class, 'individuals'])->name('individuals');
@@ -306,20 +308,25 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
             Route::get('companies/download', [\App\Http\Controllers\Admin\UserController::class, 'companiesDownload'])->name('companies.download');
             Route::get('companies/{id}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('companies.show');
             Route::post('companies/{id}/toggle-block', [\App\Http\Controllers\Admin\UserController::class, 'toggleBlock'])->name('companies.toggle-block');
+            Route::delete('companies/{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('companies.destroy');
 
             // Partners (المندوبين)
             Route::get('partners', [\App\Http\Controllers\Admin\UserController::class, 'partners'])->name('partners');
+            Route::post('partners/bulk-destroy', [\App\Http\Controllers\Admin\UserController::class, 'bulkDestroy'])->name('partners.bulk-destroy');
             Route::post('partners/bulk-toggle-block', [\App\Http\Controllers\Admin\UserController::class, 'bulkToggleBlock'])->name('partners.bulk-toggle-block');
             Route::get('partners/download', [\App\Http\Controllers\Admin\UserController::class, 'partnersDownload'])->name('partners.download');
             Route::get('partners/{id}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('partners.show');
             Route::post('partners/{id}/toggle-block', [\App\Http\Controllers\Admin\UserController::class, 'toggleBlock'])->name('partners.toggle-block');
+            Route::delete('partners/{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('partners.destroy');
 
             // Associates (الشركاء)
             Route::get('associates', [\App\Http\Controllers\Admin\UserController::class, 'associates'])->name('associates');
+            Route::post('associates/bulk-destroy', [\App\Http\Controllers\Admin\UserController::class, 'bulkDestroy'])->name('associates.bulk-destroy');
             Route::post('associates/bulk-toggle-block', [\App\Http\Controllers\Admin\UserController::class, 'bulkToggleBlock'])->name('associates.bulk-toggle-block');
             Route::get('associates/download', [\App\Http\Controllers\Admin\UserController::class, 'associatesDownload'])->name('associates.download');
             Route::get('associates/{id}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('associates.show');
             Route::post('associates/{id}/toggle-block', [\App\Http\Controllers\Admin\UserController::class, 'toggleBlock'])->name('associates.toggle-block');
+            Route::delete('associates/{id}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('associates.destroy');
             
             // Shared Order Actions
             Route::post('orders/{order}/send-code', [\App\Http\Controllers\Admin\UserController::class, 'sendOrderCode'])->name('orders.send-code');
@@ -327,6 +334,11 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
 
         // Ads Management
         Route::group(['prefix' => 'ads', 'as' => 'ads.'], function () {
+            Route::delete('services/{id}', [\App\Http\Controllers\Admin\AdController::class, 'destroyService'])->name('services.destroy');
+            Route::post('services/bulk-destroy', [\App\Http\Controllers\Admin\AdController::class, 'bulkDestroyServices'])->name('services.bulk-destroy');
+            Route::delete('{id}', [\App\Http\Controllers\Admin\AdController::class, 'destroy'])->name('destroy');
+            Route::post('bulk-destroy', [\App\Http\Controllers\Admin\AdController::class, 'bulkDestroy'])->name('bulk-destroy');
+
             Route::get('incomplete', [\App\Http\Controllers\Admin\AdController::class, 'incomplete'])->name('incomplete');
             Route::get('incomplete/download', [\App\Http\Controllers\Admin\AdController::class, 'incompleteDownload'])->name('incomplete.download');
             Route::get('auctions', [\App\Http\Controllers\Admin\AdController::class, 'auctions'])->name('auctions');
@@ -438,6 +450,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
         // Reviews Management
         Route::get('reviews', [\App\Http\Controllers\Admin\ReviewController::class, 'index'])->name('reviews.index');
         Route::get('reviews-download', [\App\Http\Controllers\Admin\ReviewController::class, 'download'])->name('reviews.download');
+        Route::delete('reviews/{review}', [\App\Http\Controllers\Admin\ReviewController::class, 'destroy'])->name('reviews.destroy');
+        Route::post('reviews/bulk-destroy', [\App\Http\Controllers\Admin\ReviewController::class, 'bulkDestroy'])->name('reviews.bulk-destroy');
         // Notifications Management
         Route::post('notifications/mark-all-read', [\App\Http\Controllers\Admin\NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
         Route::post('notifications/{notification}/mark-read', [\App\Http\Controllers\Admin\NotificationController::class, 'markRead'])->name('notifications.mark-read');

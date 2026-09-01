@@ -11,21 +11,35 @@
     chartType: '{{ $chartType }}',
     performanceData: @js($performanceData),
     chart: null,
+    periodLabels: {
+        weekly: 'أسبوعي',
+        monthly: 'شهري',
+        yearly: 'سنوي'
+    },
     updateChart(type) {
         this.chartType = type;
-        const chartRoute = `{{ $item->account_type === 'company' ? route('admin.accounts.companies.show', $item->id) : route('admin.accounts.individuals.show', $item->id) }}`;
-        fetch(`${chartRoute}?chart_type=${type}`, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        fetch(`{{ url()->current() }}?chart_type=${type}`, {
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
         })
         .then(res => res.json())
         .then(data => {
-            this.performanceData = data.performanceData;
-            this.renderChart();
-        });
+            if (data && data.performanceData) {
+                this.performanceData = data.performanceData;
+                this.renderChart();
+            }
+        })
+        .catch(err => console.error('Failed to update performance chart:', err));
     },
     renderChart() {
-        const ctx = document.getElementById('performanceChart').getContext('2d');
-        if (this.chart) this.chart.destroy();
+        const el = document.getElementById('performanceChart');
+        if (!el) return;
+        const ctx = el.getContext('2d');
+        if (this.chart) {
+            this.chart.destroy();
+        }
         
         this.chart = new Chart(ctx, {
             type: 'line',
@@ -166,9 +180,12 @@
                                 <span class="text-[11px] font-black text-slate-400">{{ $detail['label'] }}</span>
                             </div>
                             @if(isset($detail['status']))
-                                <span class="text-[11px] font-black px-2.5 py-0.5 rounded-lg {{ $detail['status'] === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100' }} ml-4">
-                                    {{ $detail['value'] }}
-                                </span>
+                                <div class="flex-1 flex justify-start mr-4">
+                                    <span class="text-xs font-black px-4 py-1.5 rounded-xl inline-flex items-center gap-1.5 {{ $detail['status'] === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-600 border border-rose-200 shadow-sm' }}">
+                                        <span class="w-2 h-2 rounded-full {{ $detail['status'] === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500' }}"></span>
+                                        {{ $detail['value'] }}
+                                    </span>
+                                </div>
                             @else
                                 <span class="text-xs font-black text-slate-700 text-left leading-relaxed flex-1 ml-4 {{ isset($detail['ltr']) ? 'dir-ltr' : '' }}">{{ $detail['value'] }}</span>
                             @endif
@@ -176,13 +193,105 @@
                         @endforeach
                     </div>
 
-                    <div class="w-full mt-4 space-y-2">
-                        <form action="{{ $item->account_type === 'company' ? route('admin.accounts.companies.toggle-block', $item->id) : route('admin.accounts.individuals.toggle-block', $item->id) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="w-full py-4 border-2 {{ $item->status == 'active' ? 'border-rose-500 text-rose-500' : 'border-emerald-500 text-emerald-500' }} rounded-2xl font-black text-xs hover:scale-[1.02] transition-all">
-                                {{ $item->status == 'active' ? 'حظر المستخدم' : 'إلغاء الحظر' }}
-                            </button>
-                        </form>
+                    <div class="w-full mt-6 space-y-3" x-data="{ showBlockModal: false, showDeleteModal: false }">
+                        @php
+                            $toggleBlockRoute = $item->account_type === 'company' ? route('admin.accounts.companies.toggle-block', $item->id) : ($item->account_type === 'partner' ? route('admin.accounts.associates.toggle-block', $item->id) : ($item->account_type === 'representative' ? route('admin.accounts.partners.toggle-block', $item->id) : route('admin.accounts.individuals.toggle-block', $item->id)));
+                            
+                            $deleteRoute = match($item->account_type) {
+                                'company' => route('admin.accounts.companies.destroy', $item->id),
+                                'representative' => route('admin.accounts.partners.destroy', $item->id),
+                                'partner' => route('admin.accounts.associates.destroy', $item->id),
+                                default => route('admin.accounts.individuals.destroy', $item->id),
+                            };
+                        @endphp
+
+                        <!-- Toggle Block Trigger Button -->
+                        <button type="button" @click="showBlockModal = true" class="w-full py-3.5 border-2 {{ $item->status == 'active' ? 'border-amber-500 text-amber-600 hover:bg-amber-50' : 'border-emerald-500 text-emerald-600 hover:bg-emerald-50' }} rounded-2xl font-black text-xs hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                            <span>{{ $item->status == 'active' ? 'حظر المستخدم' : 'إلغاء الحظر' }}</span>
+                        </button>
+
+                        <!-- Delete User Trigger Button -->
+                        <button type="button" @click="showDeleteModal = true" class="w-full py-3.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-2xl font-black text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            <span>حذف المستخدم</span>
+                        </button>
+
+                        <!-- Teleported Modals to Body -->
+                        <template x-teleport="body">
+                            <div>
+                                <!-- BLOCK / UNBLOCK CONFIRMATION MODAL -->
+                                <div x-show="showBlockModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                                    <div x-show="showBlockModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showBlockModal = false"></div>
+                                    
+                                    <div x-show="showBlockModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" class="relative bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl border border-slate-100">
+                                        <div class="flex flex-col items-center text-center gap-6">
+                                            <div class="w-20 h-20 {{ $item->status == 'active' ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500' }} rounded-3xl flex items-center justify-center shadow-inner">
+                                                @if($item->status == 'active')
+                                                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                                @else
+                                                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                @endif
+                                            </div>
+                                            
+                                            <div class="space-y-2">
+                                                <h3 class="text-2xl font-black text-slate-800">{{ $item->status == 'active' ? 'تأكيد الحظر' : 'تأكيد إلغاء الحظر' }}</h3>
+                                                <p class="text-slate-500 font-bold leading-relaxed">
+                                                    @if($item->status == 'active')
+                                                        هل أنت متأكد من رغبتك في حظر المستخدم <span class="text-rose-500">{{ $item->name }}</span>؟ لن يتمكن من الوصول إلى حسابه بعد الآن.
+                                                    @else
+                                                        هل أنت متأكد من رغبتك في إلغاء حظر المستخدم <span class="text-emerald-500">{{ $item->name }}</span> واستعادة حسابه؟
+                                                    @endif
+                                                </p>
+                                            </div>
+
+                                            <div class="flex items-center gap-4 w-full pt-4">
+                                                <button type="button" @click="showBlockModal = false" class="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all active:scale-95 text-sm" style="background-color: #F1F5F9; color: #475569;">إلغاء</button>
+                                                <form action="{{ $toggleBlockRoute }}" method="POST" class="flex-1">
+                                                    @csrf
+                                                    @if($item->status == 'active')
+                                                        <button type="submit" class="w-full px-6 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black shadow-xl shadow-rose-500/20 hover:scale-[1.02] active:scale-95 transition-all text-sm" style="background-color: #EF4444; color: #ffffff;">
+                                                            نعم، حظر
+                                                        </button>
+                                                    @else
+                                                        <button type="submit" class="w-full px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black shadow-xl shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all text-sm" style="background-color: #10B981; color: #ffffff;">
+                                                            نعم، إلغاء الحظر
+                                                        </button>
+                                                    @endif
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- DELETE USER CONFIRMATION MODAL -->
+                                <div x-show="showDeleteModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                                    <div x-show="showDeleteModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showDeleteModal = false"></div>
+                                    
+                                    <div x-show="showDeleteModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" class="relative bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl border border-slate-100">
+                                        <div class="flex flex-col items-center text-center gap-6">
+                                            <div class="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 shadow-inner" style="background-color: #FFF1F2; color: #F43F5E;">
+                                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                            </div>
+                                            
+                                            <div class="space-y-2">
+                                                <h3 class="text-2xl font-black text-slate-800">تأكيد الحذف</h3>
+                                                <p class="text-slate-500 font-bold leading-relaxed">هل أنت متأكد من رغبتك في حذف حساب <span class="text-rose-500">{{ $item->name }}</span>؟ لا يمكن التراجع عن هذا الإجراء.</p>
+                                            </div>
+
+                                            <div class="flex items-center gap-4 w-full pt-4">
+                                                <button type="button" @click="showDeleteModal = false" class="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all active:scale-95 text-sm" style="background-color: #F1F5F9; color: #475569;">إلغاء</button>
+                                                <form action="{{ $deleteRoute }}" method="POST" class="flex-1">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="w-full px-6 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black shadow-xl shadow-rose-500/20 hover:scale-[1.02] active:scale-95 transition-all text-sm" style="background-color: #EF4444; color: #ffffff;">نعم، حذف</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -240,15 +349,15 @@
                             </div>
                             <span class="text-2xl font-black text-[#1C1C1C]">{{ $stats['performance_score'] }}%</span>
                         </div>
-                        <div x-data="{ open: false }" class="relative">
-                            <button @click="open = !open" class="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-[#6F6F6F]">
-                                <span>أسبوعي</span>
+                        <div x-data="{ open: false }" class="relative z-10">
+                            <button @click="open = !open" type="button" class="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-[#6F6F6F] hover:bg-slate-100 transition-all">
+                                <span x-text="periodLabels[chartType] || 'أسبوعي'"></span>
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                             </button>
-                            <div x-show="open" @click.away="open = false" class="absolute left-0 mt-2 w-32 bg-white rounded-xl shadow-xl border border-slate-100 z-50 p-2 text-right">
-                                <button @click="updateChart('weekly'); open = false" class="w-full text-right px-4 py-2 text-xs font-bold hover:bg-slate-50 rounded-lg">أسبوعي</button>
-                                <button @click="updateChart('monthly'); open = false" class="w-full text-right px-4 py-2 text-xs font-bold hover:bg-slate-50 rounded-lg">شهري</button>
-                                <button @click="updateChart('yearly'); open = false" class="w-full text-right px-4 py-2 text-xs font-bold hover:bg-slate-50 rounded-lg">سنوي</button>
+                            <div x-show="open" @click.away="open = false" x-transition.opacity class="absolute left-0 mt-2 w-32 bg-white rounded-xl shadow-xl border border-slate-100 z-50 p-1.5 space-y-1 text-right" x-cloak>
+                                <button type="button" @click="updateChart('weekly'); open = false" :class="chartType === 'weekly' ? 'bg-[#E8F0FE] text-[#1A73E8]' : 'text-slate-700 hover:bg-slate-50'" class="w-full text-right px-3 py-2 text-xs font-bold rounded-lg transition-colors">أسبوعي</button>
+                                <button type="button" @click="updateChart('monthly'); open = false" :class="chartType === 'monthly' ? 'bg-[#E8F0FE] text-[#1A73E8]' : 'text-slate-700 hover:bg-slate-50'" class="w-full text-right px-3 py-2 text-xs font-bold rounded-lg transition-colors">شهري</button>
+                                <button type="button" @click="updateChart('yearly'); open = false" :class="chartType === 'yearly' ? 'bg-[#E8F0FE] text-[#1A73E8]' : 'text-slate-700 hover:bg-slate-50'" class="w-full text-right px-3 py-2 text-xs font-bold rounded-lg transition-colors">سنوي</button>
                             </div>
                         </div>
                     </div>

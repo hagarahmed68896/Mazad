@@ -9,6 +9,10 @@
         showBlockModal: false,
         userToBlock: null,
         userNameToBlock: '',
+        showDeleteModal: false,
+        userToDelete: null,
+        userNameToDelete: '',
+        showBulkDeleteModal: false,
         get isAllSelected() { return this.selected.length > 0 && this.selected.length === this.allIds.length },
         toggleAll() {
             if (this.isAllSelected) {
@@ -33,26 +37,85 @@
 
     <!-- Modal Backdrop & Container -->
     <template x-teleport="body">
-        <div x-show="showBlockModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div x-show="showBlockModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showBlockModal = false"></div>
-            
-            <div x-show="showBlockModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" class="relative bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl border border-slate-100">
-                <div class="flex flex-col items-center text-center gap-6">
-                    <div class="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 shadow-inner">
-                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                    </div>
-                    
-                    <div class="space-y-2">
-                        <h3 class="text-2xl font-black text-slate-800">تأكيد الحظر</h3>
-                        <p class="text-slate-500 font-bold leading-relaxed">هل أنت متأكد من رغبتك في حظر الشركة <span class="text-rose-500" x-text="userNameToBlock"></span>؟ لن يتمكنوا من الوصول إلى حسابهم بعد الآن.</p>
-                    </div>
+        <div>
+            <!-- Block Modal -->
+            <div x-show="showBlockModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div x-show="showBlockModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showBlockModal = false"></div>
+                
+                <div x-show="showBlockModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" class="relative bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl border border-slate-100">
+                    <div class="flex flex-col items-center text-center gap-6">
+                        <div class="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 shadow-inner" style="background-color: #FFF1F2; color: #F43F5E;">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <h3 class="text-2xl font-black text-slate-800">تأكيد الحظر</h3>
+                            <p class="text-slate-500 font-bold leading-relaxed">هل أنت متأكد من رغبتك في حظر الشركة <span class="text-rose-500 font-black" x-text="userNameToBlock"></span>؟ لن يتمكنوا من الوصول إلى حسابهم بعد الآن.</p>
+                        </div>
 
-                    <div class="flex items-center gap-4 w-full pt-4">
-                        <button @click="showBlockModal = false" class="flex-1 px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black hover:bg-slate-200 transition-all active:scale-95">إلغاء</button>
-                        <form :action="`{{ url('admin/accounts/companies') }}/${userToBlock}/toggle-block`" method="POST" class="flex-1">
-                            @csrf
-                            <button type="submit" class="w-full px-6 py-4 bg-rose-500 text-white rounded-2xl font-black shadow-xl shadow-rose-500/20 hover:scale-[1.02] active:scale-95 transition-all">نعم، حظر</button>
-                        </form>
+                        <div class="flex items-center gap-4 w-full pt-4">
+                            <button @click="showBlockModal = false" class="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all active:scale-95 text-sm" style="background-color: #F1F5F9; color: #475569;">إلغاء</button>
+                            <form :action="`{{ url('admin/accounts/companies') }}/${userToBlock}/toggle-block`" method="POST" class="flex-1">
+                                @csrf
+                                <button type="submit" class="w-full px-6 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black shadow-xl shadow-rose-500/20 hover:scale-[1.02] active:scale-95 transition-all text-sm" style="background-color: #EF4444; color: #ffffff;">نعم، حظر</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Single Delete Modal -->
+            <div x-show="showDeleteModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div x-show="showDeleteModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showDeleteModal = false"></div>
+                
+                <div x-show="showDeleteModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" class="relative bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl border border-slate-100 text-center">
+                    <div class="flex flex-col items-center text-center gap-6">
+                        <div class="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 shadow-inner" style="background-color: #FFF1F2; color: #F43F5E;">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <h3 class="text-2xl font-black text-slate-800">تأكيد حذف الحساب</h3>
+                            <p class="text-slate-500 font-bold leading-relaxed">هل أنت متأكد من رغبتك في حذف حساب الشركة <span class="text-rose-500 font-black" x-text="`(${userNameToDelete})`"></span>؟ لا يمكن التراجع عن هذا الإجراء.</p>
+                        </div>
+
+                        <div class="flex items-center gap-4 w-full pt-4">
+                            <button type="button" @click="showDeleteModal = false" class="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all active:scale-95 text-sm" style="background-color: #F1F5F9; color: #475569;">إلغاء</button>
+                            <form :action="`{{ url('admin/accounts/companies') }}/${userToDelete}`" method="POST" class="flex-1">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="w-full px-6 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black shadow-xl shadow-rose-500/20 hover:scale-[1.02] active:scale-95 transition-all text-sm" style="background-color: #EF4444; color: #ffffff;">نعم، حذف</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Delete Modal -->
+            <div x-show="showBulkDeleteModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div x-show="showBulkDeleteModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showBulkDeleteModal = false"></div>
+                
+                <div x-show="showBulkDeleteModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" class="relative bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl border border-slate-100 text-center">
+                    <div class="flex flex-col items-center text-center gap-6">
+                        <div class="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 shadow-inner" style="background-color: #FFF1F2; color: #F43F5E;">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <h3 class="text-2xl font-black text-slate-800">حذف الحسابات المحددة</h3>
+                            <p class="text-slate-500 font-bold leading-relaxed">هل أنت متأكد من رغبتك في حذف <span class="text-rose-500 font-black" x-text="`${selected.length} شركة`"></span>؟ سيتم حذفها نهائياً من النظام.</p>
+                        </div>
+
+                        <div class="flex items-center gap-4 w-full pt-4">
+                            <button type="button" @click="showBulkDeleteModal = false" class="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all active:scale-95 text-sm" style="background-color: #F1F5F9; color: #475569;">إلغاء</button>
+                            <form action="{{ route('admin.accounts.companies.bulk-destroy') }}" method="POST" class="flex-1">
+                                @csrf
+                                <template x-for="id in selected" :key="id">
+                                    <input type="hidden" name="selected[]" :value="id">
+                                </template>
+                                <button type="submit" class="w-full px-6 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black shadow-xl shadow-rose-500/20 hover:scale-[1.02] active:scale-95 transition-all text-sm" style="background-color: #EF4444; color: #ffffff;">نعم، حذف الكل</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -187,6 +250,10 @@
                 </div>
                 
                 <div class="flex items-center gap-2">
+                    <button type="button" @click="showBulkDeleteModal = true" class="p-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors flex items-center gap-1.5 font-bold text-xs" style="color: #EF4444;" title="حذف جماعي">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        <span>حذف المحدد</span>
+                    </button>
                     <button @click="submitBulkAction('banned')" class="p-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors" title="حظر جماعي">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
                     </button>
@@ -216,7 +283,7 @@
                             <input type="checkbox" @click="toggleAll" :checked="isAllSelected" class="rounded border-slate-300 text-[#1A73E8] focus:ring-[#1A73E8] cursor-pointer">
                         </th>
                         <th class="px-4 py-4 w-12 cursor-pointer hover:text-[#1A73E8]"># <span class="text-[#1A73E8] ml-1">↑</span></th>
-                        <th class="px-4 py-4">الاسم</th>
+                        <th class="px-4 py-4">اسم المستخدم</th>
                         <th class="px-4 py-4">اسم الشركة</th>
                         <th class="px-4 py-4">السجل التجاري</th>
                         <th class="px-4 py-4">رقم الجوال</th>
@@ -268,6 +335,9 @@
                                     </button>
                                 </form>
                                 @endif
+                                <button type="button" @click.stop="userToDelete = {{ $user->id }}; userNameToDelete = '{{ addslashes($user->company_name ?? $user->name) }}'; showDeleteModal = true" class="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-rose-500 hover:text-white transition-colors" title="حذف الشركة">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
                             </div>
                         </td>
                     </tr>

@@ -976,16 +976,34 @@ class AdController extends Controller
 
     public function destroy(Ad $ad)
     {
-        if ($ad->user_id !== Auth::id()) {
-            abort(403);
+        $user = Auth::user();
+        $isAdmin = Auth::guard('admin')->check() || ($user && $user->account_type === 'admin');
+
+        if (!$isAdmin && (!$user || $ad->user_id !== $user->id)) {
+            abort(403, 'غير مصرح لك بحذف هذا الإعلان.');
         }
 
-        if (!in_array($ad->status, ['incomplete', 'pending', 'upcoming'])) {
+        if (!$isAdmin && !in_array($ad->status, ['incomplete', 'pending', 'upcoming'])) {
             return redirect()->back()->with('error', 'لا يمكن حذف الإعلان في حالته الحالية. الحذف متاح فقط للإعلانات غير المكتملة والمستقبلية.');
         }
 
+        // Delete ad image files
+        if ($ad->image && !str_starts_with($ad->image, 'http')) {
+            @unlink(public_path($ad->image));
+        }
+        foreach ($ad->images ?? [] as $img) {
+            if ($img->image && !str_starts_with($img->image, 'http')) {
+                @unlink(public_path($img->image));
+            }
+        }
+
         $ad->delete();
-        return redirect()->route('users.profile', Auth::id())->with('success', 'تم حذف الإعلان بنجاح!');
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'تم حذف الإعلان بنجاح']);
+        }
+
+        return redirect()->back()->with('success', 'تم حذف الإعلان بنجاح!');
     }
 
     public function myAds(Request $request)

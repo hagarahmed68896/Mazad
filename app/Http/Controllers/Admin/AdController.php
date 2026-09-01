@@ -807,4 +807,87 @@ class AdController extends Controller
 
         return back()->with('success', 'تم رفض الخدمة وإرسال الإشعار بنجاح.');
     }
+
+    public function destroy($id)
+    {
+        $ad = Ad::findOrFail($id);
+        
+        // Delete images
+        if ($ad->image && !str_starts_with($ad->image, 'http')) {
+            @unlink(public_path($ad->image));
+        }
+        foreach ($ad->images ?? [] as $img) {
+            if ($img->image && !str_starts_with($img->image, 'http')) {
+                @unlink(public_path($img->image));
+            }
+        }
+
+        $ad->delete();
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'تم حذف الإعلان بنجاح']);
+        }
+
+        return back()->with('success', 'تم حذف الإعلان بنجاح.');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $ids = $request->selected ?? [];
+        if (!empty($ids)) {
+            $ads = Ad::whereIn('id', $ids)->get();
+            foreach ($ads as $ad) {
+                if ($ad->image && !str_starts_with($ad->image, 'http')) {
+                    @unlink(public_path($ad->image));
+                }
+                foreach ($ad->images ?? [] as $img) {
+                    if ($img->image && !str_starts_with($img->image, 'http')) {
+                        @unlink(public_path($img->image));
+                    }
+                }
+                $ad->delete();
+            }
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'تم حذف الإعلانات المحددة بنجاح.');
+    }
+
+    public function destroyService($id)
+    {
+        $service = Service::findOrFail($id);
+        if ($service->image && !str_starts_with($service->image, 'http')) {
+            @unlink(public_path($service->image));
+        }
+        $service->delete();
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'تم حذف الخدمة بنجاح']);
+        }
+
+        return back()->with('success', 'تم حذف الخدمة بنجاح.');
+    }
+
+    public function bulkDestroyServices(Request $request)
+    {
+        $ids = $request->selected ?? [];
+        if (!empty($ids)) {
+            $services = Service::whereIn('id', $ids)->get();
+            foreach ($services as $service) {
+                if ($service->image && !str_starts_with($service->image, 'http')) {
+                    @unlink(public_path($service->image));
+                }
+                $service->delete();
+            }
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'تم حذف الخدمات المحددة بنجاح.');
+    }
 }

@@ -13,8 +13,11 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $period = $request->get('period', 'weekly'); 
-        $adType = $request->get('ad_type', 'all'); 
+        $defaultPeriod = $request->get('period', 'weekly');
+        $usersPeriod   = $request->get('users_period', $defaultPeriod);
+        $adsPeriod     = $request->get('ads_period', $defaultPeriod);
+        $revenuePeriod = $request->get('revenue_period', $defaultPeriod);
+        $adType        = $request->get('ad_type', 'all'); 
 
         $totalUsers = User::count();
         $totalAds = Ad::count();
@@ -60,52 +63,86 @@ class DashboardController extends Controller
             ],
         ];
 
-        $charts = $this->getChartData($period, $adType);
+        $charts = $this->getChartData($usersPeriod, $adsPeriod, $revenuePeriod, $adType);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'charts' => $charts,
+                'usersPeriod' => $usersPeriod,
+                'adsPeriod' => $adsPeriod,
+                'revenuePeriod' => $revenuePeriod,
+                'adType' => $adType,
+            ]);
+        }
 
         return view('dashboard', compact(
-            'period', 'totalUsers', 'totalAds', 'totalRevenue', 'growthData', 'recentTransactions', 'charts', 'cardStats'
+            'usersPeriod', 'adsPeriod', 'revenuePeriod', 'adType',
+            'totalUsers', 'totalAds', 'totalRevenue', 'growthData',
+            'recentTransactions', 'charts', 'cardStats'
         ));
     }
 
-    private function getChartData($period, $adType)
+    private function getChartData($usersPeriod, $adsPeriod, $revenuePeriod, $adType)
     {
         Carbon::setLocale('ar');
-        $usersChart = ['labels' => [], 'individuals' => [], 'companies' => []];
-        $adsChart = ['labels' => [], 'auctions' => [], 'direct_purchase' => []];
-        $revenueChart = ['labels' => [], 'revenue' => []];
-        $statusChart = ['active' => 0, 'pending' => 0, 'upcoming' => 0, 'finished' => 0];
-
-        $points = 7;
-        for ($i = $points - 1; $i >= 0; $i--) {
-            if ($period == 'yearly') {
-                $date = Carbon::now()->subMonths($i);
-                $usersChart['labels'][] = $date->translatedFormat('M Y');
-                $start = $date->copy()->startOfMonth();
-                $end = $date->copy()->endOfMonth();
-            } elseif ($period == 'monthly') {
-                $date = Carbon::now()->subWeeks($i);
-                $usersChart['labels'][] = 'أسبوع ' . $date->weekOfMonth;
-                $start = $date->copy()->startOfWeek();
-                $end = $date->copy()->endOfWeek();
-            } else { // weekly
-                $date = Carbon::now()->subDays($i);
-                $usersChart['labels'][] = $date->translatedFormat('l'); // Day name
-                $start = $date->copy()->startOfDay();
-                $end = $date->copy()->endOfDay();
+        
+        $buildDateRanges = function($period, $points = 7) {
+            $ranges = [];
+            for ($i = $points - 1; $i >= 0; $i--) {
+                if ($period == 'yearly') {
+                    $date = Carbon::now()->subMonths($i);
+                    $label = $date->translatedFormat('M Y');
+                    $start = $date->copy()->startOfMonth();
+                    $end = $date->copy()->endOfMonth();
+                } elseif ($period == 'monthly') {
+                    $date = Carbon::now()->subWeeks($i);
+                    $label = 'أسبوع ' . $date->weekOfMonth;
+                    $start = $date->copy()->startOfWeek();
+                    $end = $date->copy()->endOfWeek();
+                } else { // weekly
+                    $date = Carbon::now()->subDays($i);
+                    $label = $date->translatedFormat('l');
+                    $start = $date->copy()->startOfDay();
+                    $end = $date->copy()->endOfDay();
+                }
+                $ranges[] = [
+                    'label' => $label,
+                    'start' => $start,
+                    'end'   => $end,
+                ];
             }
+            return $ranges;
+        };
 
-            $usersChart['individuals'][] = User::where('account_type', 'individual')->whereBetween('created_at', [$start, $end])->count();
-            $usersChart['companies'][] = User::where('account_type', 'company')->whereBetween('created_at', [$start, $end])->count();
-            
-            $adsChart['auctions'][] = Ad::whereIn('type', ['electronic_auction', 'hybrid_auction'])->whereBetween('created_at', [$start, $end])->count();
-            $adsChart['direct_purchase'][] = Ad::where('type', 'direct_purchase')->whereBetween('created_at', [$start, $end])->count();
-
-            $revenueChart['revenue'][] = Transaction::where('status', 'completed')->whereBetween('created_at', [$start, $end])->sum('amount');
+        // 1. Users Chart
+        $usersChart = ['labels' => [], 'individuals' => [], 'companies' => []];
+        $userRanges = $buildDateRanges($usersPeriod);
+        foreach ($userRanges as $range) {
+            $usersChart['labels'][] = $range['label'];
+            $usersChart['individuals'][] = User::where('account_type', 'individual')->whereBetween('created_at', [$range['start'], $range['end']])->count();
+            $usersChart['companies'][] = User::where('account_type', 'company')->whereBetween('created_at', [$range['start'], $range['end']])->count();
         }
 
-        $adsChart['labels'] = $usersChart['labels'];
-        $revenueChart['labels'] = $usersChart['labels'];
+        // 2. Ads Chart
+        $adsChart = ['labels' => [], 'auctions' => [], 'direct_purchase' => []];
+        $adRanges = $buildDateRanges($adsPeriod);
+        foreach ($adRanges as $range) {
+            $adsChart['labels'][] = $range['label'];
+            $adsChart['auctions'][] = Ad::whereIn('type', ['electronic_auction', 'hybrid_auction'])->whereBetween('created_at', [$range['start'], $range['end']])->count();
+            $adsChart['direct_purchase'][] = Ad::where('type', 'direct_purchase')->whereBetween('created_at', [$range['start'], $range['end']])->count();
+        }
 
+        // 3. Revenue Chart
+        $revenueChart = ['labels' => [], 'revenue' => []];
+        $revenueRanges = $buildDateRanges($revenuePeriod);
+        foreach ($revenueRanges as $range) {
+            $revenueChart['labels'][] = $range['label'];
+            $revenueChart['revenue'][] = Transaction::where('status', 'completed')->whereBetween('created_at', [$range['start'], $range['end']])->sum('amount');
+        }
+
+        // 4. Status Chart
+        $statusChart = ['active' => 0, 'pending' => 0, 'upcoming' => 0, 'finished' => 0];
         $statusQuery = Ad::query();
         if ($adType == 'auctions') {
             $statusQuery->whereIn('type', ['electronic_auction', 'hybrid_auction']);
@@ -116,7 +153,9 @@ class DashboardController extends Controller
         }
 
         $statusChart['active'] = (clone $statusQuery)->where('status', 'active')->count();
-        $statusChart['pending'] = (clone $statusQuery)->whereNull('status')->orWhere('status', 'under_review')->count(); 
+        $statusChart['pending'] = (clone $statusQuery)->where(function($q) {
+            $q->whereNull('status')->orWhere('status', 'under_review');
+        })->count(); 
         $statusChart['upcoming'] = (clone $statusQuery)->where('status', 'upcoming')->count();
         $statusChart['finished'] = (clone $statusQuery)->where('status', 'finished')->count();
 

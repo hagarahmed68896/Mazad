@@ -6,6 +6,10 @@
 <div x-data="{ 
         selected: [], 
         allIds: {{ json_encode($services->pluck('id')->toArray()) }},
+        showDeleteModal: false,
+        showBulkDeleteModal: false,
+        deleteId: null,
+        deleteTitle: '',
         get isAllSelected() { return this.selected.length > 0 && this.selected.length === this.allIds.length },
         toggleAll() {
             if (this.isAllSelected) {
@@ -16,6 +20,67 @@
         }
     }" 
     class="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-6 relative">
+
+    <!-- Confirmation Modals -->
+    <template x-teleport="body">
+        <div>
+            <!-- Single Delete Modal -->
+            <div x-show="showDeleteModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div x-show="showDeleteModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showDeleteModal = false"></div>
+                
+                <div x-show="showDeleteModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" class="relative bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl border border-slate-100 text-center">
+                    <div class="flex flex-col items-center text-center gap-6">
+                        <div class="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 shadow-inner" style="background-color: #FFF1F2; color: #F43F5E;">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <h3 class="text-2xl font-black text-slate-800">تأكيد حذف الخدمة</h3>
+                            <p class="text-slate-500 font-bold leading-relaxed">هل أنت متأكد من رغبتك في حذف الخدمة <span class="text-rose-500 font-black" x-text="`(${deleteTitle})`"></span>؟ لا يمكن التراجع عن هذا الإجراء.</p>
+                        </div>
+
+                        <div class="flex items-center gap-4 w-full pt-4">
+                            <button type="button" @click="showDeleteModal = false" class="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all active:scale-95 text-sm" style="background-color: #F1F5F9; color: #475569;">إلغاء</button>
+                            <form :action="`{{ url('admin/ads/services') }}/${deleteId}`" method="POST" class="flex-1">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="w-full px-6 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black shadow-xl shadow-rose-500/20 hover:scale-[1.02] active:scale-95 transition-all text-sm" style="background-color: #EF4444; color: #ffffff;">نعم، حذف</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Delete Modal -->
+            <div x-show="showBulkDeleteModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div x-show="showBulkDeleteModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showBulkDeleteModal = false"></div>
+                
+                <div x-show="showBulkDeleteModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" class="relative bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl border border-slate-100 text-center">
+                    <div class="flex flex-col items-center text-center gap-6">
+                        <div class="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 shadow-inner" style="background-color: #FFF1F2; color: #F43F5E;">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <h3 class="text-2xl font-black text-slate-800">حذف الخدمات المحددة</h3>
+                            <p class="text-slate-500 font-bold leading-relaxed">هل أنت متأكد من رغبتك في حذف <span class="text-rose-500 font-black" x-text="`${selected.length} خدمة`"></span>؟ سيتم حذفها نهائياً من النظام.</p>
+                        </div>
+
+                        <div class="flex items-center gap-4 w-full pt-4">
+                            <button type="button" @click="showBulkDeleteModal = false" class="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all active:scale-95 text-sm" style="background-color: #F1F5F9; color: #475569;">إلغاء</button>
+                            <form action="{{ route('admin.ads.services.bulk-destroy') }}" method="POST" class="flex-1">
+                                @csrf
+                                <template x-for="id in selected" :key="id">
+                                    <input type="hidden" name="selected[]" :value="id">
+                                </template>
+                                <button type="submit" class="w-full px-6 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black shadow-xl shadow-rose-500/20 hover:scale-[1.02] active:scale-95 transition-all text-sm" style="background-color: #EF4444; color: #ffffff;">نعم، حذف الكل</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
 
     <!-- Title & Top Action -->
     <div class="flex items-center justify-between">
@@ -134,6 +199,13 @@
                         <span class="text-sm font-black text-[#1C1C1C]"><span x-text="selected.length"></span> محدد</span>
                     </div>
                 </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="showBulkDeleteModal = true" class="px-4 py-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors flex items-center gap-2 font-black text-xs" style="color: #EF4444;" title="حذف جماعي">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        <span>حذف المحدد</span>
+                    </button>
+                    <button type="button" @click="selected = []" class="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors">إلغاء</button>
+                </div>
             </div>
         </div>
 
@@ -154,7 +226,7 @@
                         <th class="px-4 py-4">السعر</th>
                         <th class="px-4 py-4">حالة الخدمة</th>
                         <th class="px-4 py-4">التاريخ</th>
-                        <th class="px-4 py-4 rounded-l-2xl text-center">العمليات</th>
+                        <th class="px-6 py-4 rounded-l-2xl text-center w-36">العمليات</th>
                     </tr>
                 </thead>
                 <tbody class="font-semibold text-[#6F6F6F]">
@@ -191,22 +263,23 @@
                         <td class="px-4 py-4 text-slate-400 text-xs font-bold" dir="ltr">
                             {{ $service->created_at->format('Y/m/d') }}
                         </td>
-                        <td class="px-4 py-4 rounded-l-2xl text-center">
-                            @if($service->status == 'pending')
-                                <div class="flex items-center justify-center gap-2" @click.stop>
+                        <td class="px-6 py-4 rounded-l-2xl text-center" @click.stop>
+                            <div class="flex items-center justify-center gap-1.5">
+                                @if($service->status == 'pending')
                                     <form action="{{ route('admin.ads.services.approve', $service->id) }}" method="POST" class="inline">
                                         @csrf
-                                        <button type="submit" class="bg-[#10B981] hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95" style="background-color: #10B981;">
+                                        <button type="submit" class="bg-[#10B981] hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95 shadow-sm" style="background-color: #10B981;" title="قبول الخدمة">
                                             قبول
                                         </button>
                                     </form>
-                                    <button type="button" onclick="rejectService(event, '{{ $service->id }}')" class="bg-[#EF4444] hover:bg-rose-600 text-white px-3 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95" style="background-color: #EF4444;">
+                                    <button type="button" onclick="rejectService(event, '{{ $service->id }}')" class="bg-[#F59E0B] hover:bg-amber-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95 shadow-sm" style="background-color: #F59E0B;" title="رفض الخدمة">
                                         رفض
                                     </button>
-                                </div>
-                            @else
-                                -
-                            @endif
+                                @endif
+                                <button type="button" @click.stop="deleteId = {{ $service->id }}; deleteTitle = '{{ addslashes($service->title) }}'; showDeleteModal = true" class="p-1.5 bg-slate-50 text-slate-400 rounded-lg hover:bg-rose-500 hover:text-white transition-all group-hover:shadow-sm" title="حذف الخدمة">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     @empty

@@ -11,340 +11,334 @@
   <img src="https://img.shields.io/badge/Firebase-FCM-FFCA28?style=flat-square&logo=firebase&logoColor=black" alt="Firebase FCM">
 </p>
 
-<h1 align="center">🔨 مزاد — Mazad</h1>
+<h1 align="center">Mazad — Real-time Auction & Multi-Vendor Marketplace Platform</h1>
 
 <p align="center">
-  <strong>منصة مزادات إلكترونية متكاملة — Full-Stack Auction & Marketplace Platform</strong>
+  A comprehensive, enterprise-ready digital auction and marketplace platform built with <strong>Laravel 13</strong>, <strong>MySQL</strong>, <strong>Pusher WebSockets</strong>, and <strong>Firebase Cloud Messaging</strong>.
 </p>
 
 ---
 
-## 📋 نظرة عامة — Overview
+## 📌 Table of Contents
 
-**مزاد (Mazad)** هي منصة مزادات وتجارة إلكترونية متكاملة مبنية على **Laravel 13**، تتيح للمستخدمين إنشاء إعلانات، المشاركة في مزادات إلكترونية وهجينة، الشراء المباشر، إدارة المبيعات والمشتريات، والتواصل عبر نظام محادثات فوري.
-
-**Mazad** is a comprehensive auction and e-commerce platform built on **Laravel 13**. It enables users to create ads, participate in electronic and hybrid auctions, buy directly, manage sales and purchases, and communicate through a real-time chat system.
-
----
-
-## ✨ المميزات الرئيسية — Key Features
-
-### 🏷️ إدارة الإعلانات — Ads Management
-- إنشاء، تعديل، حذف، وإعادة نشر الإعلانات
-- دعم أنواع متعددة: **شراء مباشر** | **مزاد إلكتروني** | **مزاد هجين**
-- رفع صور ومرفقات متعددة لكل إعلان
-- خصائص ديناميكية حسب الفئة (Dynamic Properties)
-- نظام ترويج ودفع للإعلانات (Promotion & Payment)
-
-### 🔨 نظام المزادات — Auction System
-- مزادات إلكترونية مع تحديث فوري عبر **Pusher WebSockets**
-- نظام المزايدة مع حد أدنى وأقصى وزيادات محددة
-- عروض مضادة من البائع (Counter Offers)
-- قبول ورفض العروض والسومات
-- إشعارات عند الاقتراب من الحد الأقصى
-
-### 🛒 الشراء والطلبات — Orders & Purchases
-- نظام شراء مباشر (Buy Now)
-- سلة مشتريات (Shopping Cart)
-- إدارة المشتريات والمبيعات مع فلاتر متقدمة
-- كود تسليم (Delivery Code) لتوثيق الاستلام
-- نظام دفع عبر التحويل البنكي
-
-### 💬 المحادثات الفورية — Real-time Chat
-- محادثات مباشرة بين البائع والمشتري
-- دعم الرسائل النصية، الصور، والمرفقات
-- تثبيت وكتم المحادثات
-- حظر المستخدمين والإبلاغ عنهم
-- بث فوري عبر **Pusher** (Broadcasting)
-
-### 🔔 الإشعارات — Notifications
-- إشعارات فورية عبر **Firebase Cloud Messaging (FCM)**
-- إرسال إشعارات جماعية عبر Background Jobs
-- إعدادات إشعارات مخصصة لكل مستخدم
-- دعم أنواع متعددة من الإشعارات
-
-### ⭐ المفضلة والاطلاع لاحقاً — Wishlist & Look Later
-- إضافة/إزالة الإعلانات من المفضلة
-- قائمة "اطلاع لاحقاً" منفصلة
-- بحث وفلترة داخل القوائم المحفوظة
-
-### 🏢 إدارة الفريق — Team Management
-- إضافة أعضاء فريق لإدارة الحساب
-- صلاحيات وأدوار متعددة
-
-### 🤝 خدمات الشركاء — Partner Services
-- إنشاء وإدارة خدمات المندوبين/الشركاء
-- نظام Checkout مع ضمان (Escrow System)
-- إدارة طلبات الخدمة وإتمامها
-
-### 📊 التقارير والتحليلات — Reports & Analytics
-- لوحة تحكم شاملة للأدمن (Admin Dashboard)
-- تقارير الإعلانات، المبيعات، والمستخدمين
-- إدارة العمولات والتسويات المالية
-
-### 🛡️ لوحة تحكم المشرف — Admin Panel
-- إدارة المستخدمين والأقسام والمدن
-- إدارة البانرات الإعلانية
-- إدارة الأسئلة الشائعة والسياسات
-- نظام تذاكر الدعم الفني
-- إعدادات عامة للمنصة
+- [Overview](#-overview)
+- [Key Features](#-key-features)
+- [Architecture & Tech Stack](#-architecture--tech-stack)
+- [Project Directory Structure](#-project-directory-structure)
+- [Database & Eloquent Models](#-database--eloquent-models)
+- [API Architecture & Endpoints](#-api-architecture--endpoints)
+- [Real-time Events & WebSockets](#-real-time-events--websockets)
+- [Installation & Setup](#-installation--setup)
+- [Configuration & Environment Variables](#-configuration--environment-variables)
+- [Testing](#-testing)
+- [Security & Best Practices](#-security--best-practices)
+- [License](#-license)
 
 ---
 
-## 🏗️ البنية التقنية — Tech Stack
+## 📖 Overview
 
-| التقنية | الإصدار | الاستخدام |
-|---------|---------|-----------|
-| **PHP** | 8.3+ | Backend Runtime |
-| **Laravel** | 13.x | Backend Framework |
-| **MySQL** | - | Database |
-| **Laravel Sanctum** | 4.x | API Authentication (Token-based) |
-| **Pusher** | 7.x | Real-time WebSockets |
-| **Firebase FCM** | - | Push Notifications |
-| **Vite** | 8.x | Frontend Build Tool |
-| **Tailwind CSS** | 4.x | Frontend Styling |
+**Mazad** is an end-to-end auction engine and classifieds e-commerce platform. It provides dynamic bidding mechanisms, multi-vendor listing workflows, direct checkout, real-time negotiation, escrow-backed partner service contracts, and automated notification pipelines.
+
+Engineered with performance and scalability in mind, it separates public mobile/frontend API interfaces (`/api`) from an administrative command center (`/admin`), backed by token-based authentication (Sanctum) and event broadcasting (Pusher).
 
 ---
 
-## 📂 هيكل المشروع — Project Structure
+## ✨ Key Features
 
-```
+### 🔨 1. Advanced Auction & Bidding Engine
+- **Multiple Auction Modes**:
+  - **Online Auctions**: Timed digital bidding with configurable minimum bid increments and duration rules.
+  - **Hybrid Auctions**: Combines on-site and remote live bidding.
+  - **Direct Purchase (Buy It Now)**: Instant checkout option bypassing the auction process.
+- **Automated Bidding Logic**:
+  - Min/Max bid limits with automatic outbid validation.
+  - Real-time limit threshold alert triggers.
+  - Seller counter-offer negotiations (`Accept`, `Reject`, `Counter`).
+
+### 📦 2. Listings & Dynamic Attributes
+- Multi-category support (Real Estate, Vehicles, Electronics, Heavy Equipment, etc.).
+- Dynamic per-category specification properties (custom metadata attributes per category).
+- Multi-image media uploads and legal/technical attachment handling.
+- Geo-coordinates, city/district geolocation indexing, and proximity search.
+- Sponsored and promoted ads processing.
+
+### 💬 3. Real-time Chat & In-App Messaging
+- Direct peer-to-peer conversations between buyers and sellers.
+- Instant delivery powered by **Pusher WebSockets** (`conversation.{id}` private channels).
+- Attachment and image sharing in chat threads.
+- Chat management: pinning, muting, reporting, and user blocking.
+
+### 🔐 4. Secure Orders, Payments & Escrow
+- Complete order lifecycle: `Pending Payment` ➔ `Paid` ➔ `Delivered` ➔ `Received`.
+- **OTP Delivery Verification**: Unique delivery authentication codes required from the buyer to release settlements.
+- **Partner Services & Escrow Checkout**: Secure partner contract handling with escrow settlement hold and release upon verified service completion.
+
+### 🔔 5. Push Notification Pipeline
+- Integrated with **Firebase Cloud Messaging (FCM)** via Google Service Account credentials.
+- Multi-device token management per user.
+- Asynchronous dispatching via queued background jobs (`SendBulkNotificationsJob`).
+- Granular per-user notification preferences (SMS, push, auction updates).
+
+### 👥 6. Multi-Tier Users & Team Collaboration
+- Accounts tailored for: **Individuals**, **Commercial Companies**, and **Authorized Partners / Representatives**.
+- **Team Management**: Business accounts can invite team members with granular permission scopes.
+
+### 📊 7. Administrative Command Center
+- Full-featured web admin dashboard for business operations.
+- Moderation tools: ad approvals, reports inspection, banned user filters.
+- Financial settlement tracking, fee commissions, and transaction logs.
+- CMS features: dynamic banners, FAQs, policy guides, and support ticketing.
+
+---
+
+## 🛠️ Architecture & Tech Stack
+
+| Layer | Technology | Details |
+|---|---|---|
+| **Backend Framework** | **Laravel 13.x** | Modern PHP MVC architecture, Queues, Events |
+| **Language Runtime** | **PHP 8.3+** | Strict types, match expressions, JIT performance |
+| **Database** | **MySQL 8.x** | Relational schema, spatial geometry indices |
+| **API Authentication** | **Laravel Sanctum 4.x** | Secure bearer token issuance and expiration |
+| **Real-time Engine** | **Pusher PHP Server 7.x** | WebSocket event broadcasting |
+| **Push Notifications** | **Firebase FCM v1 API** | Multi-platform mobile notification delivery |
+| **Frontend & Assets** | **Vite 8.x + Tailwind CSS 4.x** | Fast build tooling and modern UI system |
+| **Queue & Worker** | **Laravel Database Queue** | Asynchronous email, bulk notifications & tasks |
+
+---
+
+## 📂 Project Directory Structure
+
+```plaintext
 Mazad/
 ├── app/
-│   ├── Console/             # Artisan Commands
-│   ├── Events/              # Broadcasting Events (MessageSent)
+│   ├── Events/                     # Broadcast events (e.g., MessageSent)
 │   ├── Http/
 │   │   ├── Controllers/
-│   │   │   ├── Api/         # 19 API Controllers (Mobile/Frontend)
-│   │   │   └── Admin/       # 20 Admin Panel Controllers
-│   │   └── ...
-│   ├── Jobs/                # Queue Jobs (Bulk Notifications)
-│   ├── Models/              # 34 Eloquent Models
-│   ├── Providers/           # Service Providers
-│   └── Services/            # Business Logic (FCM Service)
-├── config/                  # Configuration Files
+│   │   │   ├── Admin/              # 20 Admin management controllers
+│   │   │   └── Api/                # 19 REST API controllers for mobile/SPA
+│   │   └── Middleware/             # Token auth, banned user verification
+│   ├── Jobs/                       # Background jobs (SendBulkNotificationsJob)
+│   ├── Models/                     # 34 Eloquent ORM entity definitions
+│   └── Services/                   # External integrations (FcmService, etc.)
+├── bootstrap/                      # Application bootstrapping & providers
+├── config/                         # Environment & runtime configurations
 ├── database/
-│   ├── factories/           # Model Factories
-│   ├── migrations/          # 81 Database Migrations
-│   └── seeders/             # Database Seeders
-├── lang/                    # Localization (Arabic/English)
-├── public/                  # Public Assets
-├── resources/               # Views, CSS, JS
+│   ├── factories/                  # Model factory definitions
+│   ├── migrations/                 # 81 Database schema migrations
+│   └── seeders/                    # Realistic test data seeders
+├── public/                         # Public entry point (index.php) and assets
+├── resources/                      # Blade admin views, localization, CSS & JS
 ├── routes/
-│   ├── api.php              # RESTful API Routes
-│   ├── web.php              # Web Routes (Admin Panel)
-│   ├── channels.php         # Broadcasting Channels
-│   └── console.php          # Scheduled Tasks
-├── storage/                 # File Storage & Logs
-└── tests/                   # Unit & Feature Tests
+│   ├── api.php                     # RESTful API routing endpoints
+│   ├── web.php                     # Administration panel web routes
+│   └── channels.php                # Private Pusher broadcast authorization
+└── tests/                          # Automated Unit and Feature test suites
 ```
 
 ---
 
-## 🗃️ نماذج البيانات — Data Models (34 Model)
+## 🗃️ Database & Eloquent Models
 
-| النموذج | الوصف |
-|---------|-------|
-| `User` | المستخدمين (فرد، شركة، مندوب) |
-| `Ad` | الإعلانات (مزاد، شراء مباشر، هجين) |
-| `AdImage` / `AdAttachment` | صور ومرفقات الإعلانات |
-| `AdProperty` / `Property` | خصائص ديناميكية للإعلانات |
-| `AdQuestion` / `Question` | أسئلة وأجوبة الإعلانات |
-| `Category` / `CategoryPage` | الأقسام والفئات |
-| `Region` / `City` | المناطق والمدن |
-| `Bid` | المزايدات والعروض |
-| `Order` | طلبات الشراء |
-| `Cart` | سلة المشتريات |
-| `Conversation` / `Message` | المحادثات والرسائل |
-| `Notification` | الإشعارات |
-| `Favorite` / `LookLater` | المفضلة / اطلاع لاحقاً |
-| `Review` | التقييمات والمراجعات |
-| `Service` / `ServiceOrder` | خدمات الشركاء |
-| `Banner` | البانرات الإعلانية |
-| `Ticket` / `TicketLog` | تذاكر الدعم الفني |
-| `Transaction` / `Commission` | المعاملات والعمولات |
-| `FinancialSettlement` | التسويات المالية |
-| `BlockedUser` | قائمة الحظر |
-| `Faq` / `Policy` / `TermCondition` | الأسئلة الشائعة، السياسات، والشروط |
-| `Setting` | إعدادات المنصة |
+The platform is powered by **34 Eloquent Models** orchestrating relational business domains:
+
+| Domain | Key Models | Responsibility |
+|---|---|---|
+| **Users & Security** | `User`, `BlockedUser` | User profiles, account tiers, verification states |
+| **Ads & Catalog** | `Ad`, `AdImage`, `AdAttachment`, `Category`, `CategoryPage`, `Property`, `AdProperty` | Listing items, media galleries, dynamic specs |
+| **Auctions & Bidding** | `Bid`, `Question`, `AdQuestion` | Live bid records, limits, Q&A on lots |
+| **Orders & Commerce** | `Order`, `Cart`, `ServiceOrder` | Direct sales, cart checkout, partner services |
+| **Communication** | `Conversation`, `Message`, `Notification` | WebSocket chat channels, push messages |
+| **Financials** | `Transaction`, `Commission`, `FinancialSettlement` | Commission fees, settlement payouts |
+| **Helpdesk & Support** | `Ticket`, `TicketLog`, `Faq`, `Policy`, `TermCondition`, `Review` | Support tickets, customer ratings, CMS |
+| **Geography** | `Region`, `City` | Regional clustering and location-based discovery |
 
 ---
 
-## 🔌 API Endpoints
+## 🔌 API Architecture & Endpoints
 
-### 🔓 Public Endpoints
-| Method | Endpoint | الوصف |
-|--------|----------|-------|
-| `POST` | `/api/login` | تسجيل الدخول |
-| `POST` | `/api/register` | إنشاء حساب جديد |
-| `POST` | `/api/send-otp` | إرسال رمز التحقق |
-| `POST` | `/api/verify-otp` | التحقق من الرمز |
-| `POST` | `/api/forgot-password` | نسيت كلمة المرور |
-| `POST` | `/api/reset-password` | إعادة تعيين كلمة المرور |
-| `GET` | `/api/home` | الصفحة الرئيسية |
-| `GET` | `/api/categories` | قائمة الأقسام |
-| `GET` | `/api/search` | البحث المتقدم |
-| `GET` | `/api/ads/{id}` | تفاصيل الإعلان |
-| `GET` | `/api/regions` | المناطق |
-| `GET` | `/api/cities` | المدن |
-| `GET` | `/api/faqs` | الأسئلة الشائعة |
-| `GET` | `/api/privacy-policy` | سياسة الخصوصية |
-| `GET` | `/api/terms-conditions` | الشروط والأحكام |
+All client interactions utilize JSON payload exchanges with standard HTTP verbs and status codes:
 
-### 🔐 Protected Endpoints (Require Auth)
-| Module | Endpoints | الوصف |
-|--------|-----------|-------|
-| **Profile** | 10 endpoints | إدارة الملف الشخصي، الصورة، البنك، الإشعارات |
-| **Ads** | 7 endpoints | إنشاء، تعديل، حذف، إعادة نشر الإعلانات |
-| **Bids & Offers** | 5 endpoints | المزايدة، قبول، رفض، عروض مضادة |
-| **Orders** | 6 endpoints | الشراء، المبيعات، المشتريات، توثيق الاستلام |
-| **Cart** | 5 endpoints | إضافة، تحديث، حذف، إفراغ، الدفع |
-| **Chat** | 5 endpoints | المحادثات، إرسال رسائل، حظر |
-| **Wishlist** | 2 endpoints | عرض المفضلة، إضافة/إزالة |
-| **Look Later** | 2 endpoints | عرض القائمة، إضافة/إزالة |
-| **Reviews** | 6 endpoints | إضافة، رد، تعديل، حذف التقييمات |
-| **Q&A** | 3 endpoints | أسئلة وأجوبة الإعلانات |
-| **Team** | 5 endpoints | إدارة أعضاء الفريق |
-| **Services** | 4 endpoints | إدارة خدمات الشركاء |
-| **Service Orders** | 4 endpoints | طلبات الخدمات (Escrow) |
-| **Notifications** | 4 endpoints | عرض، قراءة، حذف الإشعارات |
-| **Reports** | 1 endpoint | التقارير والتحليلات |
-
-> 📄 للتوثيق التفصيلي لكل endpoint، راجع ملف [`API_Documentation.md`](./API_Documentation.md)
-
----
-
-## ⚙️ التثبيت والإعداد — Installation & Setup
-
-### المتطلبات — Prerequisites
-
-- PHP >= 8.3
-- Composer
-- MySQL
-- Node.js & npm
-- حساب Pusher (للمحادثات الفورية)
-- مشروع Firebase (للإشعارات)
-
-### خطوات التثبيت — Installation Steps
-
-**1. استنساخ المشروع:**
-```bash
-git clone <repository-url> mazad
-cd mazad
+### Base Request Headers
+```http
+Authorization: Bearer <your_sanctum_token>
+Accept: application/json
+Content-Type: application/json
 ```
 
-**2. تثبيت التبعيات:**
+### Key API Endpoint Groups
+
+#### 1. Authentication & Onboarding
+- `POST /api/register` — New account registration with OTP trigger
+- `POST /api/login` — Phone/Email credential authentication
+- `POST /api/verify-otp` — Verify SMS activation code
+- `POST /api/send-otp` — Resend verification token
+
+#### 2. Ads & Catalog Search
+- `GET /api/home` — Aggregated homepage feed (featured, urgent, recent auctions)
+- `GET /api/categories` — Nested categories tree with metadata
+- `GET /api/search` — Filtered search engine (price range, city, auction type, dynamic props)
+- `POST /api/ads` — Create a new listing lot with images & attachments
+
+#### 3. Bidding & Auction Interactions
+- `POST /api/ads/{id}/bids` — Place a bid on a live auction lot
+- `GET /api/bids-offers` — Retrieve incoming bids & offers received by seller
+- `POST /api/bids-offers/{id}/accept` — Accept winning or negotiated bid
+- `POST /api/bids-offers/{id}/counter` — Send seller counter-proposal
+
+#### 4. Cart & Purchase Management
+- `POST /api/ads/{id}/orders` — Instant direct purchase order
+- `GET /api/my-purchases` — User order history with status tracking
+- `GET /api/my-sales` — Seller sales dashboard
+- `POST /api/orders/{id}/confirm-delivery` — Complete handover using security delivery code
+
+#### 5. Real-time Messaging
+- `GET /api/chats` — Inbox conversations list with unread counter
+- `POST /api/chats/start` — Initiate or resume chat with lot owner
+- `POST /api/chats/{id}/send` — Send instant message with file attachment
+
+> 💡 *For exhaustive API specifications, request schemas, and sample JSON responses, refer to the project documentation file [`API_Documentation.md`](./API_Documentation.md).*
+
+---
+
+## 📡 Real-time Events & WebSockets
+
+Broadcast authorization is defined in `routes/channels.php`:
+
+```php
+// Private individual notification channel
+Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
+    return (int) $user->id === (int) $id;
+});
+
+// Private conversation channel between participants
+Broadcast::channel('conversation.{conversationId}', function ($user, $conversationId) {
+    $conversation = \App\Models\Conversation::find($conversationId);
+    return $conversation && (
+        (int)$conversation->user_one_id === (int)$user->id || 
+        (int)$conversation->user_two_id === (int)$user->id
+    );
+});
+```
+
+---
+
+## 🚀 Installation & Setup
+
+### Prerequisites
+- **PHP** >= 8.3 with extensions (`pdo_mysql`, `mbstring`, `openssl`, `curl`, `bcmath`)
+- **Composer** 2.x
+- **Node.js** >= 18.x & **npm**
+- **MySQL Server** 8.x
+
+### Quickstart Guide
+
 ```bash
+# 1. Clone the repository
+git clone https://github.com/hagarahmed68896/Mazad.git
+cd Mazad
+
+# 2. Install PHP and Node dependencies
 composer install
 npm install
-```
 
-**3. إعداد ملف البيئة:**
-```bash
+# 3. Environment configuration
 cp .env.example .env
 php artisan key:generate
+
+# 4. Configure database credentials in .env, then run migrations
+php artisan migrate --seed
+
+# 5. Create storage symlink
+php artisan storage:link
+
+# 6. Build frontend assets
+npm run build
 ```
 
-**4. تعديل ملف `.env`:**
-```env
+### Running Locally
+
+You can launch the complete ecosystem using Laravel's parallel orchestration script:
+
+```bash
+composer dev
+```
+
+> **Note:** `composer dev` starts the HTTP server, the asynchronous background queue worker, the Pail log monitor, and the Vite dev server concurrently.
+
+Alternatively, run each process in dedicated terminals:
+```bash
+php artisan serve          # Laravel HTTP Server (http://localhost:8000)
+php artisan queue:listen   # Queue Worker for notifications and orders
+npm run dev                # Vite Dev Server
+```
+
+---
+
+## ⚙️ Configuration & Environment Variables
+
+Key parameters required in `.env`:
+
+```ini
+APP_NAME=Mazad
+APP_ENV=local
+APP_KEY=base64:...
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+
 # Database
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=mazad
 DB_USERNAME=root
-DB_PASSWORD=your_password
+DB_PASSWORD=your_secure_password
 
-# Pusher (Real-time)
+# Broadcasting (Pusher WebSockets)
 BROADCAST_CONNECTION=pusher
-PUSHER_APP_ID=your_app_id
-PUSHER_APP_KEY=your_app_key
-PUSHER_APP_SECRET=your_app_secret
-PUSHER_APP_CLUSTER=mt1
+PUSHER_APP_ID="your_pusher_app_id"
+PUSHER_APP_KEY="your_pusher_key"
+PUSHER_APP_SECRET="your_pusher_secret"
+PUSHER_APP_CLUSTER="mt1"
 
-# Firebase FCM
-FIREBASE_PROJECT_ID=your_project_id
-FIREBASE_CREDENTIALS_PATH=/path/to/firebase-credentials.json
+# Queue Driver
+QUEUE_CONNECTION=database
+
+# Firebase Cloud Messaging
+FIREBASE_PROJECT_ID="your-firebase-project-id"
+FIREBASE_CREDENTIALS_PATH="storage/credentials/firebase.json"
 ```
-
-**5. تهيئة قاعدة البيانات:**
-```bash
-php artisan migrate
-php artisan db:seed   # (اختياري)
-```
-
-**6. تشغيل المشروع:**
-```bash
-# تشغيل الكل معاً (Server + Queue + Vite)
-composer dev
-
-# أو تشغيل كل خدمة على حدة:
-php artisan serve          # Laravel Server
-php artisan queue:listen   # Queue Worker
-npm run dev                # Vite Dev Server
-```
-
-> 💡 **ملاحظة:** الأمر `composer dev` يشغل 4 عمليات متوازية:
-> - Laravel Server (المنفذ 8000)
-> - Queue Worker (للوظائف المجدولة)
-> - Pail Logger (سجلات مباشرة)
-> - Vite Dev Server (للأصول الأمامية)
 
 ---
 
-## 🔐 المصادقة — Authentication
+## 🧪 Testing
 
-يستخدم المشروع **Laravel Sanctum** للمصادقة عبر التوكن:
-
-```
-Authorization: Bearer <your_sanctum_token>
-Accept: application/json
-Content-Type: application/json
-```
-
-### نظام OTP
-- إرسال رمز تحقق عبر SMS
-- التحقق من الرمز لتفعيل الحساب
-- نظام الأجهزة المعروفة (Known Devices)
-
----
-
-## 📡 البث الفوري — Real-time Broadcasting
-
-### القنوات المتاحة — Available Channels
-
-| القناة | الوصف |
-|--------|-------|
-| `App.Models.User.{id}` | إشعارات خاصة بالمستخدم |
-| `conversation.{id}` | رسائل المحادثة الفورية |
-
-### الأحداث — Events
-
-| الحدث | الوصف |
-|-------|-------|
-| `MessageSent` | إرسال رسالة جديدة في المحادثة |
-
----
-
-## 🧪 الاختبارات — Testing
+Execute test suites using PHPUnit / Pest:
 
 ```bash
-# تشغيل جميع الاختبارات
-composer test
-
-# أو مباشرة
+# Run all automated tests
 php artisan test
+
+# Run specific feature tests
+php artisan test --filter=OrderTest
 ```
 
 ---
 
-## 📜 الرخصة — License
+## 🔒 Security & Best Practices
 
-هذا المشروع مرخص تحت رخصة [MIT](https://opensource.org/licenses/MIT).
+- **Token Safety**: API routes enforce `auth:sanctum` and a custom `check.banned` middleware pipeline.
+- **Credential Hygiene**: Sensitive keys (Firebase Service Account files, Pusher secrets, and database credentials) must strictly stay within `.env` and `.gitignore`.
+- **Escrow Safeguards**: Seller payout transactions are guarded by delivery confirmation tokens to eliminate fraud.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
 
 ---
 
 <p align="center">
-  <strong>🔨 مزاد — Mazad Platform</strong><br>
-  <em>Built with ❤️ using Laravel 13</em>
+  <strong>Mazad Auction Platform</strong> • Built with ❤️ using Laravel 13
 </p>
